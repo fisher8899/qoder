@@ -1,0 +1,28 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Agent/AI
+.claude/
+
+# Build outputs
+assessment-backend/target/
+assessment-frontend/node_modules/
+assessment-frontend/dist/
+
+# Logs
+*.log
+build_log.txt
+build_output*.txt
+
+# Config with secrets
+db-config.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.swp

@@ -1,0 +1,87 @@
+[data-theme="baidu"] {
+  --primary-color: #2932e1;
+  --primary-light: #4d55e8;
+  --primary-dark: #1a1f9e;
+  --sidebar-bg: #1a1f3e;
+  --sidebar-text: #c0c4cc;
+  --sidebar-active-bg: #2932e1;
+  --sidebar-active-text: #ffffff;
+  --header-bg: #ffffff;
+  --header-border: #e4e7ed;
+  --content-bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --border-color: #dcdfe6;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --danger-color: #f56c6c;
+  --info-color: #909399;
+}
+
+[data-theme="feishu"] {
+  --primary-color: #3370ff;
+  --primary-light: #5c8fff;
+  --primary-dark: #1a4fcc;
+  --sidebar-bg: #f0f2f5;
+  --sidebar-text: #1f2329;
+  --sidebar-active-bg: #e8f0fe;
+  --sidebar-active-text: #3370ff;
+  --header-bg: #ffffff;
+  --header-border: #e4e7ed;
+  --content-bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --text-primary: #1f2329;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --border-color: #dcdfe6;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --danger-color: #f56c6c;
+  --info-color: #909399;
+}
+
+[data-theme="tech"] {
+  --primary-color: #00d4ff;
+  --primary-light: #33ddff;
+  --primary-dark: #0099cc;
+  --sidebar-bg: #0a0e27;
+  --sidebar-text: #7b8ca8;
+  --sidebar-active-bg: rgba(0, 212, 255, 0.15);
+  --sidebar-active-text: #00d4ff;
+  --header-bg: #161b35;
+  --header-border: #1a1f3e;
+  --content-bg: #0f1429;
+  --card-bg: #161b35;
+  --text-primary: #e0e6f0;
+  --text-regular: #a0aec0;
+  --text-secondary: #7b8ca8;
+  --border-color: #1a1f3e;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --danger-color: #f56c6c;
+  --info-color: #909399;
+}
+
+[data-theme="state"] {
+  --primary-color: #c41e3a;
+  --primary-light: #d94460;
+  --primary-dark: #8e1528;
+  --sidebar-bg: #2b1216;
+  --sidebar-text: #c0c4cc;
+  --sidebar-active-bg: #c41e3a;
+  --sidebar-active-text: #ffffff;
+  --header-bg: #ffffff;
+  --header-border: #e4e7ed;
+  --content-bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --border-color: #dcdfe6;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --danger-color: #f56c6c;
+  --info-color: #909399;
+}

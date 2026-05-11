@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>月度业绩考核管理 - 时序图 v1</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f5f7fa; color: #333; }
+.header { background: linear-gradient(135deg, #1a3a6b, #2d5aa0); color: #fff; padding: 24px 40px; }
+.header h1 { font-size: 22px; }
+.header p { font-size: 13px; opacity: 0.7; margin-top: 6px; }
+.container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+.section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 28px; overflow: hidden; }
+.section-title { padding: 18px 24px; border-bottom: 2px solid #2d5aa0; }
+.section-title h2 { font-size: 17px; color: #1a3a6b; }
+.section-title p { font-size: 12px; color: #999; margin-top: 4px; }
+.diagram-area { padding: 20px; overflow-x: auto; }
+
+/* Sequence diagram structure */
+.seq-diagram { display: flex; flex-direction: column; min-width: 1100px; position: relative; }
+.seq-participants { display: flex; justify-content: center; margin-bottom: 0; position: relative; z-index: 2; }
+.seq-participant { width: 140px; text-align: center; margin: 0 20px; }
+.seq-participant-box { background: #2d5aa0; color: #fff; padding: 10px 8px; border-radius: 6px; font-size: 13px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+.seq-participant-sub { font-size: 10px; font-weight: 400; opacity: 0.8; margin-top: 2px; }
+.seq-lifelines { display: flex; justify-content: center; position: relative; }
+.seq-lifeline { width: 140px; margin: 0 20px; position: relative; }
+.lifeline-line { width: 2px; background: #c5d3e8; position: absolute; left: 50%; top: 0; bottom: 0; transform: translateX(-50%); }
+.lifeline-line-dashed { width: 2px; border-left: 2px dashed #c5d3e8; position: absolute; left: 50%; top: 0; bottom: 0; transform: translateX(-50%); }
+
+/* Messages */
+.seq-messages { position: relative; padding: 8px 0; }
+.seq-msg { display: flex; align-items: center; margin: 10px 0; position: relative; height: 28px; }
+.msg-arrow { height: 2px; position: absolute; top: 13px; }
+.msg-arrow-right { background: #2d5aa0; }
+.msg-arrow-left { background: #d46b08; }
+.msg-arrow-self { background: #722ed1; }
+.msg-label { position: absolute; top: -2px; font-size: 12px; white-space: nowrap; }
+.msg-label-right { color: #2d5aa0; }
+.msg-label-left { color: #d46b08; }
+.msg-label-self { color: #722ed1; }
+.msg-dot { width: 8px; height: 8px; border-radius: 50%; position: absolute; top: 10px; }
+.msg-dot-right { background: #2d5aa0; right: -4px; }
+.msg-dot-left { background: #d46b08; left: -4px; }
+
+/* Step number */
+.step-num { width: 22px; height: 22px; background: #2d5aa0; color: #fff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-right: 6px; }
+.step-num-alt { background: #d46b08; }
+.step-num-note { background: #722ed1; }
+
+/* Alt fragment */
+.alt-fragment { border: 1px solid #bfbfbf; border-radius: 4px; margin: 8px 0; position: relative; background: rgba(255,255,255,0.5); }
+.alt-label { position: absolute; top: -1px; left: -1px; background: #666; color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 4px 0 4px 0; font-weight: 600; }
+.alt-label-pass { background: #52c41a; }
+.alt-label-reject { background: #cf1322; }
+.alt-divider { border-top: 1px dashed #bfbfbf; margin: 0; position: relative; }
+.alt-divider-label { position: absolute; top: -10px; left: 8px; background: #fff; padding: 0 4px; font-size: 10px; color: #999; }
+
+/* Detailed row-based layout for better control */
+.seq-row { display: flex; align-items: center; min-height: 36px; margin: 4px 0; position: relative; }
+.seq-row-note { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 4px; padding: 6px 12px; margin: 8px 0; font-size: 12px; color: #ad6800; line-height: 1.6; }
+.seq-row-note strong { color: #8c6900; }
+
+/* Timeline column layout */
+.timeline { display: flex; flex-direction: column; align-items: stretch; position: relative; }
+.t-row { display: grid; grid-template-columns: 40px 140px 1fr 140px 1fr 140px 1fr 140px 1fr 140px; align-items: center; min-height: 32px; margin: 2px 0; }
+.t-row-alt { display: grid; grid-template-columns: 40px 140px 1fr 280px 1fr 140px; align-items: center; min-height: 32px; margin: 2px 0; }
+
+/* New approach: SVG-based */
+.diagram-svg { width: 100%; min-height: 400px; }
+
+/* Tab navigation */
+.tabs { display: flex; gap: 0; margin-bottom: 0; }
+.tab-btn { padding: 10px 24px; font-size: 14px; font-weight: 600; color: #999; background: #f0f2f5; border: 1px solid #e8e8e8; border-bottom: none; border-radius: 8px 8px 0 0; cursor: pointer; transition: all 0.2s; }
+.tab-btn.active { color: #2d5aa0; background: #fff; border-color: #2d5aa0; border-bottom-color: #fff; margin-bottom: -1px; z-index: 1; }
+.tab-btn:hover:not(.active) { color: #555; background: #e8e8e8; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Legend */
+.legend { display: flex; gap: 20px; flex-wrap: wrap; margin: 16px 24px; padding: 12px 16px; background: #fafafa; border-radius: 4px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+.legend-line { width: 30px; height: 2px; }
+.legend-line-solid { background: #2d5aa0; }
+.legend-line-reject { background: #d46b08; }
+.legend-line-self { background: #722ed1; }
+.legend-line-dashed { border-top: 2px dashed #52c41a; height: 0; }
+
+.version-tag { font-size: 11px; color: #999; background: #f0f0f0; padding: 2px 8px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>月度业绩考核管理 - 时序图 <span class="version-tag">v1</span></h1>
+  <p>中煤鄂尔多斯能源化工有限公司 · 综合考评管理系统</p>
+</div>
+<div class="container">
+  <div class="section">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('seq1')">业绩指标设定时序图</button>
+      <button class="tab-btn" onclick="switchTab('seq2')">月度业绩考核时序图</button>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line legend-line-solid"></div> 正向操作/消息</div>
+      <div class="legend-item"><div class="legend-line legend-line-reject"></div> 退回操作</div>
+      <div class="legend-item"><div class="legend-line legend-line-self"></div> 自操作/内部</div>
+      <div class="legend-item"><div class="legend-line legend-line-dashed"></div> 响应/返回</div>
+    </div>
+
+    <!-- ============ 时序图1：业绩指标设定 ============ -->
+    <div id="seq1" class="tab-content active">
+      <div class="section-title" style="border-bottom-color:#2d5aa0;">
+        <h2>业绩指标设定时序图</h2>
+        <p>年初启动年度考核目标设定，由各部门录入指标，逐级审批确认</p>
+      </div>
+      <div class="diagram-area">
+        <svg viewBox="0 0 1200 1080" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:1100px;">
+          <!-- Fonts -->
+          <defs>
+            <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#2d5aa0"/></marker>
+            <marker id="arrowOrange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#d46b08"/></marker>
+            <marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#722ed1"/></marker>
+            <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#52c41a"/></marker>
+          </defs>
+
+          <!-- Participant boxes -->
+          <rect x="40" y="10" width="130" height="42" rx="6" fill="#2d5aa0"/>
+          <text x="105" y="28" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">计划财务部(改革办公室)业绩考核管理员</text>
+          <text x="105" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(计划财务处)</text>
+
+          <rect x="250" y="10" width="130" height="42" rx="6" fill="#fa8c16"/>
+          <text x="315" y="28" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">部门绩效管理员</text>
+          <text x="315" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(部门联络员)</text>
+
+          <rect x="460" y="10" width="130" height="42" rx="6" fill="#52c41a"/>
+          <text x="525" y="28" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">部门负责人</text>
+          <text x="525" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(部门领导)</text>
+
+          <rect x="670" y="10" width="130" height="42" rx="6" fill="#722ed1"/>
+          <text x="735" y="28" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">分管领导</text>
+          <text x="735" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(上级主管)</text>
+
+          <rect x="880" y="10" width="130" height="42" rx="6" fill="#8c8c8c"/>
+          <text x="945" y="28" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">系统</text>
+          <text x="945" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(自动处理)</text>
+
+          <!-- Lifelines -->
+          <line x1="105" y1="52" x2="105" y2="1060" stroke="#c5d3e8" stroke-width="2"/>
+          <line x1="315" y1="52" x2="315" y2="1060" stroke="#c5d3e8" stroke-width="2"/>
+          <line x1="525" y1="52" x2="525" y2="1060" stroke="#c5d3e8" stroke-width="2"/>
+          <line x1="735" y1="52" x2="735" y2="1060" stroke="#c5d3e8" stroke-width="2"/>
+          <line x1="945" y1="52" x2="945" y2="1060" stroke="#c5d3e8" stroke-width="2"/>
+
+          <!-- Step 1: 创建考核组 -->
+          <circle cx="18" cy="85" r="12" fill="#2d5aa0"/><text x="18" y="89" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">1</text>
+          <line x1="105" y1="85" x2="940" y2="85" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue)"/>
+          <text x="522" y="80" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">创建年度业绩指标设定考核组（添加成员名单、业绩指标模版、设定开始日期）</text>
+
+          <!-- Step 2: 启动 -->
+          <circle cx="18" cy="125" r="12" fill="#2d5aa0"/><text x="18" y="129" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">2</text>
+          <line x1="105" y1="125" x2="940" y2="125" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple)"/>
+          <text x="522" y="120" text-anchor="middle" fill="#722ed1" font-size="12" font-weight="600">点击「启动」— 开启年度指标设定工作</text>
+
+          <!-- Step 3: 录入指标 -->
+          <circle cx="18" cy="170" r="12" fill="#fa8c16"/><text x="18" y="174" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">3</text>
+          <line x1="315" y1="165" x2="940" y2="165" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple)"/>
+          <text x="628" y="160" text-anchor="middle" fill="#722ed1" font-size="12">线下沟通后，在系统中录入本部门年度考核指标（大类→小类→考核内容）</text>
+          <line x1="315" y1="180" x2="940" y2="180" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple)"/>
+          <text x="628" y="175" text-anchor="middle" fill="#722ed1" font-size="12">保存为「草稿」状态</text>
+
+          <!-- Step 4: 提交审批 -->
+          <circle cx="18" cy="215" r="12" fill="#fa8c16"/><text x="18" y="219" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">4</text>
+          <line x1="315" y1="215" x2="520" y2="215" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue)"/>
+          <text x="418" y="210" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">提交年度业绩指标</text>
+          <text x="418" y="228" text-anchor="middle" fill="#999" font-size="10">状态 → 待部门负责人审批</text>
+
+          <!-- Step 5: 部门负责人审批 -->
+          <circle cx="18" cy="270" r="12" fill="#52c41a"/><text x="18" y="274" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">5</text>
+          <text x="525" y="258" text-anchor="middle" fill="#333" font-size="13" font-weight="600">【部门负责人审批】</text>
+
+          <!-- Alt: 通过 -->
+          <rect x="60" y="275" width="870" height="110" rx="4" fill="none" stroke="#52c41a" stroke-width="1.5"/>
+          <rect x="60" y="275" width="50" height="18" rx="4 0 4 0" fill="#52c41a"/>
+          <text x="85" y="288" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">通过</text>
+
+          <line x1="525" y1="305" x2="730" y2="305" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue)"/>
+          <text x="628" y="300" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">审批通过，提交给分管领导</text>
+          <text x="628" y="318" text-anchor="middle" fill="#999" font-size="10">状态 → 待分管领导审批</text>
+
+          <!-- Alt: 退回 -->
+          <line x1="60" y1="338" x2="930" y2="338" stroke="#bfbfbf" stroke-width="1" stroke-dasharray="6,4"/>
+          <text x="940" y="334" text-anchor="end" fill="#999" font-size="10">else</text>
+          <rect x="64" y="340" width="38" height="18" rx="3" fill="#cf1322"/>
+          <text x="83" y="353" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">退回</text>
+
+          <line x1="525" y1="365" x2="320" y2="365" stroke="#d46b08" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="422" y="360" text-anchor="middle" fill="#d46b08" font-size="12" font-weight="600">退回到部门绩效管理员（补充退回说明）</text>
+          <text x="422" y="378" text-anchor="middle" fill="#cf1322" font-size="10">状态 → 被退回，需更正后重新提交</text>
+
+          <!-- Step 6: 分管领导审批 -->
+          <circle cx="18" cy="410" r="12" fill="#722ed1"/><text x="18" y="414" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">6</text>
+          <text x="735" y="398" text-anchor="middle" fill="#333" font-size="13" font-weight="600">【分管领导审批】</text>
+
+          <rect x="60" y="415" width="870" height="110" rx="4" fill="none" stroke="#52c41a" stroke-width="1.5"/>
+          <rect x="60" y="415" width="50" height="18" rx="4 0 4 0" fill="#52c41a"/>
+          <text x="85" y="428" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">通过</text>
+
+          <line x1="735" y1="445" x2="110" y2="445" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue)"/>
+          <text x="422" y="440" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">审批通过，提交给计划财务部(改革办公室)业绩考核管理员</text>
+          <text x="422" y="458" text-anchor="middle" fill="#999" font-size="10">状态 → 待财务处审批</text>
+
+          <line x1="60" y1="478" x2="930" y2="478" stroke="#bfbfbf" stroke-width="1" stroke-dasharray="6,4"/>
+          <text x="940" y="474" text-anchor="end" fill="#999" font-size="10">else</text>
+          <rect x="64" y="480" width="38" height="18" rx="3" fill="#cf1322"/>
+          <text x="83" y="493" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">退回</text>
+
+          <line x1="735" y1="505" x2="320" y2="505" stroke="#d46b08" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="528" y="500" text-anchor="middle" fill="#d46b08" font-size="12" font-weight="600">退回到部门绩效管理员（补充退回说明）</text>
+
+          <!-- Step 7: 计划财务部(改革办公室)业绩考核管理员审批 -->
+          <circle cx="18" cy="550" r="12" fill="#2d5aa0"/><text x="18" y="554" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">7</text>
+          <text x="105" y="538" text-anchor="middle" fill="#333" font-size="13" font-weight="600">【计划财务部(改革办公室)业绩考核管理员审批】</text>
+
+          <rect x="60" y="555" width="870" height="110" rx="4" fill="none" stroke="#52c41a" stroke-width="1.5"/>
+          <rect x="60" y="555" width="50" height="18" rx="4 0 4 0" fill="#52c41a"/>
+          <text x="85" y="568" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">通过</text>
+
+          <line x1="105" y1="585" x2="940" y2="585" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue)"/>
+          <text x="522" y="580" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">审批通过 — 确定本年度业绩考核指标</text>
+          <text x="522" y="598" text-anchor="middle" fill="#52c41a" font-size="10" font-weight="600">状态 → 审批通过 ✅</text>
+
+          <line x1="60" y1="618" x2="930" y2="618" stroke="#bfbfbf" stroke-width="1" stroke-dasharray="6,4"/>
+          <text x="940" y="614" text-anchor="end" fill="#999" font-size="10">else</text>
+          <rect x="64" y="620" width="38" height="18" rx="3" fill="#cf1322"/>
+          <text x="83" y="633" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">退回</text>
+
+          <line x1="105" y1="645" x2="320" y2="645" stroke="#d46b08" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="212" y="640" text-anchor="middle" fill="#d46b08" font-size="12" font-weight="600">退回（补充修改点说明）</text>
+          <text x="212" y="658" text-anchor="middle" fill="#cf1322" font-size="10">状态 → 被退回，返回步骤3更正</text>
+
+          <!-- Note: 中途调整 -->
+          <rect x="100" y="700" width="960" height="70" rx="6" fill="#fffbe6" stroke="#ffe58f" stroke-width="1.5"/>
+          <circle cx="120" cy="720" r="10" fill="#fa8c16"/>
+          <text x="120" y="724" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">!</text>
+          <text x="140" y="724" fill="#8c6900" font-size="12" font-weight="600">指标更新规则</text>
+          <text x="140" y="742" fill="#ad6800" font-size="11">年度考核目标原则上中途不调整。如确需调整：部门绩效管理员线下联系计划财务部(改革办公室)业绩考核管理员 → 系统执行退回 →</text>
+          <text x="140" y="758" fill="#ad6800" font-size="11">部门绩效管理员修改后重新发起审批（部门负责人 → 分管领导 → 计划财务部(改革办公室)业绩考核管理员），与首次设定流程相同。</text>
+
+          <!-- 状态流转示意 -->
+          <text x="560" y="810" text-anchor="middle" fill="#1a3a6b" font-size="14" font-weight="600">指标设定状态流转</text>
+
+          <rect x="100" y="825" width="70" height="28" rx="14" fill="#e6f4ff" stroke="#91caff" stroke-width="1.5"/>
+          <text x="135" y="844" text-anchor="middle" fill="#0958d9" font-size="11" font-weight="600">草稿</text>
+
+          <line x1="170" y1="839" x2="220" y2="839" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+          <rect x="222" y="825" width="148" height="28" rx="4" fill="#fff7e6" stroke="#ffd591" stroke-width="1.5"/>
+          <text x="296" y="844" text-anchor="middle" fill="#d46b08" font-size="11" font-weight="600">待部门负责人审批</text>
+
+          <line x1="370" y1="839" x2="420" y2="839" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+          <rect x="422" y="825" width="118" height="28" rx="4" fill="#f9f0ff" stroke="#d3adf7" stroke-width="1.5"/>
+          <text x="481" y="844" text-anchor="middle" fill="#722ed1" font-size="11" font-weight="600">待分管领导审批</text>
+
+          <line x1="540" y1="839" x2="590" y2="839" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+          <rect x="592" y="825" width="100" height="28" rx="4" fill="#f6ffed" stroke="#b7eb8f" stroke-width="1.5"/>
+          <text x="642" y="844" text-anchor="middle" fill="#389e0d" font-size="11" font-weight="600">待财务处审批</text>
+
+          <line x1="692" y1="839" x2="742" y2="839" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+          <rect x="744" y="825" width="80" height="28" rx="14" fill="#52c41a"/>
+          <text x="784" y="844" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">审批通过</text>
+
+          <!-- 退回箭头 -->
+          <path d="M784,853 L784,878 L135,878 L135,853" fill="none" stroke="#d46b08" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowOrange)"/>
+          <text x="460" y="895" text-anchor="middle" fill="#d46b08" font-size="10">任意审批节点均可退回到部门绩效管理员 → 状态变为「被退回」</text>
+
+          <rect x="222" y="910" width="80" height="28" rx="4" fill="#fff1f0" stroke="#ffa39e" stroke-width="1.5"/>
+          <text x="262" y="929" text-anchor="middle" fill="#cf1322" font-size="11" font-weight="600">被退回</text>
+          <line x1="302" y1="924" x2="100" y2="924" stroke="#d46b08" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+          <text x="200" y="942" text-anchor="middle" fill="#999" font-size="10">更正后 → 回到步骤4重新提交</text>
+
+          <!-- Bottom participant boxes -->
+          <rect x="40" y="980" width="130" height="36" rx="6" fill="#2d5aa0"/>
+          <text x="105" y="1003" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">计划财务部(改革办公室)业绩考核管理员</text>
+          <rect x="250" y="980" width="130" height="36" rx="6" fill="#fa8c16"/>
+          <text x="315" y="1003" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">部门绩效管理员</text>
+          <rect x="460" y="980" width="130" height="36" rx="6" fill="#52c41a"/>
+          <text x="525" y="1003" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">部门负责人</text>
+          <rect x="670" y="980" width="130" height="36" rx="6" fill="#722ed1"/>
+          <text x="735" y="1003" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">分管领导</text>
+          <rect x="880" y="980" width="130" height="36" rx="6" fill="#8c8c8c"/>
+          <text x="945" y="1003" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">系统</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ============ 时序图2：月度业绩考核 ============ -->
+    <div id="seq2" class="tab-content">
+      <div class="section-title" style="border-bottom-color:#722ed1;">
+        <h2>月度业绩考核时序图</h2>
+        <p>每月按考核目标对各部门进行自评、他评、复核、申诉、发布全流程管理</p>
+      </div>
+      <div class="diagram-area">
+        <svg viewBox="0 0 1200 1640" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:1100px;">
+          <defs>
+            <marker id="arrowBlue2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#2d5aa0"/></marker>
+            <marker id="arrowOrange2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#d46b08"/></marker>
+            <marker id="arrowPurple2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#722ed1"/></marker>
+            <marker id="arrowGreen2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#52c41a"/></marker>
+          </defs>
+
+          <!-- Participant boxes -->
+          <rect x="15" y="10" width="130" height="42" rx="6" fill="#2d5aa0"/>
+          <text x="80" y="28" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">计划财务部(改革办公室)业绩考核管理员</text>
+          <text x="80" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(计划财务处)</text>
+
+          <rect x="215" y="10" width="130" height="42" rx="6" fill="#fa8c16"/>
+          <text x="280" y="28" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">部门绩效管理员</text>
+          <text x="280" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(部门A)</text>
+
+          <rect x="415" y="10" width="130" height="42" rx="6" fill="#fa8c16" opacity="0.7"/>
+          <text x="480" y="28" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">部门绩效管理员</text>
+          <text x="480" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(部门B/打分方)</text>
+
+          <rect x="615" y="10" width="130" height="42" rx="6" fill="#722ed1"/>
+          <text x="680" y="28" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">考核员/分管领导</text>
+          <text x="680" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(评分人员)</text>
+
+          <rect x="815" y="10" width="130" height="42" rx="6" fill="#52c41a"/>
+          <text x="880" y="28" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">部门负责人</text>
+          <text x="880" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(查看结果)</text>
+
+          <rect x="1015" y="10" width="130" height="42" rx="6" fill="#8c8c8c"/>
+          <text x="1080" y="28" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">系统</text>
+          <text x="1080" y="42" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">(自动处理)</text>
+
+          <!-- Lifelines -->
+          <line x1="80" y1="52" x2="80" y2="1610" stroke="#c5d3e8" stroke-width="2"/>
+          <line x1="280" y1="52" x2="280" y2="1610" stroke="#c5d3e8" stroke-width="2"/>
+          <line x1="480" y1="52" x2="480" y2="1610" stroke="#c5d3e8" stroke-width="2" stroke-dasharray="6,4"/>
+          <line x1="680" y1="52" x2="680" y2="1610" stroke="#c5d3e8" stroke-width="2"/>
+          <line x1="880" y1="52" x2="880" y2="1610" stroke="#c5d3e8" stroke-width="2" stroke-dasharray="6,4"/>
+          <line x1="1080" y1="52" x2="1080" y2="1610" stroke="#c5d3e8" stroke-width="2"/>
+
+          <!-- ===== Phase 1: 准备阶段 ===== -->
+          <rect x="15" y="65" width="1140" height="20" rx="3" fill="#e6f4ff"/>
+          <text x="580" y="79" text-anchor="middle" fill="#0958d9" font-size="12" font-weight="600">阶段一：考核准备</text>
+
+          <!-- Step 1: 发布指标 -->
+          <circle cx="8" cy="105" r="12" fill="#2d5aa0"/><text x="8" y="109" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">1</text>
+          <line x1="80" y1="105" x2="1075" y2="105" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue2)"/>
+          <text x="578" y="100" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">发布月度考核指标（各部门可查看当月指标）</text>
+
+          <!-- Step 2: 启动考核 -->
+          <circle cx="8" cy="140" r="12" fill="#2d5aa0"/><text x="8" y="144" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">2</text>
+          <line x1="80" y1="140" x2="1075" y2="140" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple2)"/>
+          <text x="578" y="135" text-anchor="middle" fill="#722ed1" font-size="12" font-weight="600">启动月度考核（设置启动和截止时间）</text>
+
+          <!-- ===== Phase 2: 自评阶段 ===== -->
+          <rect x="15" y="162" width="1140" height="20" rx="3" fill="#fff7e6"/>
+          <text x="580" y="176" text-anchor="middle" fill="#d46b08" font-size="12" font-weight="600">阶段二：部门自评</text>
+
+          <!-- Step 3: 自评 -->
+          <circle cx="8" cy="205" r="12" fill="#fa8c16"/><text x="8" y="209" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">3</text>
+          <path d="M280,195 L370,195 L370,220 L280,220" fill="none" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple2)"/>
+          <text x="380" y="201" fill="#722ed1" font-size="12">逐项录入考核完成情况和自评描述</text>
+          <text x="380" y="217" fill="#722ed1" font-size="11">上传证明附件（PDF/图片/压缩≤20M）</text>
+
+          <!-- Step 4: 提交自评 -->
+          <circle cx="8" cy="250" r="12" fill="#fa8c16"/><text x="8" y="254" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">4</text>
+          <line x1="280" y1="250" x2="1075" y2="250" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue2)"/>
+          <text x="678" y="245" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">提交本部门月度自评（进度100%方可提交）</text>
+
+          <!-- 全部部门自评完成 -->
+          <rect x="100" y="272" width="1000" height="22" rx="4" fill="#f6ffed" stroke="#b7eb8f" stroke-width="1"/>
+          <text x="600" y="287" text-anchor="middle" fill="#389e0d" font-size="11" font-weight="600">⟵ 全部部门完成自评 ⟶</text>
+
+          <!-- ===== Phase 3: 他评阶段 ===== -->
+          <rect x="15" y="305" width="1140" height="20" rx="3" fill="#f9f0ff"/>
+          <text x="580" y="319" text-anchor="middle" fill="#722ed1" font-size="12" font-weight="600">阶段三：部门他评</text>
+
+          <!-- Step 5: 启动他评 -->
+          <circle cx="8" cy="345" r="12" fill="#2d5aa0"/><text x="8" y="349" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">5</text>
+          <line x1="80" y1="345" x2="1075" y2="345" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple2)"/>
+          <text x="578" y="340" text-anchor="middle" fill="#722ed1" font-size="12" font-weight="600">启动他评打分（开启部门间互评）</text>
+
+          <!-- Step 6: 他评打分 -->
+          <circle cx="8" cy="385" r="12" fill="#722ed1"/><text x="8" y="389" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">6</text>
+          <path d="M480,375 L570,375 L570,400 L480,400" fill="none" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple2)"/>
+          <text x="580" y="381" fill="#722ed1" font-size="12">对其他部门指标逐行打分（0-120分）</text>
+          <text x="580" y="397" fill="#722ed1" font-size="11">系统自动计算：得分 × 月度权重 = 评估得分</text>
+
+          <!-- 分管领导打分 -->
+          <path d="M680,415 L770,415 L770,440 L680,440" fill="none" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple2)"/>
+          <text x="780" y="421" fill="#722ed1" font-size="12">分管领导对各职能部门对应指标打分</text>
+          <text x="780" y="437" fill="#722ed1" font-size="11">支持按部门展示 / 按指标展示 切换</text>
+
+          <!-- Step 7: 提交他评 -->
+          <circle cx="8" cy="465" r="12" fill="#722ed1"/><text x="8" y="469" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">7</text>
+          <line x1="480" y1="465" x2="1075" y2="465" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue2)"/>
+          <text x="778" y="460" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">提交评估打分（全部完成方可提交）</text>
+
+          <line x1="680" y1="480" x2="1075" y2="480" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue2)"/>
+          <text x="878" y="475" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">分管领导提交打分</text>
+
+          <rect x="100" y="497" width="1000" height="22" rx="4" fill="#f6ffed" stroke="#b7eb8f" stroke-width="1"/>
+          <text x="600" y="512" text-anchor="middle" fill="#389e0d" font-size="11" font-weight="600">⟵ 全部部门完成他评 ⟶</text>
+
+          <!-- ===== Phase 4: 复核阶段 ===== -->
+          <rect x="15" y="530" width="1140" height="20" rx="3" fill="#e6f4ff"/>
+          <text x="580" y="544" text-anchor="middle" fill="#0958d9" font-size="12" font-weight="600">阶段四：复核修正</text>
+
+          <!-- Step 8: 复核 -->
+          <circle cx="8" cy="575" r="12" fill="#2d5aa0"/><text x="8" y="579" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">8</text>
+          <path d="M80,565 L170,565 L170,600 L80,600" fill="none" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple2)"/>
+          <text x="180" y="572" fill="#722ed1" font-size="12" font-weight="600">复核审阅每个部门的考核数据</text>
+          <text x="180" y="590" fill="#722ed1" font-size="11">可补充考核或纠正打分，记录修正说明</text>
+
+          <!-- Step 9: 计算得分 -->
+          <circle cx="8" cy="625" r="12" fill="#8c8c8c"/><text x="8" y="629" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">9</text>
+          <line x1="80" y1="625" x2="1075" y2="625" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple2)"/>
+          <text x="578" y="620" text-anchor="middle" fill="#722ed1" font-size="12" font-weight="600">系统计算得分：优先取管理员打分，为空则取部门打分 × 月度权重</text>
+          <text x="578" y="638" text-anchor="middle" fill="#999" font-size="10">按大类、被考核部门汇总，确定每个部门的月度考核系数</text>
+
+          <!-- ===== Phase 5: 预发布阶段 ===== -->
+          <rect x="15" y="660" width="1140" height="20" rx="3" fill="#fff7e6"/>
+          <text x="580" y="674" text-anchor="middle" fill="#d46b08" font-size="12" font-weight="600">阶段五：预发布与申诉</text>
+
+          <!-- Step 10: 预发布 -->
+          <circle cx="8" cy="705" r="12" fill="#2d5aa0"/><text x="8" y="709" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">10</text>
+          <line x1="80" y1="705" x2="275" y2="705" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue2)"/>
+          <text x="178" y="700" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">绩效预发布</text>
+
+          <line x1="80" y1="725" x2="875" y2="725" stroke="#52c41a" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <text x="478" y="720" text-anchor="middle" fill="#52c41a" font-size="11">各部门可查看本部门完整评价打分信息</text>
+
+          <!-- Step 11: 申诉 -->
+          <circle cx="8" cy="760" r="12" fill="#d46b08"/><text x="8" y="764" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">11</text>
+          <text x="580" y="750" text-anchor="middle" fill="#333" font-size="13" font-weight="600">【申诉流程 - 如有异议】</text>
+
+          <rect x="40" y="770" width="1100" height="170" rx="4" fill="none" stroke="#d46b08" stroke-width="1.5" stroke-dasharray="6,3"/>
+          <rect x="40" y="770" width="80" height="18" rx="4 0 4 0" fill="#d46b08"/>
+          <text x="80" y="783" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">申诉流程</text>
+
+          <!-- 11a: 线下申诉 -->
+          <line x1="280" y1="800" x2="275" y2="800" stroke="#d46b08" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="280" y="795" fill="#d46b08" font-size="11">线下申诉 → 申诉成功</text>
+
+          <!-- 11b: 提交材料 -->
+          <line x1="280" y1="825" x2="85" y2="825" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue2)"/>
+          <text x="182" y="820" text-anchor="middle" fill="#2d5aa0" font-size="11" font-weight="600">提交申诉成功材料给计划财务部(改革办公室)业绩考核管理员</text>
+
+          <!-- 11c: 退回打分部门 -->
+          <line x1="80" y1="855" x2="475" y2="855" stroke="#d46b08" stroke-width="2" marker-end="url(#arrowOrange2)"/>
+          <text x="278" y="850" text-anchor="middle" fill="#d46b08" font-size="11" font-weight="600">退回打分部门（选择需重新打分的部门，可多选）</text>
+
+          <!-- 11d: 重新打分 -->
+          <line x1="480" y1="885" x2="1075" y2="885" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue2)"/>
+          <text x="778" y="880" text-anchor="middle" fill="#2d5aa0" font-size="11" font-weight="600">重新打分并提交（覆盖原评估打分）</text>
+
+          <!-- 11e: 重新计算 -->
+          <line x1="80" y1="915" x2="1075" y2="915" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple2)"/>
+          <text x="578" y="910" text-anchor="middle" fill="#722ed1" font-size="11" font-weight="600">重新计算部门业绩得分，进行统计输出</text>
+
+          <!-- ===== Phase 6: 发布阶段 ===== -->
+          <rect x="15" y="960" width="1140" height="20" rx="3" fill="#f6ffed"/>
+          <text x="580" y="974" text-anchor="middle" fill="#389e0d" font-size="12" font-weight="600">阶段六：考核发布</text>
+
+          <!-- Step 12: 发布 -->
+          <circle cx="8" cy="1005" r="12" fill="#2d5aa0"/><text x="8" y="1009" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">12</text>
+          <line x1="80" y1="1005" x2="1075" y2="1005" stroke="#2d5aa0" stroke-width="2" marker-end="url(#arrowBlue2)"/>
+          <text x="578" y="1000" text-anchor="middle" fill="#2d5aa0" font-size="12" font-weight="600">月度业绩考核发布（全部数据冻结）</text>
+
+          <!-- Step 13: 查看结果 -->
+          <circle cx="8" cy="1040" r="12" fill="#52c41a"/><text x="8" y="1044" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">13</text>
+          <line x1="80" y1="1040" x2="275" y2="1040" stroke="#52c41a" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <text x="178" y="1035" text-anchor="middle" fill="#52c41a" font-size="11">部门绩效管理员查询考核结果</text>
+
+          <line x1="80" y1="1060" x2="875" y2="1060" stroke="#52c41a" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <text x="478" y="1055" text-anchor="middle" fill="#52c41a" font-size="11">部门负责人查询考核结果</text>
+
+          <!-- Step 14: 导出 -->
+          <circle cx="8" cy="1090" r="12" fill="#2d5aa0"/><text x="8" y="1094" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">14</text>
+          <line x1="80" y1="1090" x2="1075" y2="1090" stroke="#722ed1" stroke-width="2" marker-end="url(#arrowPurple2)"/>
+          <text x="578" y="1085" text-anchor="middle" fill="#722ed1" font-size="12" font-weight="600">导出考核明细表和汇总表</text>
+
+          <!-- End -->
+          <rect x="420" y="1118" width="360" height="36" rx="18" fill="#52c41a"/>
+          <text x="600" y="1141" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">本月月度考核工作完成 ✓</text>
+
+          <!-- ===== 月度考核状态流转 ===== -->
+          <text x="600" y="1210" text-anchor="middle" fill="#1a3a6b" font-size="14" font-weight="600">月度考核状态流转</text>
+
+          <rect x="40" y="1225" width="72" height="26" rx="13" fill="#e6f4ff" stroke="#91caff" stroke-width="1.5"/>
+          <text x="76" y="1243" text-anchor="middle" fill="#0958d9" font-size="10" font-weight="600">待启动</text>
+
+          <line x1="112" y1="1238" x2="148" y2="1238" stroke="#2d5aa0" stroke-width="1.5" marker-end="url(#arrowBlue2)"/>
+
+          <rect x="150" y="1225" width="90" height="26" rx="4" fill="#e6f4ff" stroke="#91caff" stroke-width="1.5"/>
+          <text x="195" y="1243" text-anchor="middle" fill="#0958d9" font-size="10" font-weight="600">指标已发布</text>
+
+          <line x1="240" y1="1238" x2="276" y2="1238" stroke="#2d5aa0" stroke-width="1.5" marker-end="url(#arrowBlue2)"/>
+
+          <rect x="278" y="1225" width="60" height="26" rx="4" fill="#fff7e6" stroke="#ffd591" stroke-width="1.5"/>
+          <text x="308" y="1243" text-anchor="middle" fill="#d46b08" font-size="10" font-weight="600">自评中</text>
+
+          <line x1="338" y1="1238" x2="374" y2="1238" stroke="#2d5aa0" stroke-width="1.5" marker-end="url(#arrowBlue2)"/>
+
+          <rect x="376" y="1225" width="60" height="26" rx="4" fill="#f9f0ff" stroke="#d3adf7" stroke-width="1.5"/>
+          <text x="406" y="1243" text-anchor="middle" fill="#722ed1" font-size="10" font-weight="600">他评中</text>
+
+          <line x1="436" y1="1238" x2="472" y2="1238" stroke="#2d5aa0" stroke-width="1.5" marker-end="url(#arrowBlue2)"/>
+
+          <rect x="474" y="1225" width="60" height="26" rx="4" fill="#f6ffed" stroke="#b7eb8f" stroke-width="1.5"/>
+          <text x="504" y="1243" text-anchor="middle" fill="#389e0d" font-size="10" font-weight="600">复核中</text>
+
+          <line x1="534" y1="1238" x2="570" y2="1238" stroke="#2d5aa0" stroke-width="1.5" marker-end="url(#arrowBlue2)"/>
+
+          <rect x="572" y="1225" width="68" height="26" rx="4" fill="#fff7e6" stroke="#ffd591" stroke-width="1.5"/>
+          <text x="606" y="1243" text-anchor="middle" fill="#d46b08" font-size="10" font-weight="600">预发布</text>
+
+          <line x1="640" y1="1238" x2="676" y2="1238" stroke="#2d5aa0" stroke-width="1.5" marker-end="url(#arrowBlue2)"/>
+
+          <rect x="678" y="1225" width="68" height="26" rx="13" fill="#52c41a"/>
+          <text x="712" y="1243" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">已发布</text>
+
+          <!-- 申诉回退 -->
+          <path d="M606,1251 L606,1275 L406,1275 L406,1251" fill="none" stroke="#d46b08" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowOrange2)"/>
+          <text x="506" y="1292" text-anchor="middle" fill="#d46b08" font-size="10">申诉成功 → 退回打分部门 → 重新他评 → 重新复核</text>
+
+          <!-- 得分计算规则 -->
+          <rect x="40" y="1310" width="1120" height="80" rx="6" fill="#f6ffed" stroke="#b7eb8f" stroke-width="1.5"/>
+          <text x="600" y="1332" text-anchor="middle" fill="#389e0d" font-size="13" font-weight="600">得分计算规则</text>
+          <text x="600" y="1355" text-anchor="middle" fill="#555" font-size="12">单个指标得分 = 管理员打分（如有）或 考核部门打分 × 月度权重</text>
+          <text x="600" y="1375" text-anchor="middle" fill="#555" font-size="12">部门月度考核得分 = Σ（该部门全部指标得分），按大类汇总</text>
+          <text x="600" y="1395" text-anchor="middle" fill="#555" font-size="11">月度考核系数与薪酬绩效奖金挂钩，达到及时激励目的</text>
+
+          <!-- Bottom boxes -->
+          <rect x="15" y="1520" width="130" height="36" rx="6" fill="#2d5aa0"/>
+          <text x="80" y="1543" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">计划财务部(改革办公室)业绩考核管理员</text>
+          <rect x="215" y="1520" width="130" height="36" rx="6" fill="#fa8c16"/>
+          <text x="280" y="1543" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">部门绩效管理员</text>
+          <rect x="415" y="1520" width="130" height="36" rx="6" fill="#fa8c16" opacity="0.7"/>
+          <text x="480" y="1543" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">部门绩效管理员</text>
+          <rect x="615" y="1520" width="130" height="36" rx="6" fill="#722ed1"/>
+          <text x="680" y="1543" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">考核员/分管领导</text>
+          <rect x="815" y="1520" width="130" height="36" rx="6" fill="#52c41a"/>
+          <text x="880" y="1543" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">部门负责人</text>
+          <rect x="1015" y="1520" width="130" height="36" rx="6" fill="#8c8c8c"/>
+          <text x="1080" y="1543" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">系统</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>计划财务部(改革办公室)业绩考核管理员原型 - 月度业绩考核管理 v1</title>
+<style>
+  /* ===== 风格系统 - CSS变量定义 ===== */
+  :root {
+    --primary: #2d5aa0;
+    --primary-dark: #1a3a6b;
+    --sidebar-bg: #001529;
+    --sidebar-text: rgba(255,255,255,0.7);
+    --sidebar-active-bg: #2d5aa0;
+    --topbar-bg: #fff;
+    --topbar-border: #e8e8e8;
+    --main-bg: #f0f2f5;
+    --card-bg: #fff;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    --card-border: #f0f0f0;
+    --table-header-bg: #fafafa;
+    --table-hover-bg: #e6f4ff;
+    --btn-primary-bg: #2d5aa0;
+    --btn-primary-text: #fff;
+    --text-primary: #1a3a6b;
+    --text-secondary: #888;
+    --border-color: #d9d9d9;
+    --focus-shadow: rgba(45,90,160,0.1);
+    --status-blue-bg: #e6f4ff;
+    --status-blue-text: #0958d9;
+    --status-green-bg: #f6ffed;
+    --status-green-text: #52c41a;
+    --status-orange-bg: #fff7e6;
+    --status-orange-text: #d46b08;
+    --status-red-bg: #fff1f0;
+    --status-red-text: #cf1322;
+    --avatar-bg: #2d5aa0;
+    --progress-fill-bg: #2d5aa0;
+    --radius: 6px;
+    --radius-sm: 4px;
+    --sidebar-width: 220px;
+  }
+
+  /* ===== 风格1: 百度商务网站风格 ===== */
+  .style-baidu {
+    --primary: #2932e1;
+    --primary-dark: #1e2396;
+    --sidebar-bg: #f5f5f5;
+    --sidebar-text: #333;
+    --sidebar-active-bg: #2932e1;
+    --sidebar-active-text: #fff;
+    --topbar-bg: #fff;
+    --topbar-border: #e5e5e5;
+    --main-bg: #f8f8f8;
+    --card-bg: #fff;
+    --card-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    --table-header-bg: #f0f0f0;
+    --table-hover-bg: #f5f8ff;
+    --btn-primary-bg: #2932e1;
+    --text-primary: #2932e1;
+    --focus-shadow: rgba(41,50,225,0.1);
+    --avatar-bg: #2932e1;
+    --progress-fill-bg: #2932e1;
+    --radius: 8px;
+  }
+
+  /* ===== 风格2: 飞书应用风格 ===== */
+  .style-feishu {
+    --primary: #3370ff;
+    --primary-dark: #2b5cd9;
+    --sidebar-bg: #1f2329;
+    --sidebar-text: rgba(255,255,255,0.70);
+    --sidebar-active-bg: rgba(255,255,255,0.08);
+    --topbar-bg: #fff;
+    --topbar-border: #e4e7eb;
+    --main-bg: #f5f6f7;
+    --card-bg: #fff;
+    --card-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    --card-border: #e4e7eb;
+    --table-header-bg: #f7f8fa;
+    --table-hover-bg: #f0f5ff;
+    --btn-primary-bg: #3370ff;
+    --btn-primary-text: #fff;
+    --text-primary: #1f2329;
+    --text-secondary: #646a73;
+    --border-color: #e4e7eb;
+    --focus-shadow: rgba(51,112,255,0.2);
+    --status-blue-bg: #e8f3ff;
+    --status-blue-text: #3370ff;
+    --status-green-bg: #e8f8ef;
+    --status-green-text: #00b42a;
+    --status-orange-bg: #fff7e8;
+    --status-orange-text: #ff7d00;
+    --status-red-bg: #ffece8;
+    --status-red-text: #f54a45;
+    --avatar-bg: #3370ff;
+    --progress-fill-bg: #3370ff;
+    --radius: 4px;
+    --radius-sm: 4px;
+  }
+  .style-feishu .sidebar-logo { border-bottom-color: rgba(255,255,255,0.08); }
+  .style-feishu .menu-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+  .style-feishu .menu-item.active { background: rgba(255,255,255,0.08); color: #fff; }
+  .style-feishu .card { border: 1px solid #e4e7eb; }
+  .style-feishu .btn-primary { border-radius: 4px; }
+  .style-feishu .btn { border-radius: 4px; border-color: #dcdfe6; }
+  .style-feishu .modal { border-radius: 8px; }
+  .style-feishu .modal-header h3 { color: #1f2329; }
+  .style-feishu input, .style-feishu select { border-radius: 4px; border-color: #dcdfe6; background: #fff; }
+  .style-feishu input:focus, .style-feishu select:focus { border-color: #3370ff; box-shadow: 0 0 0 2px rgba(51,112,255,0.2); }
+  .style-feishu .table-wrap table th { background: #f7f8fa; color: #646a73; }
+  .style-feishu .pagination-pages span { border-radius: 4px; }
+  .style-feishu .status-tag { border-radius: 2px; font-size: 12px; }
+  .style-feishu .st-green { background: #e8f8ef; color: #00b42a; border-color: #b6e6c5; }
+  .style-feishu .st-blue { background: #e8f3ff; color: #3370ff; border-color: #9dbaff; }
+  .style-feishu .st-orange { background: #fff7e8; color: #ff7d00; border-color: #ffc089; }
+  .style-feishu .st-red { background: #ffece8; color: #f54a45; border-color: #f5b8b0; }
+  .style-feishu .st-purple { background: #f5f2ff; color: #642ab5; border-color: #c9b8e8; }
+  .style-feishu .style-switcher { border-color: #e4e7eb; }
+  .style-feishu .form-group input, .style-feishu .form-group select { border-color: #dcdfe6; }
+  .style-feishu .it-category { background: #f7f8fa; color: #1f2329; }
+  .style-feishu .score-high { color: #00b42a; }
+  .style-feishu .score-mid { color: #ff7d00; }
+  .style-feishu .score-low { color: #f54a45; }
+
+  /* ===== 风格3: 科技风 ===== */
+  .style-tech {
+    --primary: #00d4ff;
+    --primary-dark: #00a8cc;
+    --sidebar-bg: #0d1117;
+    --sidebar-text: rgba(0,212,255,0.8);
+    --sidebar-active-bg: rgba(0,212,255,0.15);
+    --topbar-bg: #161b22;
+    --topbar-border: #30363d;
+    --main-bg: #0d1117;
+    --card-bg: #161b22;
+    --card-shadow: 0 0 20px rgba(0,212,255,0.1);
+    --card-border: #30363d;
+    --table-header-bg: #21262d;
+    --table-hover-bg: rgba(0,212,255,0.1);
+    --btn-primary-bg: #00d4ff;
+    --btn-primary-text: #0d1117;
+    --text-primary: #f0f6fc;
+    --text-secondary: #8b949e;
+    --border-color: #30363d;
+    --focus-shadow: rgba(0,212,255,0.2);
+    --status-blue-bg: rgba(0,212,255,0.15);
+    --status-blue-text: #00d4ff;
+    --status-green-bg: rgba(35,134,54,0.15);
+    --status-green-text: #3fb950;
+    --status-orange-bg: rgba(187,128,9,0.15);
+    --status-orange-text: #d29922;
+    --status-red-bg: rgba(248,81,73,0.15);
+    --status-red-text: #f85149;
+    --avatar-bg: #00d4ff;
+    --progress-fill-bg: linear-gradient(90deg, #00d4ff, #7ee8ff);
+    --radius: 4px;
+  }
+
+  /* ===== 风格4: 央企国企风格 ===== */
+  .style-guoqi {
+    --primary: #c41e3a;
+    --primary-dark: #a31830;
+    --sidebar-bg: #b81c22;
+    --sidebar-text: rgba(255,255,255,0.85);
+    --sidebar-active-bg: #c41e3a;
+    --topbar-bg: #fff;
+    --topbar-border: #e8e8e8;
+    --main-bg: #f5f5f5;
+    --card-bg: #fff;
+    --card-shadow: 0 2px 6px rgba(196,30,58,0.08);
+    --table-header-bg: #faf5f5;
+    --table-hover-bg: #fff5f5;
+    --btn-primary-bg: #c41e3a;
+    --text-primary: #b81c22;
+    --border-color: #d9d9d9;
+    --focus-shadow: rgba(196,30,58,0.1);
+    --status-blue-bg: #fff7e6;
+    --status-blue-text: #d46b08;
+    --avatar-bg: #c41e3a;
+    --progress-fill-bg: linear-gradient(90deg, #c41e3a, #e63946);
+    --radius: 4px;
+    --radius-sm: 2px;
+  }
+
+  /* ===== 风格切换器样式 ===== */
+  .style-switcher {
+    position: fixed;
+    top: 12px;
+    right: 24px;
+    z-index: 300;
+    display: flex;
+    gap: 6px;
+    background: var(--card-bg);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
+  }
+  .style-switcher .style-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .style-switcher .style-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .style-switcher .style-btn.active {
+    background: var(--primary);
+    color: var(--btn-primary-text);
+    border-color: var(--primary);
+  }
+
+  /* ===== 应用CSS变量到组件 ===== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: var(--main-bg); color: #333; display: flex; min-height: 100vh; }
+  .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); color: #fff; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 100; }
+  .sidebar-logo { padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .sidebar-logo h2 { font-size: 15px; font-weight: 600; }
+  .sidebar-logo p { font-size: 11px; opacity: 0.6; margin-top: 4px; }
+  .sidebar-menu { padding: 8px 0; }
+  .menu-group { margin-bottom: 4px; }
+  .menu-group-title { font-size: 11px; color: var(--sidebar-text); padding: 12px 16px 4px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
+  .menu-item { display: flex; align-items: center; gap: 8px; padding: 10px 16px; font-size: 13px; color: var(--sidebar-text); cursor: pointer; transition: all 0.2s; text-decoration: none; }
+  .menu-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .menu-item.active { color: #fff; background: var(--sidebar-active-bg); }
+  .menu-item .icon { width: 18px; text-align: center; font-size: 14px; }
+  .main { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; background: var(--main-bg); }
+  .topbar { height: 52px; background: var(--topbar-bg); border-bottom: 1px solid var(--topbar-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+  .topbar-breadcrumb { font-size: 13px; color: var(--text-secondary); }
+  .topbar-breadcrumb span { color: var(--text-primary); }
+  .topbar-right { display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--text-secondary); }
+  .topbar-avatar { width: 32px; height: 32px; background: var(--avatar-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; }
+  .content { padding: 20px 24px; flex: 1; }
+  .page-header { margin-bottom: 20px; }
+  .page-header h1 { font-size: 18px; color: var(--text-primary); margin-bottom: 4px; }
+  .page-header p { font-size: 13px; color: var(--text-secondary); }
+  .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--card-shadow); margin-bottom: 16px; border: 1px solid var(--card-border); }
+  .card-header { padding: 14px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .card-header h3 { font-size: 14px; color: var(--text-primary); }
+  .card-body { padding: 16px 20px; }
+  .search-form { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: 12px; color: var(--text-secondary); }
+  .form-group input, .form-group select { height: 32px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0 10px; font-size: 13px; outline: none; min-width: 130px; background: var(--card-bg); color: var(--text-primary); }
+  .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--focus-shadow); }
+  .btn { height: 32px; padding: 0 14px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s; white-space: nowrap; }
+  .btn:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); border-color: var(--btn-primary-bg); }
+  .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+  .btn-danger { color: var(--status-red-text); border-color: var(--status-red-bg); }
+  .btn-success { background: var(--status-green-text); color: #fff; border-color: var(--status-green-text); }
+  .btn-warning { background: var(--status-orange-text); color: #fff; border-color: var(--status-orange-text); }
+  .btn-link { border: none; background: none; color: var(--primary); padding: 0; height: auto; font-size: 12px; }
+  .btn-link:hover { color: var(--primary-dark); text-decoration: underline; }
+  .btn-sm { height: 26px; padding: 0 10px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table th { background: var(--table-header-bg); padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+  table td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+  table tr:hover td { background: var(--table-hover-bg); }
+  .op-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  .status-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+  .st-green { background: var(--status-green-bg); color: var(--status-green-text); }
+  .st-red { background: var(--status-red-bg); color: var(--status-red-text); }
+  .st-orange { background: var(--status-orange-bg); color: var(--status-orange-text); }
+  .st-blue { background: var(--status-blue-bg); color: var(--status-blue-text); }
+  .st-purple { background: #f9f0ff; color: #722ed1; }
+  .pagination { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; font-size: 12px; color: var(--text-secondary); }
+  .pagination-pages { display: flex; gap: 4px; }
+  .pagination-pages span { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; background: var(--card-bg); }
+  .pagination-pages span.active { background: var(--primary); color: var(--btn-primary-text); border-color: var(--primary); }
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--card-bg); border-radius: var(--radius); width: 680px; max-height: 85vh; overflow-y: auto; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+  .modal-lg { width: 900px; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 15px; color: var(--text-primary); }
+  .modal-close { font-size: 18px; color: var(--text-secondary); cursor: pointer; }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; }
+  .form-item { margin-bottom: 14px; }
+  .form-item label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+  .form-item label .req { color: var(--status-red-text); }
+  .form-item input, .form-item select, .form-item textarea { width: 100%; height: 34px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0 10px; font-size: 13px; outline: none; background: var(--card-bg); color: var(--text-primary); }
+  .form-item textarea { height: 72px; padding: 8px 10px; resize: vertical; }
+  .form-item input:focus, .form-item select:focus, .form-item textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--focus-shadow); }
+  .form-row { display: flex; gap: 16px; margin-bottom: 14px; }
+  .form-row .form-item { flex: 1; margin-bottom: 0; }
+  /* Action buttons row in table */
+  .action-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .version-tag { font-size: 11px; color: var(--text-secondary); background: var(--table-header-bg); padding: 2px 8px; border-radius: 3px; }
+  /* Progress bar */
+  .progress-bar { height: 8px; background: var(--table-header-bg); border-radius: 4px; overflow: hidden; display: inline-block; width: 100px; vertical-align: middle; }
+  .progress-fill { height: 100%; border-radius: 4px; background: var(--progress-fill-bg); }
+  /* Score display */
+  .score-high { color: var(--status-green-text); font-weight: 600; }
+  .score-mid { color: var(--status-orange-text); font-weight: 600; }
+  .score-low { color: var(--status-red-text); font-weight: 600; }
+  /* Indicator tree in approval */
+  .indicator-tree { margin: 0; }
+  .it-category { background: var(--status-blue-bg); padding: 10px 14px; margin-bottom: 8px; border-radius: var(--radius-sm); font-weight: 600; color: var(--text-primary); font-size: 13px; cursor: pointer; }
+  .it-sub { margin-left: 16px; padding: 6px 10px; background: var(--table-header-bg); margin-bottom: 4px; border-radius: 3px; font-size: 12px; color: var(--text-secondary); }
+  .it-item { margin-left: 32px; padding: 4px 8px; font-size: 12px; color: var(--text-secondary); border-bottom: 1px dotted var(--border-color); }
+</style>
+</head>
+<body>
+<!-- 风格切换器 -->
+<div class="style-switcher">
+  <button class="style-btn active" onclick="switchStyle('')">默认风格</button>
+  <button class="style-btn" onclick="switchStyle('style-baidu')">百度商务</button>
+  <button class="style-btn" onclick="switchStyle('style-feishu')">飞书应用</button>
+  <button class="style-btn" onclick="switchStyle('style-tech')">科技风</button>
+  <button class="style-btn" onclick="switchStyle('style-guoqi')">央企国企</button>
+</div>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <h2>月度业绩考核</h2>
+    <p>计划财务部(改革办公室)业绩考核管理员</p>
+  </div>
+  <div class="sidebar-menu">
+    <div class="menu-group">
+      <div class="menu-group-title">考核管理</div>
+      <a class="menu-item active" onclick="showPage('group')"><span class="icon">📋</span>考核组管理</a>
+      <a class="menu-item" onclick="showPage('approve')"><span class="icon">✅</span>业绩指标审批</a>
+      <a class="menu-item" onclick="showPage('monthly')"><span class="icon">📊</span>月度考核管理</a>
+      <a class="menu-item" onclick="showPage('review')"><span class="icon">🔍</span>复核评估</a>
+    </div>
+    <div class="menu-group">
+      <div class="menu-group-title">结果管理</div>
+      <a class="menu-item" onclick="showPage('appeal')"><span class="icon">📝</span>申诉管理</a>
+      <a class="menu-item" onclick="showPage('progress')"><span class="icon">📈</span>考核进度查询</a>
+      <a class="menu-item" onclick="showPage('result')"><span class="icon">📄</span>考核结果查询</a>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-breadcrumb">考核管理 / <span id="currentPageName">考核组管理</span></div>
+    <div class="topbar-right"><span>王芳 | 计划财务部</span><div class="topbar-avatar">王</div></div>
+  </div>
+  <div class="content">
+
+    <!-- ===== 考核组管理 ===== -->
+    <div id="page-group" class="page-section">
+      <div class="page-header">
+        <h1>考核组管理 <span class="version-tag">v1</span></h1>
+        <p>管理业绩指标设定和绩效考核组，控制考核全流程</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-form">
+            <div class="form-group"><label>考核组名称</label><input placeholder="模糊查询"></div>
+            <div class="form-group"><label>考核类型</label><select><option>全部</option><option>业绩指标设定</option><option>月度考核</option><option>季度考核</option></select></div>
+            <div class="form-group"><label>考核状态</label><select><option>全部</option><option>待启动</option><option>进行中</option><option>已完成</option></select></div>
+            <button class="btn btn-primary">查询</button>
+            <button class="btn">重置</button>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-group')">+ 新增考核组</button>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>序号</th><th>考核组名称</th><th>考核类别</th><th>考核类型</th><th>考核开始日期</th><th>考核结束日期</th><th>完成进度</th><th>状态</th><th>操作</th><th>业务操作</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>1</td><td>2026年业绩指标设定组</td><td>业绩指标设定</td><td>—</td><td>2026-01-10</td><td>2026-03-31</td>
+                <td><div class="progress-bar"><div class="progress-fill" style="width:85%"></div></div> 85%</td>
+                <td><span class="status-tag st-blue">进行中</span></td>
+                <td class="op-links">
+                  <button class="btn btn-sm">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </td>
+                <td class="op-links">
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;" onclick="openModal('modal-member')">1.成员维护</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">2.启动</button>
+                  <button class="btn btn-sm btn-primary">3.查看进度</button>
+                </td>
+              </tr>
+              <tr>
+                <td>2</td><td>2026年3月月度考核组</td><td>绩效考核</td><td>月度考核</td><td>2026-03-01</td><td>2026-03-31</td>
+                <td><div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div> 100%</td>
+                <td><span class="status-tag st-green">已完成</span></td>
+                <td class="op-links">
+                  <button class="btn btn-sm">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </td>
+                <td class="op-links">
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">1.成员维护</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">2.发布考核指标</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">3.启动考核</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">4.启动他评</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">5.绩效预发布</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">6.绩效发布</button>
+                  <button class="btn btn-sm btn-primary">7.查看进度</button>
+                </td>
+              </tr>
+              <tr>
+                <td>3</td><td>2026年4月月度考核组</td><td>绩效考核</td><td>月度考核</td><td>2026-04-01</td><td>2026-04-30</td>
+                <td><div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div> 60%</td>
+                <td><span class="status-tag st-blue">进行中</span></td>
+                <td class="op-links">
+                  <button class="btn btn-sm">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </td>
+                <td class="op-links">
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;" onclick="openModal('modal-member')">1.成员维护</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">2.发布考核指标</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">3.启动考核</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">4.启动他评</button>
+                  <button class="btn btn-sm btn-warning">5.绩效预发布</button>
+                  <button class="btn btn-sm btn-success">6.绩效发布</button>
+                  <button class="btn btn-sm">7.查看进度</button>
+                </td>
+              </tr>
+              <tr>
+                <td>4</td><td>2026年5月月度考核组</td><td>绩效考核</td><td>月度考核</td><td>2026-05-01</td><td>2026-05-31</td>
+                <td><div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div> 0%</td>
+                <td><span class="status-tag st-orange">待启动</span></td>
+                <td class="op-links">
+                  <button class="btn btn-sm">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </td>
+                <td class="op-links">
+                  <button class="btn btn-sm btn-primary" onclick="openModal('modal-member')">1.成员维护</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">2.发布考核指标</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">3.启动考核</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">4.启动他评</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">5.绩效预发布</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">6.绩效发布</button>
+                  <button class="btn btn-sm" style="color:#999;border-color:#d9d9d9;">7.查看进度</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination"><span>共 4 条</span><div class="pagination-pages"><span class="active">1</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 业绩指标审批 ===== -->
+    <div id="page-approve" class="page-section" style="display:none;">
+      <div class="page-header">
+        <h1>业绩指标审批 <span class="version-tag">v1</span></h1>
+        <p>审批各部门提交的年度业绩考核指标设定</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-form">
+            <div class="form-group"><label>考核组名称</label><input placeholder="模糊查询"></div>
+            <div class="form-group"><label>考核期间</label><select><option>全部</option><option>月度考核</option><option>年度考核</option></select></div>
+            <div class="form-group"><label>考核部门</label><select><option>全部部门</option><option>生产技术部</option><option>安全健康环保部</option></select></div>
+            <div class="form-group"><label>设定状态</label><select><option>全部</option><option>待财务处审批</option><option>审批通过</option><option>被退回</option></select></div>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>序号</th><th>考核组名称</th><th>考核期间</th><th>考核开始时间</th><th>考核结束时间</th><th>考核部门</th><th>目标设定状态</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>2026年业绩指标设定组</td><td>年度考核</td><td>2026-01-10</td><td>2026-03-31</td><td>生产技术部</td><td><span class="status-tag st-orange">待财务处审批</span></td><td class="op-links"><button class="btn btn-sm btn-primary" onclick="openModal('modal-approve')">审批</button><button class="btn btn-sm">查看</button></td></tr>
+              <tr><td>2</td><td>2026年业绩指标设定组</td><td>年度考核</td><td>2026-01-10</td><td>2026-03-31</td><td>安全健康环保部</td><td><span class="status-tag st-orange">待财务处审批</span></td><td class="op-links"><button class="btn btn-sm btn-primary" onclick="openModal('modal-approve')">审批</button><button class="btn btn-sm">查看</button></td></tr>
+              <tr><td>3</td><td>2026年业绩指标设定组</td><td>年度考核</td><td>2026-01-10</td><td>2026-03-31</td><td>图克分公司</td><td><span class="status-tag st-green">审批通过</span></td><td class="op-links"><button class="btn btn-sm">查看</button></td></tr>
+              <tr><td>4</td><td>2026年业绩指标设定组</td><td>年度考核</td><td>2026-01-10</td><td>2026-03-31</td><td>综合办公室</td><td><span class="status-tag st-red">被退回</span></td><td class="op-links"><button class="btn btn-sm">查看</button></td></tr>
+              <tr><td>5</td><td>2026年业绩指标设定组</td><td>年度考核</td><td>2026-01-10</td><td>2026-03-31</td><td>计划财务部</td><td><span class="status-tag st-green">审批通过</span></td><td class="op-links"><button class="btn btn-sm">查看</button></td></tr>
+            </tbody>
+          </table>
+          <div class="pagination"><span>共 5 条</span><div class="pagination-pages"><span class="active">1</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 月度考核管理 ===== -->
+    <div id="page-monthly" class="page-section" style="display:none;">
+      <div class="page-header">
+        <h1>月度考核管理 <span class="version-tag">v1</span></h1>
+        <p>控制月度考核全流程：发布指标、启动考核、启动他评、预发布、发布</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-form">
+            <div class="form-group"><label>考核组名称</label><input placeholder="模糊查询"></div>
+            <div class="form-group"><label>考核状态</label><select><option>全部</option><option>待启动</option><option>指标已发布</option><option>自评中</option><option>他评中</option><option>复核中</option><option>预发布</option><option>已发布</option></select></div>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>序号</th><th>考核组名称</th><th>考核类型</th><th>考核期间</th><th>考核状态</th><th>自评完成</th><th>他评完成</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>1</td><td>2026年4月月度考核组</td><td>月度考核</td><td>2026-04</td>
+                <td><span class="status-tag st-purple">预发布</span></td>
+                <td>14/14</td><td>14/14</td>
+                <td class="op-links">
+                  <button class="btn btn-sm btn-primary">取消预发布</button>
+                  <button class="btn btn-sm btn-success">绩效发布</button>
+                  <button class="btn btn-sm">查看进度</button>
+                </td>
+              </tr>
+              <tr>
+                <td>2</td><td>2026年5月月度考核组</td><td>月度考核</td><td>2026-05</td>
+                <td><span class="status-tag st-blue">他评中</span></td>
+                <td>14/14</td><td>8/14</td>
+                <td class="op-links">
+                  <button class="btn btn-sm">查看进度</button>
+                </td>
+              </tr>
+              <tr>
+                <td>3</td><td>2026年6月月度考核组</td><td>月度考核</td><td>2026-06</td>
+                <td><span class="status-tag st-orange">待启动</span></td>
+                <td>0/14</td><td>0/14</td>
+                <td class="op-links">
+                  <button class="btn btn-sm btn-primary">发布考核指标</button>
+                  <button class="btn btn-sm" onclick="openModal('modal-member')">成员维护</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 复核评估 ===== -->
+    <div id="page-review" class="page-section" style="display:none;">
+      <div class="page-header">
+        <h1>复核评估 <span class="version-tag">v1</span></h1>
+        <p>对各部门月度考核数据进行复核和修正打分，得分计算优先取管理员打分</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-form">
+            <div class="form-group"><label>考核组</label><select><option>2026年4月月度考核组</option><option>2026年3月月度考核组</option></select></div>
+            <div class="form-group"><label>考核部门</label><select><option>全部</option><option>生产技术部</option><option>安全健康环保部</option><option>图克分公司</option></select></div>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>序号</th><th>考核部门</th><th>指标大类</th><th>指标小类</th><th>考核内容</th><th>权重(月度)</th><th>部门打分</th><th>管理员打分</th><th>最终得分</th><th>打分说明</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>生产技术部</td><td>重点工作</td><td>生产管理</td><td>月度产量达标率</td><td>9.6%</td><td>95</td><td><input style="width:60px;height:28px;border:1px solid #d9d9d9;border-radius:3px;text-align:center;" value="98"></td><td class="score-high">94.08</td><td><input style="width:120px;height:28px;border:1px solid #d9d9d9;border-radius:3px;font-size:12px;" placeholder="修正说明"></td><td><button class="btn btn-sm btn-primary">保存</button></td></tr>
+              <tr><td>2</td><td>生产技术部</td><td>基础工作</td><td>安全管理</td><td>安全事故发生率</td><td>7.2%</td><td>88</td><td><input style="width:60px;height:28px;border:1px solid #d9d9d9;border-radius:3px;text-align:center;" value=""></td><td class="score-mid">63.36</td><td><input style="width:120px;height:28px;border:1px solid #d9d9d9;border-radius:3px;font-size:12px;" placeholder="修正说明"></td><td><button class="btn btn-sm btn-primary">保存</button></td></tr>
+              <tr><td>3</td><td>安全健康环保部</td><td>重点工作</td><td>环保监测</td><td>环保指标达标率</td><td>8.0%</td><td>92</td><td><input style="width:60px;height:28px;border:1px solid #d9d9d9;border-radius:3px;text-align:center;" value="90"></td><td class="score-high">72.00</td><td><input style="width:120px;height:28px;border:1px solid #d9d9d9;border-radius:3px;font-size:12px;" placeholder="修正说明"></td><td><button class="btn btn-sm btn-primary">保存</button></td></tr>
+              <tr><td>4</td><td>图克分公司</td><td>生产经营类</td><td>产量指标</td><td>月度产量完成率</td><td>12.0%</td><td>100</td><td><input style="width:60px;height:28px;border:1px solid #d9d9d9;border-radius:3px;text-align:center;" value=""></td><td class="score-high">120.00</td><td><input style="width:120px;height:28px;border:1px solid #d9d9d9;border-radius:3px;font-size:12px;" placeholder="修正说明"></td><td><button class="btn btn-sm btn-primary">保存</button></td></tr>
+            </tbody>
+          </table>
+          <div style="padding:12px 0;font-size:12px;color:#888;">得分计算规则：优先取管理员打分，如为空则取部门打分，再乘以月度权重</div>
+          <div class="pagination"><span>共 56 条</span><div class="pagination-pages"><span>‹</span><span class="active">1</span><span>2</span><span>3</span><span>›</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 申诉管理 ===== -->
+    <div id="page-appeal" class="page-section" style="display:none;">
+      <div class="page-header">
+        <h1>申诉管理 <span class="version-tag">v1</span></h1>
+        <p>管理部门对考核结果的申诉，退回打分部门重新评估</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-form">
+            <div class="form-group"><label>申诉部门</label><select><option>全部</option><option>生产技术部</option><option>综合办公室</option></select></div>
+            <div class="form-group"><label>申诉状态</label><select><option>全部</option><option>草稿</option><option>待重新评估</option><option>已重新打分</option><option>已处理</option></select></div>
+            <button class="btn btn-primary">查询</button>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-appeal')">+ 创建申诉</button>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>序号</th><th>考核组</th><th>申诉部门</th><th>打分部门</th><th>申诉说明</th><th>申诉材料</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>2026年3月月度考核组</td><td>生产技术部</td><td>安全健康环保部</td><td>环保指标评分偏低，已提供整改材料</td><td>申诉材料.pdf</td><td><span class="status-tag st-green">已处理</span></td><td class="op-links"><button class="btn btn-sm">查看</button></td></tr>
+              <tr><td>2</td><td>2026年4月月度考核组</td><td>综合办公室</td><td>人力资源部</td><td>基础工作评分不合理</td><td>证明文件.zip</td><td><span class="status-tag st-orange">待重新评估</span></td><td class="op-links"><button class="btn btn-sm">查看</button><button class="btn btn-sm btn-warning">退回打分部门</button></td></tr>
+              <tr><td>3</td><td>2026年4月月度考核组</td><td>机械动力部</td><td>生产技术部</td><td>重点工作指标打分不公</td><td>—</td><td><span class="status-tag st-red">草稿</span></td><td class="op-links"><button class="btn btn-sm">编辑</button><button class="btn btn-sm btn-primary">提交</button></td></tr>
+            </tbody>
+          </table>
+          <div class="pagination"><span>共 3 条</span><div class="pagination-pages"><span class="active">1</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 考核进度查询 ===== -->
+    <div id="page-progress" class="page-section" style="display:none;">
+      <div class="page-header">
+        <h1>考核进度查询 <span class="version-tag">v1</span></h1>
+        <p>按期间、部门查询绩效考核完成状态</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-form">
+            <div class="form-group"><label>考核组名称</label><input placeholder="模糊查询"></div>
+            <div class="form-group"><label>考核期间</label><select><option>全部</option><option>月度考核</option></select></div>
+            <div class="form-group"><label>考核部门</label><select><option>全部</option></select></div>
+            <div class="form-group"><label>完成状态</label><select><option>全部</option><option>未提交</option><option>自评已提交</option><option>部分完成</option><option>已完成</option></select></div>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>序号</th><th>考核组名称</th><th>考核期间</th><th>考核部门</th><th>自评状态</th><th>他评状态</th><th>完成进度</th><th>未完成指标</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>2026年4月月度考核组</td><td>2026-04</td><td>生产技术部</td><td><span class="status-tag st-green">已提交</span></td><td><span class="status-tag st-green">已提交</span></td><td><div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div> 100%</td><td>0</td><td class="op-links"><button class="btn btn-sm">复核打分</button><button class="btn btn-sm">查看</button></td></tr>
+              <tr><td>2</td><td>2026年4月月度考核组</td><td>2026-04</td><td>安全健康环保部</td><td><span class="status-tag st-green">已提交</span></td><td><span class="status-tag st-green">已提交</span></td><td><div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div> 100%</td><td>0</td><td class="op-links"><button class="btn btn-sm">复核打分</button><button class="btn btn-sm">查看</button></td></tr>
+              <tr><td>3</td><td>2026年4月月度考核组</td><td>2026-04</td><td>图克分公司</td><td><span class="status-tag st-green">已提交</span></td><td><span class="status-tag st-orange">部分完成</span></td><td><div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div> 75%</td><td><a class="btn-link" style="color:#cf1322;">3</a></td><td class="op-links"><button class="btn btn-sm">查看</button></td></tr>
+              <tr><td>4</td><td>2026年4月月度考核组</td><td>2026-04</td><td>综合办公室</td><td><span class="status-tag st-green">已提交</span></td><td><span class="status-tag st-green">已提交</span></td><td><div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div> 100%</td><td>0</td><td class="op-links"><button class="btn btn-sm">复核打分</button><button class="btn btn-sm">查看</button></td></tr>
+              <tr><td>5</td><td>2026年4月月度考核组</td><td>2026-04</td><td>机械动力部</td><td><span class="status-tag st-orange">待提交</span></td><td><span class="status-tag st-red">未开始</span></td><td><div class="progress-bar"><div class="progress-fill" style="width:30%"></div></div> 30%</td><td><a class="btn-link" style="color:#cf1322;">7</a></td><td class="op-links"><button class="btn btn-sm">查看</button></td></tr>
+            </tbody>
+          </table>
+          <div class="pagination"><span>共 14 条</span><div class="pagination-pages"><span>‹</span><span class="active">1</span><span>2</span><span>›</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 考核结果查询 ===== -->
+    <div id="page-result" class="page-section" style="display:none;">
+      <div class="page-header">
+        <h1>考核结果查询 <span class="version-tag">v1</span></h1>
+        <p>查询已发布的绩效考核结果，支持按部门和时间维度查看，可导出</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-form">
+            <div class="form-group"><label>考核组</label><select><option>全部</option><option>2026年3月月度考核组</option><option>2026年4月月度考核组</option></select></div>
+            <div class="form-group"><label>考核部门</label><select><option>全部</option></select></div>
+            <div class="form-group"><label>查询维度</label><select><option>按部门</option><option>按指标</option><option>按时间</option></select></div>
+            <button class="btn btn-primary">查询</button>
+            <button class="btn btn-primary" style="margin-left:8px;">导出明细表</button>
+            <button class="btn btn-primary">导出汇总表</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>序号</th><th>考核部门</th><th>考核期间</th><th>重点工作得分</th><th>基础工作得分</th><th>控制指标得分</th><th>动态督办得分</th><th>月度总分</th><th>考核系数</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>生产技术部</td><td>2026-03</td><td class="score-high">28.50</td><td class="score-high">25.20</td><td class="score-mid">9.80</td><td>5.00</td><td class="score-high">68.50</td><td>1.05</td><td><button class="btn btn-sm btn-link">查看详情</button></td></tr>
+              <tr><td>2</td><td>安全健康环保部</td><td>2026-03</td><td class="score-mid">24.30</td><td class="score-high">26.10</td><td class="score-high">10.00</td><td>5.00</td><td class="score-mid">65.40</td><td>1.02</td><td><button class="btn btn-sm btn-link">查看详情</button></td></tr>
+              <tr><td>3</td><td>图克分公司</td><td>2026-03</td><td class="score-high">35.60</td><td>—</td><td class="score-mid">9.20</td><td>5.00</td><td class="score-high">49.80</td><td>1.08</td><td><button class="btn btn-sm btn-link">查看详情</button></td></tr>
+              <tr><td>4</td><td>综合办公室</td><td>2026-03</td><td class="score-mid">22.10</td><td class="score-mid">23.50</td><td class="score-high">10.00</td><td>5.00</td><td class="score-mid">60.60</td><td>0.98</td><td><button class="btn btn-sm btn-link">查看详情</button></td></tr>
+            </tbody>
+          </table>
+          <div class="pagination"><span>共 14 条</span><div class="pagination-pages"><span>‹</span><span class="active">1</span><span>2</span><span>›</span></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: 新增考核组 -->
+<div id="modal-group" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header"><h3>新增考核组</h3><span class="modal-close" onclick="closeModal('modal-group')">&times;</span></div>
+    <div class="modal-body">
+      <div class="form-item"><label>考核类别<span class="req">*</span></label><select><option>请选择</option><option>业绩指标设定</option><option>绩效考核</option></select></div>
+      <div class="form-item"><label>考核组名称<span class="req">*</span></label><input value="中煤鄂能化2026年5月业绩考核"></div>
+      <div class="form-item"><label>考核类型</label><select><option>月度考核</option><option>季度考核</option><option>年度考核</option></select><div style="font-size:11px;color:#999;margin-top:2px;">选择「业绩指标设定」时不显示此字段</div></div>
+      <div class="form-row"><div class="form-item"><label>开始日期<span class="req">*</span></label><input type="date" value="2026-05-01"></div><div class="form-item"><label>结束日期<span class="req">*</span></label><input type="date" value="2026-05-31"></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-group')">取消</button><button class="btn btn-primary">保存</button></div>
+  </div>
+</div>
+
+<!-- Modal: 审批 -->
+<div id="modal-approve" class="modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header"><h3>审批 - 生产技术部 年度业绩指标</h3><span class="modal-close" onclick="closeModal('modal-approve')">&times;</span></div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px;font-size:13px;color:#666;">提交人：赵刚 | 提交时间：2026-03-15 | 状态：<span class="status-tag st-orange">待财务处审批</span></div>
+      <div class="indicator-tree">
+        <div class="it-category">📁 重点工作（权重：--）</div>
+        <div class="it-sub">├ 生产管理</div>
+        <div class="it-item">│ 序号1 | 月度产量达标率 | 权重(年度):12% / 权重(月度):9.6% | 考核部门:计划财务部</div>
+        <div class="it-item">│ 序号2 | 设备运转率 | 权重(年度):8% / 权重(月度):6.4% | 考核部门:机械动力部</div>
+        <div class="it-sub">└ 技术改造</div>
+        <div class="it-item">&nbsp;&nbsp;序号1 | 技术改造项目完成率 | 权重(年度):5% / 权重(月度):4% | 考核部门:分管领导</div>
+        <div class="it-category">📁 基础工作（权重：--）</div>
+        <div class="it-sub">├ 安全管理</div>
+        <div class="it-item">│ 序号1 | 安全事故发生率 | 权重(年度):10% / 权重(月度):7.2% | 考核部门:安全健康环保部</div>
+        <div class="it-sub">└ 质量管理</div>
+        <div class="it-item">&nbsp;&nbsp;序号1 | 产品合格率 | 权重(年度):6% / 权重(月度):4.8% | 考核部门:计划财务部</div>
+        <div class="it-category">📁 控制指标（公共）</div>
+        <div class="it-sub">└ 控制指标</div>
+        <div class="it-item">&nbsp;&nbsp;序号1 | 环保达标情况 | 权重(年度):5% / 权重(月度):5% | 考核部门:安全健康环保部</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-approve')">取消</button>
+      <button class="btn btn-danger" onclick="closeModal('modal-approve');openModal('modal-reject')">退回</button>
+      <button class="btn btn-success">审批通过</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 退回 -->
+<div id="modal-reject" class="modal-overlay">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header"><h3>退回说明</h3><span class="modal-close" onclick="closeModal('modal-reject')">&times;</span></div>
+    <div class="modal-body">
+      <div class="form-item"><label>退回说明<span class="req">*</span></label><textarea placeholder="请输入退回原因和修改要点，部门绩效管理员将按此说明进行修改"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-reject')">取消</button><button class="btn btn-danger">确认退回</button></div>
+  </div>
+</div>
+
+<!-- Modal: 创建申诉 -->
+<div id="modal-appeal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header"><h3>创建申诉</h3><span class="modal-close" onclick="closeModal('modal-appeal')">&times;</span></div>
+    <div class="modal-body">
+      <div class="form-item"><label>考核组<span class="req">*</span></label><select><option>请选择</option><option>2026年4月月度考核组</option></select></div>
+      <div class="form-item"><label>申诉部门<span class="req">*</span></label><select><option>请选择</option><option>生产技术部</option><option>综合办公室</option></select></div>
+      <div class="form-item"><label>打分部门<span class="req">*</span></label><select><option>请选择</option><option>安全健康环保部</option><option>人力资源部</option></select><div style="font-size:11px;color:#999;margin-top:2px;">如对多个部门打分申诉，请创建多个申诉单</div></div>
+      <div class="form-item"><label>申诉说明<span class="req">*</span></label><textarea placeholder="请输入申诉说明"></textarea></div>
+      <div class="form-item"><label>上传申诉材料</label><input type="file"><div style="font-size:11px;color:#999;margin-top:2px;">支持PDF、图片、压缩文件</div></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-appeal')">取消</button><button class="btn">保存草稿</button><button class="btn btn-primary">提交</button></div>
+  </div>
+</div>
+
+<!-- Modal: 成员维护 -->
+<div id="modal-member" class="modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3>成员维护 - 2026年业绩指标设定组</h3>
+      <span class="modal-close" onclick="closeModal('modal-member')">&times;</span>
+    </div>
+    <div class="modal-body">
+      <!-- 已选成员区域 -->
+      <div class="member-section">
+        <div class="member-section-header">
+          <h4>已选考核成员（部门/分公司）</h4>
+          <span class="member-count">共 14 个</span>
+        </div>
+        <div class="selected-members-list">
+          <div class="member-card">
+            <div class="member-info">
+              <span class="member-name">生产技术部</span>
+              <span class="member-dept">职能部门</span>
+              <span class="member-role">考核对象</span>
+            </div>
+            <button class="btn-remove" onclick="this.parentElement.remove()">移除</button>
+          </div>
+          <div class="member-card">
+            <div class="member-info">
+              <span class="member-name">安全健康环保部</span>
+              <span class="member-dept">职能部门</span>
+              <span class="member-role">考核对象</span>
+            </div>
+            <button class="btn-remove" onclick="this.parentElement.remove()">移除</button>
+          </div>
+          <div class="member-card">
+            <div class="member-info">
+              <span class="member-name">图克分公司</span>
+              <span class="member-dept">分公司</span>
+              <span class="member-role">考核对象</span>
+            </div>
+            <button class="btn-remove" onclick="this.parentElement.remove()">移除</button>
+          </div>
+          <div class="member-card">
+            <div class="member-info">
+              <span class="member-name">乌审召分公司</span>
+              <span class="member-dept">分公司</span>
+              <span class="member-role">考核对象</span>
+            </div>
+            <button class="btn-remove" onclick="this.parentElement.remove()">移除</button>
+          </div>
+          <div class="member-card">
+            <div class="member-info">
+              <span class="member-name">水务分公司</span>
+              <span class="member-dept">分公司</span>
+              <span class="member-role">考核对象</span>
+            </div>
+            <button class="btn-remove" onclick="this.parentElement.remove()">移除</button>
+          </div>
+          <div class="member-card">
+            <div class="member-info">
+              <span class="member-name">计划财务部</span>
+              <span class="member-dept">职能部门</span>
+              <span class="member-role">考核对象</span>
+            </div>
+            <button class="btn-remove" onclick="this.parentElement.remove()">移除</button>
+          </div>
+          <div class="member-card">
+            <div class="member-info">
+              <span class="member-name">人力资源部</span>
+              <span class="member-dept">职能部门</span>
+              <span class="member-role">考核对象</span>
+            </div>
+            <button class="btn-remove" onclick="this.parentElement.remove()">移除</button>
+          </div>
+          <div class="member-card">
+            <div class="member-info">
+              <span class="member-name">综合办公室</span>
+              <span class="member-dept">职能部门</span>
+              <span class="member-role">考核对象</span>
+            </div>
+            <button class="btn-remove" onclick="this.parentElement.remove()">移除</button>
+          </div>
+          <div class="member-card">
+            <div class="member-info">
+              <span class="member-name">机械动力部</span>
+              <span class="member-dept">职能部门</span>
+              <span class="member-role">考核对象</span>
+            </div>
+            <button class="btn-remove" onclick="this.parentElement.remove()">移除</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 添加成员区域 -->
+      <div class="add-member-section">
+        <div class="add-member-header">
+          <h4>添加考核成员（部门/分公司）</h4>
+        </div>
+        <div class="add-member-search">
+          <div class="search-row">
+            <div class="search-field">
+              <label>组织类型</label>
+              <select class="type-select">
+                <option>全部</option>
+                <option>职能部门</option>
+                <option>分公司</option>
+              </select>
+            </div>
+            <div class="search-field">
+              <label>名称搜索</label>
+              <input type="text" class="name-input" placeholder="输入部门/分公司名称">
+            </div>
+            <button class="btn btn-primary btn-search">查询</button>
+          </div>
+        </div>
+        <div class="candidate-list">
+          <table class="candidate-table">
+            <thead>
+              <tr>
+                <th style="width:40px;">选择</th>
+                <th>部门/分公司名称</th>
+                <th>组织类型</th>
+                <th>部门负责人</th>
+                <th>绩效管理员</th>
+                <th>当前状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="checkbox" class="member-checkbox"></td>
+                <td>生产技术部</td>
+                <td>职能部门</td>
+                <td>钱明</td>
+                <td>赵刚</td>
+                <td><span class="status-tag st-green">已配置</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="member-checkbox"></td>
+                <td>安全健康环保部</td>
+                <td>职能部门</td>
+                <td>孙强</td>
+                <td>陈伟</td>
+                <td><span class="status-tag st-green">已配置</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="member-checkbox"></td>
+                <td>图克分公司</td>
+                <td>分公司</td>
+                <td>何伟</td>
+                <td>王磊</td>
+                <td><span class="status-tag st-green">已配置</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="member-checkbox"></td>
+                <td>乌审召分公司</td>
+                <td>分公司</td>
+                <td>张华</td>
+                <td>李明</td>
+                <td><span class="status-tag st-orange">待配置</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="member-checkbox"></td>
+                <td>水务分公司</td>
+                <td>分公司</td>
+                <td>王强</td>
+                <td>周军</td>
+                <td><span class="status-tag st-green">已配置</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="member-checkbox"></td>
+                <td>计划财务部</td>
+                <td>职能部门</td>
+                <td>李华</td>
+                <td>王芳</td>
+                <td><span class="status-tag st-green">已配置</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="member-checkbox"></td>
+                <td>人力资源部</td>
+                <td>职能部门</td>
+                <td>张丽</td>
+                <td>刘伟</td>
+                <td><span class="status-tag st-green">已配置</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="member-checkbox"></td>
+                <td>综合办公室</td>
+                <td>职能部门</td>
+                <td>刘丽</td>
+                <td>马军</td>
+                <td><span class="status-tag st-green">已配置</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="member-checkbox"></td>
+                <td>机械动力部</td>
+                <td>职能部门</td>
+                <td>杨光</td>
+                <td>周丽</td>
+                <td><span class="status-tag st-orange">待配置</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="candidate-pagination">
+            <span>共 11 条</span>
+            <div class="pagination-pages">
+              <span class="active">1</span>
+            </div>
+          </div>
+        </div>
+        <div class="batch-actions">
+          <button class="btn btn-primary" onclick="addSelectedMembers()">添加选中成员</button>
+          <span class="selected-tip">已选择 <strong id="selectedCount">0</strong> 个</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-member')">取消</button>
+      <button class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* 成员维护弹框专用样式 */
+.member-section { margin-bottom: 20px; }
+.member-section-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+.member-section-header h4 { font-size: 14px; color: #1a3a6b; font-weight: 600; }
+.member-count { font-size: 12px; color: #888; background: #f0f0f0; padding: 2px 8px; border-radius: 3px; }
+.selected-members-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; max-height: 180px; overflow-y: auto; }
+.member-card { display: flex; align-items: center; gap: 8px; background: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 8px 12px; }
+.member-info { display: flex; flex-direction: column; gap: 2px; }
+.member-name { font-size: 13px; color: #333; font-weight: 600; }
+.member-dept { font-size: 11px; color: #888; }
+.member-role { font-size: 11px; color: #52c41a; background: #f6ffed; padding: 1px 4px; border-radius: 2px; }
+.btn-remove { font-size: 11px; color: #cf1322; background: none; border: 1px solid #ffa39e; border-radius: 3px; padding: 2px 6px; cursor: pointer; }
+.btn-remove:hover { background: #fff1f0; }
+
+.add-member-section { border-top: 1px solid #f0f0f0; padding-top: 16px; }
+.add-member-header { margin-bottom: 12px; }
+.add-member-header h4 { font-size: 14px; color: #1a3a6b; font-weight: 600; }
+.add-member-search { margin-bottom: 12px; }
+.search-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.search-field { display: flex; flex-direction: column; gap: 4px; }
+.search-field label { font-size: 12px; color: #888; }
+.search-field select, .search-field input { height: 32px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 10px; font-size: 13px; min-width: 120px; }
+.btn-search { height: 32px; }
+
+.candidate-list { border: 1px solid #e8e8e8; border-radius: 4px; overflow: hidden; }
+.candidate-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.candidate-table th { background: #fafafa; padding: 8px 10px; text-align: left; font-weight: 600; color: #555; border-bottom: 1px solid #f0f0f0; }
+.candidate-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+.candidate-table tr:hover { background: #e6f4ff; }
+.member-checkbox { width: 16px; height: 16px; cursor: pointer; }
+.candidate-pagination { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fafafa; font-size: 12px; color: #999; }
+
+.batch-actions { display: flex; align-items: center; gap: 16px; margin-top: 12px; padding: 12px; background: #e6f4ff; border-radius: 4px; }
+.selected-tip { font-size: 12px; color: #0958d9; }
+.selected-tip strong { color: #2d5aa0; font-weight: 600; }
+</style>
+
+<script>
+const pageNames = {group:'考核组管理',approve:'业绩指标审批',monthly:'月度考核管理',review:'复核评估',appeal:'申诉管理',progress:'考核进度查询',result:'考核结果查询'};
+function showPage(name) {
+  document.querySelectorAll('.page-section').forEach(p => p.style.display = 'none');
+  document.getElementById('page-' + name).style.display = 'block';
+  document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('currentPageName').textContent = pageNames[name] || name;
+}
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(m => { m.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); }); });
+
+// 风格切换函数
+function switchStyle(styleClass) {
+  // 移除所有风格类
+  document.body.classList.remove('style-baidu', 'style-feishu', 'style-tech', 'style-guoqi');
+  // 添加新风格类（如果有）
+  if (styleClass) document.body.classList.add(styleClass);
+  // 更新按钮状态
+  document.querySelectorAll('.style-btn').forEach(btn => btn.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+// 成员维护弹框功能
+function updateSelectedCount() {
+  const checkboxes = document.querySelectorAll('.member-checkbox:checked');
+  document.getElementById('selectedCount').textContent = checkboxes.length;
+}
+document.querySelectorAll('.member-checkbox').forEach(cb => {
+  cb.addEventListener('change', updateSelectedCount);
+});
+function addSelectedMembers() {
+  const checkboxes = document.querySelectorAll('.member-checkbox:checked');
+  const list = document.querySelector('.selected-members-list');
+  checkboxes.forEach(cb => {
+    const row = cb.closest('tr');
+    const name = row.cells[1].textContent; // 部门/分公司名称
+    const type = row.cells[2].textContent; // 组织类型
+    const card = document.createElement('div');
+    card.className = 'member-card';
+    card.innerHTML = `<div class="member-info"><span class="member-name">${name}</span><span class="member-dept">${type}</span><span class="member-role">考核对象</span></div><button class="btn-remove" onclick="this.parentElement.remove()">移除</button>`;
+    list.appendChild(card);
+    cb.checked = false;
+  });
+  updateSelectedCount();
+  // 更新成员总数
+  const count = list.querySelectorAll('.member-card').length;
+  document.querySelector('.member-count').textContent = `共 ${count} 个`;
+}
+</script>
+</body>
+</html>
