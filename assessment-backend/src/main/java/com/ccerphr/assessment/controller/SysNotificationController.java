@@ -41,7 +41,11 @@ public class SysNotificationController {
 
     @PutMapping("/{id}/mark-read")
     public Result<Void> markRead(@PathVariable Long id) {
-        notificationService.markAsRead(id);
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return Result.error("用户未登录");
+        }
+        notificationService.markAsRead(id, userId);
         return Result.success();
     }
 

@@ -2,7 +2,7 @@
   <div class="login-page">
     <div class="login-card">
       <div class="login-header">
-        <h1 class="system-title">中煤鄂能化综合考评管理系统</h1>
+        <h1 class="system-title">综合考评管理系统</h1>
         <p class="system-subtitle">月度业绩考核管理</p>
       </div>
 
@@ -29,6 +29,20 @@
         </el-form-item>
       </el-form>
 
+      <div class="test-accounts">
+        <div class="test-accounts-title">测试账号</div>
+        <button
+          v-for="account in testAccounts"
+          :key="account.username"
+          type="button"
+          class="test-account"
+          @click="fillAccount(account)"
+        >
+          <span>{{ account.label }}</span>
+          <strong>{{ account.username }} / {{ account.password }}</strong>
+        </button>
+      </div>
+
       <el-button
         type="primary"
         size="large"
@@ -39,20 +53,6 @@
       >
         登录
       </el-button>
-
-      <div class="test-accounts">
-        <p class="test-title">测试账号（密码均为 123456）：</p>
-        <div class="account-list">
-          <span
-            v-for="account in testAccounts"
-            :key="account.username"
-            class="account-item"
-            @click="fillAccount(account.username)"
-          >
-            {{ account.username }} - {{ account.roleName }}
-          </span>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -65,6 +65,12 @@ import { login } from '@/api/auth'
 import type { UserInfo } from '@/api/types'
 import { ElMessage } from 'element-plus'
 
+interface TestAccount {
+  label: string
+  username: string
+  password: string
+}
+
 const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
@@ -74,17 +80,14 @@ const form = reactive({
   password: ''
 })
 
-const testAccounts = [
-  { username: 'admin', roleName: '系统管理员' },
-  { username: 'wangfang', roleName: '考核管理员' },
-  { username: 'zhaogang', roleName: '部门绩效管理员' },
-  { username: 'zhangjg', roleName: '部门负责人' },
-  { username: 'wangjg', roleName: '分管领导/考核员' }
+const testAccounts: TestAccount[] = [
+  { label: '系统管理员-全部', username: 'admin', password: '123456' },
+  { label: '图克分公司管理员', username: 'tuke01', password: '123456' }
 ]
 
-function fillAccount(username: string) {
-  form.username = username
-  form.password = '123456'
+function fillAccount(account: TestAccount) {
+  form.username = account.username
+  form.password = account.password
 }
 
 async function handleLogin() {
@@ -108,16 +111,8 @@ async function handleLogin() {
     userStore.setUserInfo(userInfo)
     userStore.setMenus([])
 
-    // 登录后初始化数据范围
-    if (userInfo.availableRoles && userInfo.availableRoles.length > 0) {
-      const currentRole = userInfo.availableRoles.find(r => r.roleCode === userInfo.roleCode)
-        || userInfo.availableRoles[0]
-      userStore.setDataScope(
-        currentRole.dataScope || 'ALL',
-        currentRole.scopeId || 0,
-        currentRole.scopeName || '全部'
-      )
-    }
+    // 数据范围已由 setUserInfo -> ensureActiveRole 正确设置，
+    // 不再用基础角色覆盖，避免切换角色后重新登录时范围回退到 ALL
 
     ElMessage.success('登录成功')
     router.push('/')
@@ -166,45 +161,49 @@ async function handleLogin() {
 }
 
 .login-form {
+  margin-bottom: 16px;
+}
+
+.test-accounts {
   margin-bottom: 20px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+}
+
+.test-accounts-title {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.test-account {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.test-account:hover {
+  background: var(--hover-bg);
+}
+
+.test-account strong {
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .login-btn {
   width: 100%;
-}
-
-.test-accounts {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color, #e4e7ed);
-}
-
-.test-title {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-.account-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-}
-
-.account-item {
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: var(--bg-color, #f5f7fa);
-  padding: 4px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: color 0.2s, background-color 0.2s;
-
-  &:hover {
-    color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
-  }
 }
 </style>

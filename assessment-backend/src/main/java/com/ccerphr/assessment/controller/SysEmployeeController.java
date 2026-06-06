@@ -4,6 +4,8 @@ import com.ccerphr.assessment.common.PageResult;
 import com.ccerphr.assessment.common.Result;
 import com.ccerphr.assessment.dto.EmployeeQueryDTO;
 import com.ccerphr.assessment.entity.SysEmployee;
+import com.ccerphr.assessment.security.RequireRole;
+import com.ccerphr.assessment.security.UnitScopeAccess;
 import com.ccerphr.assessment.service.SysEmployeeService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -36,19 +38,25 @@ public class SysEmployeeController {
     }
 
     @PostMapping
+    @RequireRole({"ADMIN", "FIN_ADMIN"})
     public Result<Void> add(@RequestBody @Validated SysEmployee employee) {
+        UnitScopeAccess.requireAdminOrUnitScope();
         sysEmployeeService.add(employee);
         return Result.success();
     }
 
     @PutMapping
+    @RequireRole({"ADMIN", "FIN_ADMIN"})
     public Result<Void> update(@RequestBody @Validated SysEmployee employee) {
+        UnitScopeAccess.requireAdminOrUnitScope();
         sysEmployeeService.update(employee);
         return Result.success();
     }
 
     @DeleteMapping("/{id}")
+    @RequireRole({"ADMIN", "FIN_ADMIN"})
     public Result<Void> delete(@PathVariable Long id) {
+        UnitScopeAccess.requireAdminOrUnitScope();
         sysEmployeeService.delete(id);
         return Result.success();
     }

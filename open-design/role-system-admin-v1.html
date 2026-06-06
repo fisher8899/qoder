@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>系统管理员 — 月度业绩考核</title>
+<style>
+  :root {
+    --bg: oklch(97% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --fg: oklch(20% 0.015 250);
+    --muted: oklch(52% 0.015 250);
+    --border: oklch(90% 0.008 250);
+    --border-strong: oklch(82% 0.012 250);
+    --accent: oklch(52% 0.18 250);
+    --accent-hover: oklch(46% 0.2 250);
+    --accent-light: oklch(94% 0.04 250);
+    --success: oklch(55% 0.16 155);
+    --success-bg: oklch(94% 0.04 155);
+    --warning: oklch(62% 0.18 75);
+    --warning-bg: oklch(94% 0.04 75);
+    --danger: oklch(55% 0.2 25);
+    --danger-bg: oklch(94% 0.04 25);
+    --sidebar: oklch(22% 0.02 250);
+    --sidebar-hover: oklch(28% 0.025 250);
+    --sidebar-active: oklch(52% 0.18 250);
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', system-ui, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--fg); min-height: 100vh; display: flex; }
+
+  /* Sidebar */
+  .sidebar { width: 240px; background: var(--sidebar); color: oklch(85% 0.01 250); min-height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .sidebar-brand { padding: 20px 24px; border-bottom: 1px solid oklch(28% 0.025 250); display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); font-weight: 700; }
+  .brand-name { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: white; }
+  .brand-name .role-tag { font-size: 11px; color: oklch(70% 0.02 250); font-weight: 400; display: block; margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-group { padding: 12px 24px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: oklch(55% 0.02 250); font-family: var(--font-mono); }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 24px; font-size: 13.5px; color: oklch(80% 0.01 250); cursor: pointer; transition: background 0.1s; text-decoration: none; }
+  .nav-item:hover { background: var(--sidebar-hover); color: white; }
+  .nav-item.active { background: var(--sidebar-active); color: white; }
+  .nav-item .icon { width: 16px; height: 16px; opacity: 0.9; }
+  .sidebar-foot { padding: 12px 24px; border-top: 1px solid oklch(28% 0.025 250); display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: oklch(40% 0.05 280); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 600; }
+  .avatar-info { flex: 1; }
+  .avatar-info .name { font-size: 13px; color: white; }
+  .avatar-info .role { font-size: 11px; color: oklch(65% 0.02 250); }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .crumb .sep { color: var(--border-strong); }
+  .crumb .current { color: var(--fg); font-weight: 500; }
+  .top-actions { display: flex; align-items: center; gap: 12px; }
+  .search-input { padding: 7px 12px 7px 32px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; width: 240px; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2375828b' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 10px center; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); position: relative; }
+  .icon-btn:hover { background: var(--bg); color: var(--fg); }
+  .dot-red { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; background: var(--danger); border-radius: 50%; }
+  .nav-link { font-size: 13px; color: var(--accent); text-decoration: none; padding: 6px 10px; border-radius: 6px; }
+  .nav-link:hover { background: var(--accent-light); }
+
+  /* Page */
+  .page { padding: 24px 32px; max-width: 1400px; margin: 0 auto; width: 100%; }
+  .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 10px 16px; font-size: 13.5px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+  .tab:hover:not(.active) { color: var(--fg); }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .stat-head { display: flex; align-items: center; justify-content: space-between; }
+  .stat-label { font-size: 12.5px; color: var(--muted); }
+  .stat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .stat-icon.blue { background: var(--accent-light); color: var(--accent); }
+  .stat-icon.green { background: var(--success-bg); color: var(--success); }
+  .stat-icon.amber { background: var(--warning-bg); color: var(--warning); }
+  .stat-icon.red { background: var(--danger-bg); color: var(--danger); }
+  .stat-num { font-family: var(--font-display); font-size: 28px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stat-trend { font-size: 12px; color: var(--success); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+  .stat-trend.down { color: var(--danger); }
+
+  /* Toolbar */
+  .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px 10px 0 0; border-bottom: none; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-select { padding: 7px 28px 7px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2375828b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center; appearance: none; cursor: pointer; min-width: 120px; }
+  .actions { display: flex; gap: 8px; }
+  .btn { padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--fg); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+  .btn:hover { background: var(--bg); border-color: var(--border-strong); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-danger { color: var(--danger); border-color: var(--danger-bg); }
+  .btn-danger:hover { background: var(--danger-bg); }
+
+  /* Table */
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--bg); }
+  th { padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--muted); text-align: left; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  td { padding: 14px 20px; font-size: 13.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+  .checkbox { width: 16px; height: 16px; border: 1.5px solid var(--border-strong); border-radius: 4px; cursor: pointer; display: inline-block; vertical-align: middle; }
+  .checkbox.checked { background: var(--accent); border-color: var(--accent); position: relative; }
+  .checkbox.checked::after { content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .user-cell { display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .user-name { font-weight: 500; }
+  .user-mail { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .pill { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+  .pill.green { background: var(--success-bg); color: var(--success); }
+  .pill.amber { background: var(--warning-bg); color: var(--warning); }
+  .pill.gray { background: var(--bg); color: var(--muted); }
+  .pill.blue { background: var(--accent-light); color: var(--accent); }
+  .row-actions { display: flex; gap: 4px; }
+  .row-action { padding: 4px 8px; font-size: 12px; color: var(--accent); cursor: pointer; border-radius: 4px; }
+  .row-action:hover { background: var(--accent-light); }
+  .row-action.danger { color: var(--danger); }
+  .row-action.danger:hover { background: var(--danger-bg); }
+
+  /* Pagination */
+  .pagination { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
+  .pagination-info { font-size: 13px; color: var(--muted); }
+  .pagination-controls { display: flex; gap: 4px; }
+  .page-btn { min-width: 32px; height: 32px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; font-size: 13px; color: var(--fg); cursor: pointer; padding: 0 10px; }
+  .page-btn:hover { background: var(--bg); }
+  .page-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Permission tree (preview block) */
+  .perm-grid { display: grid; grid-template-columns: 280px 1fr; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .perm-roles { border-right: 1px solid var(--border); }
+  .perm-role-item { padding: 14px 18px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+  .perm-role-item:hover { background: var(--bg); }
+  .perm-role-item.active { background: var(--accent-light); border-left: 3px solid var(--accent); padding-left: 15px; }
+  .perm-role-item .name { font-weight: 500; font-size: 13.5px; }
+  .perm-role-item .count { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .perm-tree { padding: 20px; }
+  .perm-tree h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+  .tree-node { margin-bottom: 4px; }
+  .tree-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13.5px; }
+  .tree-row .toggle { width: 14px; color: var(--muted); cursor: pointer; user-select: none; }
+  .tree-row .checkbox { margin-right: 4px; }
+  .tree-children { padding-left: 26px; }
+
+  /* Hidden tab content */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark">考</div>
+    <div class="brand-name">月度业绩考核<span class="role-tag">系统管理后台</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">系统管理</div>
+    <a class="nav-item active" href="#users">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      用户管理
+    </a>
+    <a class="nav-item" href="#roles">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      角色与权限
+    </a>
+    <a class="nav-item" href="#menus">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      菜单管理
+    </a>
+    <a class="nav-item" href="#org">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+      组织架构
+    </a>
+    <a class="nav-item" href="#dict">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      数据字典
+    </a>
+    <div class="nav-group">系统监控</div>
+    <a class="nav-item" href="#log">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      操作日志
+    </a>
+    <a class="nav-item" href="#login-log">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      登录日志
+    </a>
+    <a class="nav-item" href="#monitor">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+      服务监控
+    </a>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="avatar">系</div>
+    <div class="avatar-info">
+      <div class="name">王启明</div>
+      <div class="role">系统管理员</div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="crumb">
+      <span>系统管理</span><span class="sep">/</span><span class="current">用户管理</span>
+    </div>
+    <div class="top-actions">
+      <input class="search-input" placeholder="搜索用户、菜单、日志…">
+      <a class="nav-link" href="index.html">返回导航</a>
+      <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot-red"></span></div>
+      <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">用户管理</h1>
+        <div class="page-sub">维护系统所有用户账号、角色绑定与登录状态</div>
+      </div>
+      <button class="btn btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建用户</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('users')">用户列表</div>
+      <div class="tab" onclick="showTab('roles')">角色与权限</div>
+      <div class="tab" onclick="showTab('menus')">菜单管理</div>
+      <div class="tab" onclick="showTab('org')">组织架构</div>
+    </div>
+
+    <div class="tab-panel active" id="tab-users">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">用户总数</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div>
+          <div class="stat-num">486</div>
+          <div class="stat-trend">↑ 12 本月新增</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">活跃用户</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg></div></div>
+          <div class="stat-num">412</div>
+          <div class="stat-trend">↑ 84.7%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">待审批</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+          <div class="stat-num">3</div>
+          <div class="stat-trend down">需要处理</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">已停用</div><div class="stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div></div>
+          <div class="stat-num">71</div>
+          <div class="stat-trend down">↓ 5 本月</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <select class="filter-select"><option>全部部门</option><option>条件财务处</option><option>生产部</option><option>安全环保部</option></select>
+          <select class="filter-select"><option>全部角色</option><option>系统管理员</option><option>考核管理员</option><option>部门管理员</option><option>考核员</option></select>
+          <select class="filter-select"><option>全部状态</option><option>启用</option><option>停用</option><option>锁定</option></select>
+        </div>
+        <div class="actions">
+          <button class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出</button>
+          <button class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>批量导入</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:48px"><span class="checkbox" onclick="this.classList.toggle('checked')"></span></th>
+              <th>用户</th>
+              <th>工号</th>
+              <th>所属部门</th>
+              <th>角色</th>
+              <th>状态</th>
+              <th>最近登录</th>
+              <th style="text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">李</div><div><div class="user-name">李建国</div><div class="user-mail">lijianguo@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10231</td>
+              <td>条件财务处</td>
+              <td><span class="pill blue">考核管理员</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">5 分钟前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">编辑</span><span class="row-action">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">张</div><div><div class="user-name">张晓燕</div><div class="user-mail">zhangxiaoyan@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10455</td>
+              <td>生产运行部</td>
+              <td><span class="pill blue">部门管理员</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">28 分钟前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">编辑</span><span class="row-action">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">王</div><div><div class="user-name">王宏伟</div><div class="user-mail">wanghongwei@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10089</td>
+              <td>公司领导</td>
+              <td><span class="pill blue">分管领导</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">2 小时前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">编辑</span><span class="row-action">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">陈</div><div><div class="user-name">陈志强</div><div class="user-mail">chenzhiqiang@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10678</td>
+              <td>安全环保部</td>
+              <td><span class="pill blue">考核员</span></td>
+              <td><span class="pill amber">● 锁定</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">3 天前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">编辑</span><span class="row-action">解锁</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">刘</div><div><div class="user-name">刘美华</div><div class="user-mail">liumeihua@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10912</td>
+              <td>人力资源部</td>
+              <td><span class="pill blue">部门管理员</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">1 小时前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">编辑</span><span class="row-action">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">赵</div><div><div class="user-name">赵明亮</div><div class="user-mail">zhaomingliang@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10345</td>
+              <td>设备工程部</td>
+              <td><span class="pill blue">部门管理员</span></td>
+              <td><span class="pill gray">● 停用</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">2 周前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">编辑</span><span class="row-action">启用</span><span class="row-action danger">删除</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">孙</div><div><div class="user-name">孙立军</div><div class="user-mail">sunlijun@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10567</td>
+              <td>条件财务处</td>
+              <td><span class="pill blue">考核员</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">12 分钟前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">编辑</span><span class="row-action">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="pagination-info">共 486 条，第 1-7 条</div>
+          <div class="pagination-controls">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">…</button>
+            <button class="page-btn">70</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-roles">
+      <div class="perm-grid">
+        <div class="perm-roles">
+          <div class="perm-role-item active">
+            <div><div class="name">系统管理员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">SYSTEM_ADMIN</div></div>
+            <div class="count">12 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">业绩考核管理员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">ASSESSMENT_ADMIN</div></div>
+            <div class="count">8 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">部门绩效管理员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">DEPT_ADMIN</div></div>
+            <div class="count">5 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">部门绩效考核员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">EVALUATOR</div></div>
+            <div class="count">4 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">分管领导</div><div style="font-size:12px;color:var(--muted);margin-top:2px">LEADER</div></div>
+            <div class="count">4 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">只读查询员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">READ_ONLY</div></div>
+            <div class="count">3 / 12</div>
+          </div>
+        </div>
+        <div class="perm-tree">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3>系统管理员 · 权限分配</h3>
+            <button class="btn btn-primary">保存修改</button>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row"><span class="toggle">▼</span><span class="checkbox checked"></span><strong>系统管理</strong></div>
+            <div class="tree-children">
+              <div class="tree-row"><span class="toggle">▼</span><span class="checkbox checked"></span>用户管理</div>
+              <div class="tree-children">
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>查看用户</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>新增用户</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>编辑用户</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>删除用户</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>重置密码</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>批量导入</div>
+              </div>
+              <div class="tree-row"><span class="toggle">▼</span><span class="checkbox checked"></span>角色与权限</div>
+              <div class="tree-children">
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>查看角色</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>分配权限</div>
+              </div>
+              <div class="tree-row"><span class="toggle">▶</span><span class="checkbox checked"></span>菜单管理</div>
+              <div class="tree-row"><span class="toggle">▶</span><span class="checkbox checked"></span>组织架构</div>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row"><span class="toggle">▶</span><span class="checkbox checked"></span><strong>系统监控</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-menus">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:40px;text-align:center;color:var(--muted)">
+        菜单管理面板 — 树形菜单维护（路由、图标、显示顺序、权限码）
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-org">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:40px;text-align:center;color:var(--muted)">
+        组织架构面板 — 单位、部门、岗位三级维护，支持拖拽调整
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+  document.querySelectorAll('.perm-role-item').forEach(item => {
+    item.addEventListener('click', function() {
+      document.querySelectorAll('.perm-role-item').forEach(i => i.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

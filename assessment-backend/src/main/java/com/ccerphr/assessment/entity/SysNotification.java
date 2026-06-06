@@ -19,6 +19,8 @@ public class SysNotification {
     private Long relatedId;
     private Integer isRead;
     private Long unitId;
+    private String roleCode;
+    private Long orgId;
     private LocalDateTime createdTime;
 
     @TableLogic

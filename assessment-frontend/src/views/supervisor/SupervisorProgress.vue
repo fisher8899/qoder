@@ -113,7 +113,7 @@
     </el-card>
 
     <!-- 未完成明细弹框 -->
-    <el-dialog v-model="dialogVisible" title="未完成指标明细" width="600px">
+    <el-dialog v-model="dialogVisible" title="未完成评价指标明细" width="680px">
       <el-table :data="unfilledList" v-loading="dialogLoading" stripe border>
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="indicatorName" label="指标名称" min-width="200" />
@@ -122,7 +122,9 @@
             <el-tag size="small" :type="stageTagType(scope.row.stage)">{{ scope.row.stage }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="orgName" label="负责部门" width="140" />
+        <el-table-column label="待评价部门" width="180">
+          <template #default="{ row }">{{ row.evaluateTargetName || row.orgName || '-' }}</template>
+        </el-table-column>
       </el-table>
       <template #footer>
         <el-button @click="dialogVisible = false">关闭</el-button>
@@ -157,6 +159,8 @@ const queryForm = reactive({
   period: ''
 })
 
+const defaultExamGroupId = ref<number | undefined>(undefined)
+
 const progressColors = [
   { color: '#f56c6c', percentage: 30 },
   { color: '#e6a23c', percentage: 70 },
@@ -190,10 +194,25 @@ function stageTagType(stage: string) {
   return 'danger'
 }
 
+function sortExamGroupsByLatest<T extends { startDate?: string; endDate?: string; id?: number }>(groups: T[]) {
+  return [...groups].sort((a, b) => {
+    const endDiff = (b.endDate || '').localeCompare(a.endDate || '')
+    if (endDiff !== 0) return endDiff
+    const startDiff = (b.startDate || '').localeCompare(a.startDate || '')
+    if (startDiff !== 0) return startDiff
+    return Number(b.id || 0) - Number(a.id || 0)
+  })
+}
+
 async function loadExamGroups() {
   try {
-    const res = await getExamGroupList({ current: 1, size: 999 })
-    examGroupOptions.value = (res.data?.records || []) as ExamGroup[]
+    const res = await getExamGroupList({ current: 1, size: 999, examCategory: 'PERFORMANCE' })
+    examGroupOptions.value = sortExamGroupsByLatest((res.data?.records || []) as ExamGroup[])
+    defaultExamGroupId.value = examGroupOptions.value[0]?.id
+    if (defaultExamGroupId.value && queryForm.examGroupId === undefined) {
+      queryForm.examGroupId = defaultExamGroupId.value
+      await handleSearch()
+    }
   } catch (e) {}
 }
 
@@ -225,10 +244,10 @@ async function handleSearch() {
 }
 
 function handleReset() {
-  queryForm.examGroupId = undefined
+  queryForm.examGroupId = defaultExamGroupId.value
   queryForm.orgId = undefined
   queryForm.period = ''
-  progressList.value = []
+  handleSearch()
 }
 
 async function handleViewUnfilled(row: ExamProgressItem) {

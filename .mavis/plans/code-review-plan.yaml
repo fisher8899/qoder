@@ -1,0 +1,138 @@
+version: 1
+plan:
+  name: 'D:\qoder 代码全面审核'
+  max_concurrency: 4
+  max_consecutive_failures: 2
+  max_cycles: 15
+  output_dir: 'D:\qoder\report'
+
+tasks:
+  - id: architecture-review
+    title: '架构与设计审核'
+    prompt: |
+      作为资深架构专家，对 D:\qoder 目录下的代码进行全面深入的架构审核。
+
+      审核范围：
+      - 项目整体架构模式（前端 Vue3 + Vite）
+      - 目录结构合理性
+      - 模块划分与职责分离
+      - 组件设计模式
+      - 状态管理方案（Pinia stores）
+      - 路由设计与权限控制架构
+      - API 层设计
+
+      重点检查：
+      1. 读取 src/router/index.ts 分析路由设计
+      2. 读取 src/stores/ 下的状态管理
+      3. 读取 src/api/request.ts 分析请求封装
+      4. 读取 src/views 目录结构分析页面组织
+      5. 读取 src/components 分析组件设计
+
+      输出要求：
+      1. 架构优点总结
+      2. 架构问题与风险
+      3. 具体改进建议
+      4. 参考最佳实践
+
+      输出文件：D:\qoder\report\01-架构设计审核报告.md
+    assigned_to: code-reviewer
+    verified_by: verifier
+    verify_prompt: '验证报告内容是否覆盖所有架构维度，问题是否具体可操作，建议是否与代码实际情况相符。'
+    timeout_ms: 1800000
+
+  - id: security-review
+    title: '安全与权限审核'
+    prompt: |
+      作为资深安全专家，对 D:\qoder\assessment-frontend 项目进行全面的安全审核。
+
+      审核范围：
+      - 身份认证机制（JWT/Token）
+      - 权限控制实现
+      - API 安全（请求拦截、超时、错误处理）
+      - 前端敏感数据处理
+      - XSS/CSRF 防护
+      - 密码和密钥管理
+
+      重点检查：
+      1. 读取 src/api/request.ts 安全相关实现
+      2. 读取 src/api/auth.ts 认证机制
+      3. 读取 src/stores/user.ts 用户状态管理
+      4. 读取 src/utils/ 安全相关工具
+      5. 检查是否存在硬编码密钥或敏感信息
+
+      输出要求：
+      1. 安全优点总结
+      2. 安全漏洞与风险（按严重程度分级：高/中/低）
+      3. 具体修复方案
+      4. 安全加固建议
+
+      输出文件：D:\qoder\report\02-安全权限审核报告.md
+    assigned_to: code-reviewer
+    verified_by: verifier
+    verify_prompt: '验证安全问题是否准确，修复方案是否可行，严重程度分级是否合理。检查是否有遗漏的安全隐患。'
+    timeout_ms: 1800000
+
+  - id: code-quality-review
+    title: '代码质量审核'
+    prompt: |
+      作为资深代码质量专家，对 D:\qoder\assessment-frontend 项目进行全面深入的代码质量审核。
+
+      审核范围：
+      - TypeScript 类型安全
+      - Vue3 Composition API 使用
+      - 代码规范与风格
+      - 注释与文档
+      - 错误处理
+      - 代码复用性
+
+      重点检查（抽样关键文件）：
+      1. src/main.ts - 入口文件质量
+      2. src/App.vue - 根组件设计
+      3. src/components/DataTable.vue - 通用组件
+      4. src/views/login/LoginPage.vue - 页面组件
+      5. src/api/*.ts - API 层实现
+      6. src/composables/useDataScope.ts - 组合式函数
+
+      输出要求：
+      1. 代码优点总结
+      2. 代码问题列表（分类：高/中/低优先级）
+      3. 具体修复代码示例
+      4. 代码规范建议
+
+      输出文件：D:\qoder\report\03-代码质量审核报告.md
+    assigned_to: code-reviewer
+    verified_by: verifier
+    verify_prompt: '验证代码问题是否准确，修复建议是否可执行，是否存在误报。检查抽样覆盖率是否足够。'
+    timeout_ms: 1800000
+
+  - id: performance-review
+    title: '性能与最佳实践审核'
+    prompt: |
+      作为性能优化专家，对 D:\qoder\assessment-frontend 项目进行性能审核。
+
+      审核范围：
+      - 打包配置与依赖优化
+      - 组件性能（重渲染、虚拟列表）
+      - 图片与资源优化
+      - API 请求优化
+      - 懒加载实现
+      - 缓存策略
+
+      重点检查：
+      1. vite.config.ts - 构建配置
+      2. package.json - 依赖分析
+      3. src/router/index.ts - 路由懒加载
+      4. src/views/ - 页面组件性能特征
+      5. src/components/ - 通用组件效率
+
+      输出要求：
+      1. 性能优点总结
+      2. 性能问题（按影响程度分级）
+      3. 具体优化方案
+      4. 性能监控建议
+
+      输出文件：D:\qoder\report\04-性能优化审核报告.md
+    assigned_to: code-reviewer
+    verified_by: verifier
+    verify_prompt: '验证性能问题是否准确，优化方案是否有效可行，是否有遗漏的性能瓶颈。'
+    timeout_ms: 1800000

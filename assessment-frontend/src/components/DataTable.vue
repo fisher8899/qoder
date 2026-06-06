@@ -12,6 +12,7 @@
       <el-table-column v-if="showIndex" type="index" label="序号" width="60" fixed="left" />
       <template v-for="col in columns" :key="col.prop">
         <el-table-column
+          v-if="!col.noRender"
           :prop="col.prop"
           :label="col.label"
           :width="col.width"
@@ -53,6 +54,7 @@ export interface TableColumn {
   align?: 'left' | 'center' | 'right'
   sortable?: boolean
   fixed?: 'left' | 'right' | boolean
+  noRender?: boolean
 }
 
 interface Props {

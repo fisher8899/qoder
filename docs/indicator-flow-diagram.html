@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>业绩指标设定 - 业务流程时序图</title>
+<style>
+:root {
+  --primary: #2d5aa0;
+  --accent: #e74c3c;
+  --bg: #1a1a2e;
+  --card: #16213e;
+  --line: #0f3460;
+  --text: #e0e0e0;
+  --text-muted: #8892a4;
+  --green: #2ecc71;
+  --orange: #e67e22;
+  --purple: #9b59b6;
+  --cyan: #00d2ff;
+  --tag-bg: #0f3460;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+.header {
+  padding: 40px 0 20px;
+  text-align: center;
+  background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+  border-bottom: 2px solid var(--line);
+}
+.header h1 { font-size:28px; color:#fff; margin-bottom:8px; letter-spacing:1px; }
+.header p { color:var(--text-muted); font-size:14px; }
+
+.nav-tabs {
+  display:flex; justify-content:center; gap:8px;
+  padding:16px 20px; background:var(--card);
+  flex-wrap:wrap;
+  border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:10;
+}
+.nav-tab {
+  padding:8px 20px; border-radius:6px; cursor:pointer;
+  background:transparent; color:var(--text-muted);
+  border:1px solid transparent; font-size:14px;
+  transition:all 0.2s;
+}
+.nav-tab:hover { background:#1a2a4a; color:var(--text); }
+.nav-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+.diagram-section { display:none; padding:30px 20px; max-width:1400px; margin:0 auto; }
+.diagram-section.active { display:block; }
+
+.diagram-title {
+  font-size:20px; font-weight:700; color:#fff;
+  margin-bottom:6px;
+  display:flex; align-items:center; gap:10px;
+}
+.diagram-desc {
+  font-size:13px; color:var(--text-muted);
+  margin-bottom:24px; line-height:1.6;
+}
+
+.seq-container {
+  overflow-x:auto;
+  padding-bottom:20px;
+}
+
+/* Sequence Diagram */
+.seq { display:flex; flex-direction:column; align-items:center; min-width:fit-content; }
+
+.participants {
+  display:flex; gap:0; margin-bottom:0; width:100%;
+  justify-content:space-around;
+  min-width:1100px;
+}
+.participant {
+  text-align:center;
+  padding:12px 16px;
+  min-width:140px;
+  position:relative;
+  flex:1;
+}
+.participant .box {
+  display:inline-block;
+  padding:8px 16px;
+  border-radius:6px;
+  font-size:13px;
+  font-weight:600;
+  border:2px solid;
+  white-space:nowrap;
+}
+.participant .line {
+  width:2px;
+  height:0;
+  background:var(--line);
+  margin:0 auto;
+}
+
+.participant.frontend .box { background:#1a3a5c; border-color:var(--cyan); color:var(--cyan); }
+.participant.controller .box { background:#1a3a2c; border-color:var(--green); color:var(--green); }
+.participant.service .box { background:#3a2a1c; border-color:var(--orange); color:var(--orange); }
+.participant.subservice .box { background:#2a1a3c; border-color:var(--purple); color:var(--purple); }
+.participant.mapper .box { background:#3a1a1c; border-color:var(--accent); color:var(--accent); }
+.participant.db .box { background:#1c2a3a; border-color:#778ca3; color:#778ca3; }
+
+.seq-body {
+  width:100%;
+  min-width:1100px;
+  position:relative;
+}
+
+.lifelines {
+  position:absolute; top:0; bottom:0; left:0; right:0;
+  pointer-events:none;
+  display:flex; justify-content:space-around;
+}
+.lifeline {
+  width:2px; background:repeating-linear-gradient(
+    to bottom, var(--line) 0px, var(--line) 4px, transparent 4px, transparent 8px
+  );
+  opacity:0.5;
+}
+
+.messages {
+  position:relative;
+  padding:8px 0;
+}
+
+.msg {
+  display:flex;
+  align-items:center;
+  height:44px;
+  position:relative;
+}
+.msg .label {
+  position:absolute;
+  font-size:12px;
+  white-space:nowrap;
+  padding:2px 8px;
+  border-radius:3px;
+  z-index:2;
+  max-width:260px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.msg .arrow {
+  position:absolute;
+  height:2px;
+  background:var(--text-muted);
+}
+.msg .arrow::after {
+  content:'';
+  position:absolute;
+  right:0; top:-4px;
+  border:5px solid transparent;
+  border-left:8px solid var(--text-muted);
+}
+.msg .arrow.back::after {
+  right:auto; left:0;
+  border-left:none;
+  border-right:8px solid var(--text-muted);
+}
+.msg .arrow.error {
+  background:var(--accent);
+}
+.msg .arrow.error::after {
+  border-left-color:var(--accent);
+}
+
+/* Annotations */
+.annotation {
+  margin:8px 0;
+  padding:10px 16px;
+  border-radius:6px;
+  font-size:12px;
+  line-height:1.6;
+  border-left:3px solid;
+  max-width:1100px;
+  margin-left:auto; margin-right:auto;
+}
+.annotation.note { background:#1a2a3c; border-color:var(--cyan); color:var(--cyan); }
+.annotation.warn { background:#3a2a1c; border-color:var(--orange); color:var(--orange); }
+.annotation.error-note { background:#3a1a1c; border-color:var(--accent); color:var(--accent); }
+.annotation.success { background:#1a3a2c; border-color:var(--green); color:var(--green); }
+
+/* Phase headers */
+.phase {
+  padding:6px 16px;
+  margin:16px 0 8px;
+  max-width:1100px;
+  margin-left:auto; margin-right:auto;
+  font-size:13px;
+  font-weight:700;
+  border-radius:4px;
+}
+.phase.step { background:#0f3460; color:var(--cyan); }
+
+/* Info box */
+.info-box {
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:20px;
+  margin-bottom:24px;
+  max-width:1100px;
+  margin-left:auto; margin-right:auto;
+}
+.info-box h3 {
+  font-size:14px; color:var(--cyan); margin-bottom:10px;
+  display:flex; align-items:center; gap:6px;
+}
+.info-box ul { list-style:none; padding:0; }
+.info-box li {
+  font-size:12px; color:var(--text-muted);
+  padding:4px 0; padding-left:16px; position:relative;
+  line-height:1.6;
+}
+.info-box li::before {
+  content:'›'; position:absolute; left:0; color:var(--cyan);
+}
+.tag {
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:3px;
+  font-size:11px;
+  font-weight:600;
+}
+.tag.get { background:#1a3a5c; color:var(--cyan); }
+.tag.post { background:#1a3a2c; color:var(--green); }
+.tag.put { background:#3a2a1c; color:var(--orange); }
+.tag.delete { background:#3a1a1c; color:var(--accent); }
+
+.legend {
+  display:flex; gap:16px; flex-wrap:wrap;
+  margin-bottom:24px; justify-content:center;
+}
+.legend-item {
+  display:flex; align-items:center; gap:6px;
+  font-size:12px; color:var(--text-muted);
+}
+.legend-swatch {
+  width:24px; height:3px; border-radius:2px;
+}
+
+.seq-diagram-wrapper {
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:24px;
+  overflow-x:auto;
+}
+
+/* Simple table alternative for complex flows */
+.flow-table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+  margin-top:16px;
+}
+.flow-table th {
+  background:#0f3460;
+  color:var(--cyan);
+  padding:10px 14px;
+  text-align:left;
+  font-weight:600;
+  border-bottom:2px solid var(--line);
+  position:sticky; top:0;
+}
+.flow-table td {
+  padding:10px 14px;
+  border-bottom:1px solid #0d1b2a;
+  vertical-align:top;
+  line-height:1.6;
+}
+.flow-table tr:nth-child(even) { background:#0d1b2a; }
+.flow-table tr:hover { background:#1a2a4a; }
+.flow-table .step-num {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:24px; height:24px; border-radius:50%;
+  background:var(--primary); color:#fff;
+  font-size:11px; font-weight:700;
+  flex-shrink:0;
+}
+.flow-table .from-to {
+  color:var(--text-muted);
+  font-size:12px;
+  font-family:monospace;
+}
+.flow-table .code-ref {
+  font-family:monospace;
+  font-size:11px;
+  color:var(--orange);
+  background:#1a1a1a;
+  padding:1px 6px;
+  border-radius:3px;
+}
+.flow-table .bug-marker {
+  color:var(--accent);
+  font-weight:700;
+}
+.flow-table .fix-marker {
+  color:var(--green);
+  font-weight:700;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>业绩指标设定 - 业务流程时序图</h1>
+  <p>图克分公司绩效考核管理系统 · 指标设定模块全链路调用关系</p>
+</div>
+
+<div class="nav-tabs" id="tabs">
+  <div class="nav-tab active" data-tab="tab1">行内编辑保存</div>
+  <div class="nav-tab" data-tab="tab2">新增指标</div>
+  <div class="nav-tab" data-tab="tab3">提交审批</div>
+  <div class="nav-tab" data-tab="tab4">审批流程</div>
+  <div class="nav-tab" data-tab="tab5">小类管理</div>
+  <div class="nav-tab" data-tab="tab6">页面加载</div>
+</div>
+
+<!-- ============================== TAB 1: 行内编辑保存 ============================== -->
+<div class="diagram-section active" id="tab1">
+  <div class="diagram-title">行内编辑保存</div>
+  <div class="diagram-desc">
+    用户点击"编辑" → 修改序号/内容/权重等任意字段 → 点击行内"保存"。<br/>
+    <span class="bug-marker">BUG-006 根因：updateIndicator 中先删后增关联数据时，Mapper 使用 @Select 执行 UPDATE，MySQL 拒绝 → 500。</span>
+    <span class="fix-marker">已修复：@Select → @Update。</span>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--cyan)"></div>前端 / Vue</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--green)"></div>Controller</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--orange)"></div>Service</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--accent)"></div>Mapper</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#778ca3"></div>MySQL</div>
+  </div>
+
+  <div class="info-box">
+    <h3>接口信息</h3>
+    <ul>
+      <li><span class="tag put">PUT</span> /api/indicator → <span class="code-ref">BizIndicatorDefinitionController.update()</span></li>
+      <li>前端触发点：<span class="code-ref">IndicatorSet.vue → saveIndicatorRow(row) → updateIndicator(data)</span></li>
+      <li>关键 payload 字段：id, examGroupId, orgId, sortCode, content, weightAnnual, weightMonthly, orgIds[], leaderIds[]</li>
+    </ul>
+  </div>
+
+  <div class="seq-diagram-wrapper">
+    <!-- Participants -->
+    <div class="participants">
+      <div class="participant frontend"><div class="box">Vue 前端</div><div class="line"></div></div>
+      <div class="participant controller"><div class="box">Controller</div><div class="line"></div></div>
+      <div class="participant service"><div class="box">IndicatorService</div><div class="line"></div></div>
+      <div class="participant subservice"><div class="box">SubCategoryService</div><div class="line"></div></div>
+      <div class="participant mapper"><div class="box">Mapper (Org/Leader)</div><div class="line"></div></div>
+      <div class="participant db"><div class="box">MySQL</div><div class="line"></div></div>
+    </div>
+
+    <div class="seq-body">
+      <div class="lifelines">
+        <div class="lifeline"></div><div class="lifeline"></div><div class="lifeline"></div>
+        <div class="lifeline"></div><div class="lifeline"></div><div class="lifeline"></div>
+      </div>
+
+      <div class="phase step">① 前端组装 Payload</div>
+
+      <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+        <thead>
+          <tr><th style="width:50px">#</th><th style="width:160px">发起方</th><th style="width:160px">接收方</th><th>调用内容</th><th style="width:140px">代码位置</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="step-num">1</span></td>
+            <td><span class="from-to">前端</span></td>
+            <td><span class="from-to">内部</span></td>
+            <td>点击保存 → <code>saveIndicatorRow(row)</code> 校验 content 非空、权重非负</td>
+            <td><span class="code-ref">IndicatorSet.vue:1452</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">2</span></td>
+            <td><span class="from-to">前端</span></td>
+            <td><span class="from-to">内部</span></td>
+            <td><code>buildIndicatorPayload(row, ownerOrgId)</code> 将 Vue reactive 对象序列化为 DTO：sortCode、orgIds[]、leaderIds[]</td>
+            <td><span class="code-ref">IndicatorSet.vue:1114</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">3</span></td>
+            <td><span class="from-to">前端</span></td>
+            <td><span class="from-to">Controller</span></td>
+            <td><span class="tag put">PUT</span> /api/indicator + JSON body（已有 id → 走 update 分支）</td>
+            <td><span class="code-ref">indicator.ts:110</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="phase step">② Controller 鉴权与数据范围校验</div>
+
+      <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+        <thead>
+          <tr><th style="width:50px">#</th><th style="width:160px">发起方</th><th style="width:160px">接收方</th><th>调用内容</th><th style="width:140px">代码位置</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="step-num">4</span></td>
+            <td><span class="from-to">Controller</span></td>
+            <td><span class="from-to">内部</span></td>
+            <td><code>ensureIndicatorEditAccess()</code>：校验 roleCode ∈ {ADMIN, FIN_ADMIN, DEPT_ADMIN} 或 dataScope ∈ {UNIT, ORG}</td>
+            <td><span class="code-ref">Controller:66</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">5</span></td>
+            <td><span class="from-to">Controller</span></td>
+            <td><span class="from-to">内部</span></td>
+            <td><code>DataScopeFilter.isReadOnly()</code>：DEPT_ADMIN 角色非 ALL scope → false，放行</td>
+            <td><span class="code-ref">Controller:68</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">6</span></td>
+            <td><span class="from-to">Controller</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><code>indicatorService.updateIndicator(dto)</code></td>
+            <td><span class="code-ref">Controller:70</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="phase step">③ Service 更新主表 + 先删后增关联数据</div>
+
+      <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+        <thead>
+          <tr><th style="width:50px">#</th><th style="width:160px">发起方</th><th style="width:160px">接收方</th><th>调用内容</th><th style="width:140px">代码位置</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="step-num">7</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><span class="from-to">MySQL</span></td>
+            <td><code>getById(dto.getId())</code> → SELECT 主表记录</td>
+            <td><span class="code-ref">ServiceImpl:170</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">8</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><span class="from-to">内部</span></td>
+            <td><code>BeanUtils.copyProperties(dto, indicator)</code> 覆盖 sortCode、weightAnnual 等所有字段</td>
+            <td><span class="code-ref">ServiceImpl:174</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">9</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><span class="from-to">内部</span></td>
+            <td><code>normalizeOwnerFields()</code>：校验 orgId 非空、数据范围一致性、查 organization 表确认部门存在</td>
+            <td><span class="code-ref">ServiceImpl:177, :188</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">10</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><span class="from-to">SubCategoryService</span></td>
+            <td><code>normalizeSubCategoryFields()</code> → <code>subCategoryService.ensureSubCategory(subDto)</code> 确保小类存在</td>
+            <td><span class="code-ref">ServiceImpl:178, :222</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">11</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><span class="from-to">MySQL</span></td>
+            <td><code>updateById(indicator)</code> → UPDATE biz_indicator_definition SET sort_code=?, content=?, ...</td>
+            <td><span class="code-ref">ServiceImpl:180</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="phase step">④ 先删后增关联部门 &amp; 分管领导（BUG 触发点）</div>
+
+      <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+        <thead>
+          <tr><th style="width:50px">#</th><th style="width:160px">发起方</th><th style="width:160px">接收方</th><th>调用内容</th><th style="width:140px">代码位置</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="step-num">12</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><span class="from-to">OrgMapper</span></td>
+            <td class="bug-marker">← BUG-006：@Select("UPDATE biz_indicator_org SET deleted=1 WHERE ...")</td>
+            <td><span class="code-ref bug-marker">ServiceImpl:183 → OrgMapper:29</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">12'</span></td>
+            <td><span class="from-to">OrgMapper</span></td>
+            <td><span class="from-to">MySQL</span></td>
+            <td class="bug-marker">JDBC executeQuery() 执行 UPDATE → Connector/J 抛 SQLException</td>
+            <td><span class="code-ref bug-marker">MyBatis @Select 不允许 DML</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">13</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><span class="from-to">LeaderMapper</span></td>
+            <td class="fix-marker">← FIX：@Update("UPDATE biz_indicator_leader SET deleted=1 WHERE ...")</td>
+            <td><span class="code-ref fix-marker">ServiceImpl:184 → LeaderMapper:29</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">14</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><span class="from-to">OrgMapper</span></td>
+            <td><code>saveIndicatorRelations()</code> → INSERT biz_indicator_org（逐条插入 orgIds[]）</td>
+            <td><span class="code-ref">ServiceImpl:250-261</span></td>
+          </tr>
+          <tr>
+            <td><span class="step-num">15</span></td>
+            <td><span class="from-to">Service</span></td>
+            <td><span class="from-to">LeaderMapper</span></td>
+            <td>INSERT biz_indicator_leader（逐条插入 leaderIds[]）</td>
+            <td><span class="code-ref">ServiceImpl:264-275</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="annotation error-note">
+        <strong>BUG-006 故障链：</strong>@Select 注解 → MyBatis 生成 SELECT 语义 → JDBC executeQuery() → MySQL Connector/J 8.x 拒绝 DML → SQLException: "Can not issue data manipulation statements with executeQuery()" → 事务回滚 → GlobalExceptionHandler 返回 500 → 前端弹出"系统繁忙，请稍后重试"。新增（POST）不走 delete 分支所以不触发。
+      </div>
+
+      <div class="annotation success">
+        <strong>修复：</strong>BizIndicatorOrgMapper 与 BizIndicatorLeaderMapper 的 deleteByIndicatorId 注解由 @Select 改为 @Update。修复后整条链路 ①→④ 正常走通。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== TAB 2: 新增指标 ============================== -->
+<div class="diagram-section" id="tab2">
+  <div class="diagram-title">新增考核内容</div>
+  <div class="diagram-desc">在小类下新增一条考核指标，走 POST /api/indicator → createIndicator，不涉及关联数据删除，因此 BUG-006 不影响此流程。</div>
+
+  <div class="info-box">
+    <h3>接口信息</h3>
+    <ul>
+      <li><span class="tag post">POST</span> /api/indicator → <code>BizIndicatorDefinitionController.create()</code></li>
+      <li>前端触发：<code>addContent()</code> 自动填充 sortCode = maxSortCode + 1</li>
+      <li>createIndicator 无 deleteByIndicatorId 调用 → 不触发 @Select/UPDATE bug</li>
+    </ul>
+  </div>
+
+  <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+    <thead>
+      <tr><th style="width:50px">#</th><th style="width:140px">发起方</th><th style="width:140px">接收方</th><th>操作内容</th><th style="width:180px">代码位置</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="step-num">1</span></td>
+        <td>用户</td>
+        <td>前端</td>
+        <td>点击"+ 新增考核内容" → <code>addContent()</code> 在 indicatorList 末尾 push 一条 isEditing=true 的空行，sortCode = max+1</td>
+        <td><span class="code-ref">IndicatorSet.vue:1345</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">2</span></td>
+        <td>用户</td>
+        <td>前端</td>
+        <td>填写内容、权重、选择考核部门（多选）/ 分管领导</td>
+        <td><span class="code-ref">template:176-331</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">3</span></td>
+        <td>前端</td>
+        <td>Controller</td>
+        <td><span class="tag post">POST</span> /api/indicator，body：IndicatorSetDTO（无 id → isNew=true）</td>
+        <td><span class="code-ref">IndicatorSet.vue:1474</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4</span></td>
+        <td>Controller</td>
+        <td>Service</td>
+        <td>鉴权 → <code>indicatorService.createIndicator(dto)</code></td>
+        <td><span class="code-ref">Controller:60</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">5</span></td>
+        <td>Service</td>
+        <td>内部</td>
+        <td><code>BeanUtils.copyProperties</code> → set approvalStatus=DRAFT → normalizeOwnerFields → normalizeSubCategoryFields</td>
+        <td><span class="code-ref">ServiceImpl:148-158</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">6</span></td>
+        <td>Service</td>
+        <td>MySQL</td>
+        <td><code>save(indicator)</code> → INSERT biz_indicator_definition，返回自增 id</td>
+        <td><span class="code-ref">ServiceImpl:159</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">7</span></td>
+        <td>Service</td>
+        <td>MySQL</td>
+        <td><code>saveIndicatorRelations()</code> → 逐条 INSERT biz_indicator_org / biz_indicator_leader</td>
+        <td><span class="code-ref">ServiceImpl:162-163</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">8</span></td>
+        <td>Controller</td>
+        <td>前端</td>
+        <td>返回 <code>Result.success(id)</code> → 前端 row.id = res.data，isNew=false</td>
+        <td><span class="code-ref">Controller:61, IndicatorSet.vue:1480</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================== TAB 3: 提交审批 ============================== -->
+<div class="diagram-section" id="tab3">
+  <div class="diagram-title">提交审批</div>
+  <div class="diagram-desc">全部指标权重合计校验通过后，批量提交给部门负责人审批。状态流转：DRAFT → PENDING_DEPT_LEADER。</div>
+
+  <div class="info-box">
+    <h3>前置校验（前端）</h3>
+    <ul>
+      <li>至少 1 条有 id 的指标</li>
+      <li>年度权重合计 = 100%</li>
+      <li>月度权重合计 = 100%</li>
+      <li>用户确认后发送请求</li>
+    </ul>
+  </div>
+
+  <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+    <thead>
+      <tr><th style="width:50px">#</th><th style="width:140px">发起方</th><th style="width:140px">接收方</th><th>操作内容</th><th style="width:180px">代码位置</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="step-num">1</span></td>
+        <td>前端</td>
+        <td>前端</td>
+        <td><code>handleSubmitApproval()</code>：收集所有有 id 的指标 id[]，校验年度+月度权重 = 100%</td>
+        <td><span class="code-ref">IndicatorSet.vue:1565</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">2</span></td>
+        <td>前端</td>
+        <td>Controller</td>
+        <td><span class="tag post">POST</span> /api/indicator/submit，body: Long[] indicatorIds</td>
+        <td><span class="code-ref">indicator.ts:118</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">3</span></td>
+        <td>Controller</td>
+        <td>Service</td>
+        <td>鉴权 → <code>indicatorService.submitForApproval(indicatorIds)</code></td>
+        <td><span class="code-ref">Controller:87</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4</span></td>
+        <td>Service</td>
+        <td>MySQL</td>
+        <td>遍历 id[]：仅处理 status ∈ {DRAFT, REJECTED} 的记录<br/>
+          UPDATE biz_indicator_definition<br/>
+          SET approval_status='PENDING_DEPT_LEADER', submitted_time=NOW()<br/>
+          WHERE id = ?
+        </td>
+        <td><span class="code-ref">ServiceImpl:296-313</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">5</span></td>
+        <td>Controller</td>
+        <td>前端</td>
+        <td>返回 success → 关闭弹框 → <code>loadData()</code> 刷新列表</td>
+        <td><span class="code-ref">IndicatorSet.vue:1589</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================== TAB 4: 审批流程 ============================== -->
+<div class="diagram-section" id="tab4">
+  <div class="diagram-title">审批流程（三级审批）</div>
+  <div class="diagram-desc">
+    状态机：DRAFT → PENDING_DEPT_LEADER → PENDING_SUPERVISOR → PENDING_FINANCE → APPROVED<br/>
+    被退回：任意节点 → REJECTED（带 rejectReason），退回后可重新编辑再提交。
+  </div>
+
+  <div class="info-box">
+    <h3>审批角色与状态机</h3>
+    <ul>
+      <li><strong>部门负责人</strong>（DEPT_LEADER）：PENDING_DEPT_LEADER → PENDING_SUPERVISOR</li>
+      <li><strong>分管领导</strong>（SUPERVISOR）：PENDING_SUPERVISOR → PENDING_FINANCE</li>
+      <li><strong>财务管理员</strong>（FIN_ADMIN）：PENDING_FINANCE → APPROVED</li>
+      <li>退回操作（reject）：任意节点 → REJECTED，记录 rejectReason</li>
+    </ul>
+  </div>
+
+  <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+    <thead>
+      <tr><th style="width:50px">#</th><th style="width:140px">角色</th><th style="width:120px">操作</th><th>API</th><th style="width:200px">状态流转</th><th style="width:160px">代码位置</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="step-num">1</span></td>
+        <td>部门负责人</td>
+        <td>审批通过</td>
+        <td><span class="tag post">POST</span> /api/indicator/approve</td>
+        <td>PENDING_DEPT_LEADER → PENDING_SUPERVISOR</td>
+        <td><span class="code-ref">ServiceImpl:475</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">2</span></td>
+        <td>部门负责人</td>
+        <td>退回</td>
+        <td><span class="tag post">POST</span> /api/indicator/reject</td>
+        <td>PENDING_DEPT_LEADER → REJECTED + rejectReason</td>
+        <td><span class="code-ref">ServiceImpl:457-472</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">3</span></td>
+        <td>分管领导</td>
+        <td>审批通过</td>
+        <td><span class="tag post">POST</span> /api/indicator/approve</td>
+        <td>PENDING_SUPERVISOR → PENDING_FINANCE</td>
+        <td><span class="code-ref">ServiceImpl:478</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4</span></td>
+        <td>财务管理员</td>
+        <td>审批通过</td>
+        <td><span class="tag post">POST</span> /api/indicator/approve</td>
+        <td>PENDING_FINANCE → APPROVED</td>
+        <td><span class="code-ref">ServiceImpl:481</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">5</span></td>
+        <td>被退回方</td>
+        <td>重新编辑</td>
+        <td><span class="tag put">PUT</span> /api/indicator（单条更新）</td>
+        <td>REJECTED 状态仍可编辑</td>
+        <td><span class="code-ref">Controller:64, isEditable():544</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">6</span></td>
+        <td>被退回方</td>
+        <td>重新提交</td>
+        <td><span class="tag post">POST</span> /api/indicator/submit</td>
+        <td>REJECTED → PENDING_DEPT_LEADER（回到第一级）</td>
+        <td><span class="code-ref">ServiceImpl:305-306</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="annotation note">
+    <strong>数据范围校验：</strong>approve/reject 均标注 <code>@RequireRole</code>，由 RoleCheckAspect 在切面层拦截非目标角色。下一步需补充 AOP + DataScopeContext 的联合校验，防止越权审批。
+  </div>
+</div>
+
+<!-- ============================== TAB 5: 小类管理 ============================== -->
+<div class="diagram-section" id="tab5">
+  <div class="diagram-title">指标小类管理</div>
+  <div class="diagram-desc">支持新增 / 编辑 / 删除小类，小类归属于特定大类 + 考核组 + 部门。编辑小类名称时自动同步更新关联的指标记录。</div>
+
+  <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+    <thead>
+      <tr><th style="width:50px">#</th><th style="width:100px">操作</th><th style="width:140px">前端</th><th style="width:140px">后端</th><th>核心逻辑</th><th style="width:160px">代码位置</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="step-num">1</span></td>
+        <td>加载列表</td>
+        <td>loadIndicators()</td>
+        <td>GET /indicator/sub-category/list</td>
+        <td>查询 examGroupId + orgId 下的所有小类 → 前端 customSubCategories 缓存</td>
+        <td><span class="code-ref">IndicatorSet.vue:1017</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">2</span></td>
+        <td>新增小类</td>
+        <td>addSubCategory()</td>
+        <td>POST /indicator/sub-category</td>
+        <td>后端 <code>createSubCategory()</code>：normalize 校验 → INSERT → 返回新 id → 前端加入 customSubCategories 并切换 activeSubCategory</td>
+        <td><span class="code-ref">SubCategoryService:58-68</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">3</span></td>
+        <td>编辑小类</td>
+        <td>editSubCategory()</td>
+        <td>PUT /indicator/sub-category</td>
+        <td>后端 <code>updateSubCategory()</code>：normalize → UPDATE → <code>syncIndicatorDefinitions()</code> 批量更新关联指标的 sub_category / evaluation_standard</td>
+        <td><span class="code-ref">SubCategoryService:71-86, :176</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4</span></td>
+        <td>删除小类</td>
+        <td>deleteSubCategory()</td>
+        <td>DELETE /indicator/sub-category/{id}</td>
+        <td>后端先检查 subCategoryId 是否有指标引用 → 有则拒绝 → 无则 DELETE</td>
+        <td><span class="code-ref">SubCategoryService:89-99</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">5</span></td>
+        <td>ensureSubCategory</td>
+        <td>—</td>
+        <td>（Service 内部调用）</td>
+        <td>在指标保存时被调用：若 subCategoryId 能查到则直接返回；否则按 examGroupId + orgId + categoryName + subCategoryName 查找；再找不到则 INSERT 新建</td>
+        <td><span class="code-ref">SubCategoryService:102-130</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================== TAB 6: 页面加载 ============================== -->
+<div class="diagram-section" id="tab6">
+  <div class="diagram-title">页面加载数据流</div>
+  <div class="diagram-desc">用户进入 /dept/indicator-set 页面，以及点击"设定目标"打开全屏编辑弹框时的完整数据加载链路。</div>
+
+  <div class="phase step">阶段一：页面初始化</div>
+  <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+    <thead>
+      <tr><th style="width:50px">#</th><th style="width:140px">发起方</th><th style="width:160px">接口</th><th>返回数据</th><th style="width:160px">代码位置</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="step-num">1</span></td>
+        <td><code>onMounted</code></td>
+        <td><span class="tag get">GET</span> /exam-group/my-tasks?examCategory=INDICATOR_SET</td>
+        <td>当前用户（ORG scope）参与的所有考核组任务列表，含 approvalStatus</td>
+        <td><span class="code-ref">IndicatorSet.vue:593-616</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">2</span></td>
+        <td>内部</td>
+        <td><code>initExamGroupSearch()</code></td>
+        <td>填充搜索下拉选项 + 默认选中当前年份 IN_PROGRESS 考核组</td>
+        <td><span class="code-ref">IndicatorSet.vue:618-664</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">3</span></td>
+        <td>内部</td>
+        <td><code>filterData()</code></td>
+        <td>按 queryParams 过滤 rawData → tableData，计算 total 和 pagedData</td>
+        <td><span class="code-ref">IndicatorSet.vue:575-591</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="phase step">阶段二：打开编辑弹框（并行加载 5 个接口）</div>
+  <table class="flow-table" style="max-width:1100px; margin:0 auto;">
+    <thead>
+      <tr><th style="width:50px">#</th><th style="width:140px">发起方</th><th style="width:200px">接口</th><th>返回数据</th><th style="width:160px">代码位置</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="step-num">4</span></td>
+        <td><code>handleSet()</code></td>
+        <td>启动 5 个并行请求</td>
+        <td colspan="3">以下 5 个请求同时发出（无先后依赖）</td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4a</span></td>
+        <td>并行</td>
+        <td><span class="tag get">GET</span> /indicator/list?examGroupId=&amp;orgId=&amp;size=1000</td>
+        <td>PageResult&lt;IndicatorVO&gt;：所有指标记录（含 orgIdList, leaderIdList）</td>
+        <td><span class="code-ref">IndicatorSet.vue:1016</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4b</span></td>
+        <td>并行</td>
+        <td><span class="tag get">GET</span> /indicator/sub-category/list?examGroupId=&amp;orgId=</td>
+        <td>该考核组+部门的所有自定义小类</td>
+        <td><span class="code-ref">IndicatorSet.vue:1017</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4c</span></td>
+        <td>并行</td>
+        <td><span class="tag get">GET</span> /indicator-category/all?orgType=&amp;unitId=</td>
+        <td>指标大类列表（经营指标、重点工作、基础工作等）</td>
+        <td><span class="code-ref">IndicatorSet.vue:995</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4d</span></td>
+        <td>并行</td>
+        <td><span class="tag get">GET</span> /organization/all?unitId=</td>
+        <td>同单位下所有组织列表（用于考核部门多选）</td>
+        <td><span class="code-ref">IndicatorSet.vue:996</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4e</span></td>
+        <td>并行</td>
+        <td><span class="tag get">GET</span> /leader/getAll?unitId=</td>
+        <td>同单位下所有分管领导列表（用于分管领导多选）</td>
+        <td><span class="code-ref">IndicatorSet.vue:997</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">5</span></td>
+        <td>内部</td>
+        <td><code>loadExamGroupList()</code></td>
+        <td>同 4a，额外加载考核组下拉（弹框 header 选择考核组切换）</td>
+        <td><span class="code-ref">IndicatorSet.vue:998</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-num">6</span></td>
+        <td>内部</td>
+        <td><code>loadIndicators()</code> 回调</td>
+        <td>合并指标 + 小类数据 → indicatorList（带 isEditing/isNew）+ customSubCategories + activeCategory + activeSubCategory</td>
+        <td><span class="code-ref">IndicatorSet.vue:1014-1041</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="annotation note">
+    <strong>数据依赖说明：</strong>指标列表 (4a) 和小类列表 (4b) 的结果在 loadIndicators 的 Promise.all 中合并后才设置 activeCategory / activeSubCategory。其余 3 个接口 (4c/4d/4e) 的结果独立存储，不影响弹框核心渲染。
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.diagram-section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

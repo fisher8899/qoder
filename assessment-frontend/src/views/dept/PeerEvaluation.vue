@@ -1,517 +1,669 @@
 <template>
   <div class="peer-evaluation">
+    <!-- 顶部：考核组选择 -->
     <div class="page-header">
-      <h2>部门他评打分 v1</h2>
-      <p class="subtitle">对其他部门的考核指标进行评估打分</p>
+      <div class="header-row">
+        <h2>部门他评打分</h2>
+        <el-select
+          v-model="selectedExamGroupId"
+          placeholder="请选择考核组"
+          style="width: 280px"
+          @change="handleExamGroupChange"
+        >
+          <el-option
+            v-for="item in examGroupOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </div>
+      <el-alert
+        v-if="groupStatus === '已发布'"
+        title="当前考核组已发布，评分数据为只读状态"
+        type="warning"
+        show-icon
+        :closable="false"
+        style="margin-top: 12px"
+      />
     </div>
 
-    <SearchForm
-      :fields="searchFields"
-      @search="handleSearch"
-      @reset="handleReset"
-    />
-
-    <el-tabs v-model="activeTab" type="border-card" @tab-change="handleTabChange">
-      <el-tab-pane label="按部门" name="dept">
-        <DataTable
-          :columns="deptColumns"
-          :data="deptTableData"
-          :loading="loading"
-          :total="deptTotal"
-          :current-page="deptQuery.current"
-          :page-size="deptQuery.size"
-          @page-change="handleDeptPageChange"
+    <!-- 主体：左右布局 -->
+    <div class="main-container">
+      <!-- 左侧部门导航 -->
+      <div class="left-nav">
+        <div class="nav-title">目标部门列表</div>
+        <div
+          v-for="dept in targetDepts"
+          :key="dept.targetOrgId"
+          class="nav-item"
+          :class="{ active: selectedTargetOrgId === dept.targetOrgId }"
+          @click="handleSelectDept(dept)"
         >
-          <template #status="{ row }">
-            <StatusTag :status="row.status" :status-map="statusMap" />
-          </template>
-          <template #progress="{ row }">
-            <el-progress :percentage="row.progress" :status="row.progress === 100 ? 'success' : undefined" />
-          </template>
-          <template #operation="{ row }">
-            <el-button link type="primary" @click="handleDeptEval(row)">评估反馈</el-button>
-          </template>
-        </DataTable>
-      </el-tab-pane>
-
-      <el-tab-pane label="按指标" name="indicator">
-        <DataTable
-          :columns="indicatorColumns"
-          :data="indicatorTableData"
-          :loading="indicatorLoading"
-          :total="indicatorTotal"
-          :current-page="indicatorQuery.current"
-          :page-size="indicatorQuery.size"
-          @page-change="handleIndicatorPageChange"
-        >
-          <template #operation="{ row }">
-            <el-button link type="primary" @click="handleIndicatorEval(row)">评估反馈</el-button>
-          </template>
-        </DataTable>
-      </el-tab-pane>
-    </el-tabs>
-
-    <!-- 按部门评估弹框 -->
-    <el-dialog
-      v-model="deptDialogVisible"
-      title="评估反馈"
-      width="85%"
-      destroy-on-close
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-header" v-if="currentTargetDept">
-        <span>目标部门：{{ currentTargetDept.targetOrgName }}</span>
+          <span class="dept-name">{{ dept.targetOrgName }}</span>
+          <el-tag
+            :type="dept.status === 'COMPLETED' ? 'success' : 'warning'"
+            size="small"
+          >
+            {{ dept.status === 'COMPLETED' ? '已完成' : '待打分' }}
+          </el-tag>
+        </div>
+        <el-empty v-if="!targetDepts.length && !navLoading" description="暂无部门" :image-size="60" />
+        <div v-if="navLoading" class="nav-loading">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>加载中...</span>
+        </div>
       </div>
 
-      <el-table :data="deptIndicatorList" border size="small" v-loading="dialogLoading" max-height="500">
-        <el-table-column type="index" label="序号" width="50" />
-        <el-table-column label="指标大类" prop="categoryName" width="120" />
-        <el-table-column label="指标小类" prop="subCategory" width="120" />
-        <el-table-column label="考核内容" prop="content" min-width="160" show-overflow-tooltip />
-        <el-table-column label="指标/目标" prop="targetDesc" min-width="140" show-overflow-tooltip />
-        <el-table-column label="考核标准" prop="evaluationStandard" min-width="160" show-overflow-tooltip />
-        <el-table-column label="权重(年度)" prop="weightAnnual" width="90" />
-        <el-table-column label="权重(月度)" prop="weightMonthly" width="90" />
-        <el-table-column label="得分" width="110">
-          <template #default="{ row }">
-            <el-input-number
-              v-model="row.peerScore"
-              :min="0"
-              :max="100"
-              :precision="2"
-              controls-position="right"
-              size="small"
-              style="width: 90px"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="打分说明" min-width="160">
-          <template #default="{ row }">
-            <el-input v-model="row.scoreComment" placeholder="请输入" size="small" />
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <StatusTag :status="row.status || 'PENDING'" :status-map="rowStatusMap" />
-          </template>
-        </el-table-column>
-      </el-table>
+      <!-- 右侧评分表单 -->
+      <div class="right-content">
+        <div
+          class="indicator-card-list"
+          v-loading="tableLoading"
+        >
+          <div
+            v-for="(row, index) in indicatorList"
+            :key="row.indicatorId || index"
+            class="indicator-card"
+          >
+            <div class="card-upper">
+              <div class="assessment-section">
+                <div class="section-title">
+                  <span class="serial-no">{{ index + 1 }}</span>
+                  <span>考核内容</span>
+                </div>
+                <div class="content-title">{{ row.content || '-' }}</div>
+                <div class="info-grid">
+                  <div class="info-item wide">
+                    <span class="info-label">指标/目标</span>
+                    <span class="info-value">{{ row.targetDesc || '-' }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">权重</span>
+                    <span class="info-value">年度{{ row.weightAnnual ?? '-' }} / 月度{{ row.weightMonthly ?? '-' }}</span>
+                  </div>
+                  <div class="info-item wide">
+                    <span class="info-label">考核标准</span>
+                    <span class="info-value prewrap">{{ row.evaluationStandard || '-' }}</span>
+                  </div>
+                </div>
+              </div>
 
-      <template #footer>
-        <el-button @click="deptDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleSaveDeptEval">保存</el-button>
-        <el-button type="success" @click="handleSubmitDeptEval">提交</el-button>
-      </template>
-    </el-dialog>
+              <div class="self-section">
+                <div class="section-title">自评信息</div>
+                <div class="self-score-box">
+                  <span class="score-label">自评得分</span>
+                  <strong>{{ row.selfScore ?? '-' }}</strong>
+                </div>
+                <div class="self-completion">
+                  <span class="info-label">完成情况</span>
+                  <span class="info-value prewrap">{{ row.actualCompletion || '-' }}</span>
+                </div>
+                <div class="attachment-row">
+                  <span class="info-label">附件</span>
+                  <el-link
+                    v-if="row.attachmentUrl"
+                    type="primary"
+                    :href="row.attachmentUrl"
+                    target="_blank"
+                    :underline="false"
+                  >下载</el-link>
+                  <span v-else class="info-value">-</span>
+                </div>
+              </div>
+            </div>
 
-    <!-- 按指标评估弹框 -->
-    <el-dialog
-      v-model="indicatorDialogVisible"
-      title="评估反馈"
-      width="85%"
-      destroy-on-close
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-header" v-if="currentIndicator">
-        <span>指标：{{ currentIndicator.content }}</span>
-        <span>大类：{{ currentIndicator.categoryName }} / {{ currentIndicator.subCategory }}</span>
+            <div class="card-lower">
+              <div class="peer-score-panel">
+                <div class="input-label">
+                  <span class="required-mark">*</span> 他评得分
+                </div>
+                <div class="input-hint">按实际得分打分，不按百分制打分</div>
+                <el-input-number
+                  v-model="row.peerScore"
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                  :controls="false"
+                  size="large"
+                  class="peer-score-input"
+                  :disabled="isReadonly"
+                  placeholder="请输入得分"
+                />
+              </div>
+              <div class="peer-comment-panel">
+                <div class="input-label">他评说明</div>
+                <el-input
+                  v-model="row.scoreComment"
+                  type="textarea"
+                  :maxlength="200"
+                  show-word-limit
+                  :rows="4"
+                  resize="none"
+                  placeholder="请输入他评说明"
+                  :disabled="isReadonly"
+                />
+              </div>
+            </div>
+          </div>
+
+          <el-empty
+            v-if="!indicatorList.length && !tableLoading"
+            description="请选择目标部门或暂无考核内容"
+            :image-size="96"
+          />
+        </div>
+
+        <!-- 底部操作区 -->
+        <div class="footer-actions">
+          <el-button
+            type="primary"
+            :disabled="isReadonly || !selectedTargetOrgId"
+            :loading="submitLoading"
+            @click="handleComplete"
+          >
+            完成
+          </el-button>
+        </div>
       </div>
-
-      <el-table :data="indicatorDeptList" border size="small" v-loading="dialogLoading" max-height="500">
-        <el-table-column type="index" label="序号" width="50" />
-        <el-table-column label="目标部门" prop="targetOrgName" width="150" />
-        <el-table-column label="得分" width="110">
-          <template #default="{ row }">
-            <el-input-number
-              v-model="row.peerScore"
-              :min="0"
-              :max="100"
-              :precision="2"
-              controls-position="right"
-              size="small"
-              style="width: 90px"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="打分说明" min-width="200">
-          <template #default="{ row }">
-            <el-input v-model="row.scoreComment" placeholder="请输入" size="small" />
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <StatusTag :status="row.status || 'PENDING'" :status-map="rowStatusMap" />
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <template #footer>
-        <el-button @click="indicatorDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleSaveIndicatorEval">保存</el-button>
-      </template>
-    </el-dialog>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import SearchForm from '@/components/SearchForm.vue'
-import DataTable from '@/components/DataTable.vue'
-import StatusTag from '@/components/StatusTag.vue'
-import type { SearchField } from '@/components/SearchForm.vue'
-import type { TableColumn } from '@/components/DataTable.vue'
+import { Loading } from '@element-plus/icons-vue'
 import {
-  getPeerEvalTaskList,
   getPeerEvalTargets,
   getPeerEvalByDept,
-  getPeerEvalByIndicator,
   savePeerEval,
   submitPeerEval
 } from '@/api/peerEval'
-import type { PeerEvalTask, PeerEvalTargetDept, PeerEvalIndicator, PeerEvalByIndicator, PeerEvalSaveData } from '@/api/peerEval'
+import type { PeerEvalTargetDept, PeerEvalSaveData } from '@/api/peerEval'
 import { useUserStore } from '@/stores/user'
+import { useDataScope } from '@/composables/useDataScope'
 
 const userStore = useUserStore()
-const activeTab = ref('dept')
-const loading = ref(false)
-const indicatorLoading = ref(false)
-const dialogLoading = ref(false)
+const { loadScopedExamGroups } = useDataScope()
 
-// 按部门数据
-const rawDeptData = ref<PeerEvalTargetDept[]>([])
-const deptTableData = ref<PeerEvalTargetDept[]>([])
-const deptTotal = ref(0)
-const currentTask = ref<PeerEvalTask | null>(null)
+// 考核组选项
+const examGroupOptions = ref<{ label: string; value: number; status?: string }[]>([])
+const selectedExamGroupId = ref<number | undefined>(undefined)
+const groupStatus = ref('')
 
-const deptQuery = reactive({
-  current: 1,
-  size: 10,
-  examGroupId: undefined as number | undefined,
-  examType: '',
-  status: ''
-})
+// 左侧部门列表
+const targetDepts = ref<PeerEvalTargetDept[]>([])
+const selectedTargetOrgId = ref<number | undefined>(undefined)
+const navLoading = ref(false)
 
-// 按指标数据
-const rawIndicatorData = ref<PeerEvalByIndicator[]>([])
-const indicatorTableData = ref<PeerEvalByIndicator[]>([])
-const indicatorTotal = ref(0)
+// 右侧表格
+const indicatorList = ref<any[]>([])
+const tableLoading = ref(false)
+const submitLoading = ref(false)
 
-const indicatorQuery = reactive({
-  current: 1,
-  size: 10,
-  examGroupId: undefined as number | undefined,
-  categoryId: undefined as number | undefined
-})
+// 只读模式（考核组已发布）
+const isReadonly = computed(() => groupStatus.value === '已发布')
 
-const searchFields: SearchField[] = [
-  {
-    prop: 'examGroupId',
-    label: '考核组名称',
-    type: 'select',
-    placeholder: '请选择',
-    options: []
-  },
-  {
-    prop: 'examType',
-    label: '考核类型',
-    type: 'select',
-    placeholder: '请选择',
-    options: [
-      { label: '月度考核', value: 'MONTHLY' },
-      { label: '年度考核', value: 'ANNUAL' }
-    ]
-  },
-  {
-    prop: 'status',
-    label: '打分状态',
-    type: 'select',
-    placeholder: '请选择',
-    options: [
-      { label: '全部', value: '' },
-      { label: '待打分', value: 'PENDING' },
-      { label: '已完成', value: 'COMPLETED' }
-    ]
+function getCurrentEvaluatorOrgId(): number | undefined {
+  if (userStore.dataScope === 'ORG' && userStore.scopeId) {
+    return userStore.scopeId
   }
-]
-
-const deptColumns: TableColumn[] = [
-  { prop: 'targetOrgName', label: '目标部门名称', minWidth: 180 },
-  { prop: 'totalIndicators', label: '总指标数', width: 90 },
-  { prop: 'evaluatedCount', label: '已打分数', width: 90 },
-  { prop: 'progress', label: '完成进度', width: 180 },
-  { prop: 'status', label: '状态', width: 100 },
-  { prop: 'operation', label: '操作', width: 100 }
-]
-
-const indicatorColumns: TableColumn[] = [
-  { prop: 'categoryName', label: '指标大类', width: 120 },
-  { prop: 'subCategory', label: '指标小类', width: 120 },
-  { prop: 'content', label: '考核内容', minWidth: 200 },
-  { prop: 'totalDepts', label: '评估部门数', width: 100 },
-  { prop: 'scoredCount', label: '已打分数', width: 90 },
-  { prop: 'operation', label: '操作', width: 100 }
-]
-
-const statusMap = {
-  PENDING: { text: '待打分', type: 'warning' as const },
-  COMPLETED: { text: '已完成', type: 'success' as const }
+  return userStore.scopeId || userStore.userInfo?.orgId
 }
 
-const rowStatusMap = {
-  PENDING: { text: '待填写', type: 'info' as const },
-  DRAFT: { text: '草稿', type: 'warning' as const },
-  SUBMITTED: { text: '已提交', type: 'success' as const }
-}
-
-// 弹框数据
-const deptDialogVisible = ref(false)
-const currentTargetDept = ref<PeerEvalTargetDept | null>(null)
-const deptIndicatorList = ref<any[]>([])
-
-const indicatorDialogVisible = ref(false)
-const currentIndicator = ref<PeerEvalByIndicator | null>(null)
-const indicatorDeptList = ref<any[]>([])
-
-function filterDeptData() {
-  let list = [...rawDeptData.value]
-  if (deptQuery.status) {
-    list = list.filter((item: PeerEvalTargetDept) => item.status === deptQuery.status)
+// 加载考核组列表
+async function loadExamGroupOptions() {
+  const groups = await loadScopedExamGroups('PERFORMANCE')
+  examGroupOptions.value = groups.map((group: any) => ({
+    label: group.groupName,
+    value: group.id,
+    status: group.status
+  }))
+  // 自动选中第一个
+  if (examGroupOptions.value.length > 0) {
+    selectedExamGroupId.value = examGroupOptions.value[0].value
+    groupStatus.value = examGroupOptions.value[0].status || ''
+    loadTargetDepts()
   }
-  deptTotal.value = list.length
-  const start = (deptQuery.current - 1) * deptQuery.size
-  deptTableData.value = list.slice(start, start + deptQuery.size)
 }
 
-function filterIndicatorData() {
-  let list = [...rawIndicatorData.value]
-  deptTotal.value = list.length
-  const start = (indicatorQuery.current - 1) * indicatorQuery.size
-  indicatorTableData.value = list.slice(start, start + indicatorQuery.size)
-  indicatorTotal.value = list.length
+// 考核组变更
+function handleExamGroupChange(val: number) {
+  const selected = examGroupOptions.value.find(item => item.value === val)
+  groupStatus.value = selected?.status || ''
+  selectedTargetOrgId.value = undefined
+  indicatorList.value = []
+  loadTargetDepts()
 }
 
-function loadTaskList() {
-  const evaluatorOrgId = userStore.userInfo?.orgId
-  if (!evaluatorOrgId) {
-    ElMessage.warning('无法获取当前用户部门信息')
+// 加载部门列表
+function loadTargetDepts() {
+  const evaluatorOrgId = getCurrentEvaluatorOrgId()
+  if (!evaluatorOrgId || !selectedExamGroupId.value) return
+
+  navLoading.value = true
+  getPeerEvalTargets(selectedExamGroupId.value, evaluatorOrgId)
+    .then((res: any) => {
+      targetDepts.value = res.data || []
+      // 如果后端返回 groupStatus
+      if (res.data && res.data.length > 0 && res.data[0].groupStatus) {
+        groupStatus.value = res.data[0].groupStatus
+      }
+      // 默认选中第一个部门
+      if (targetDepts.value.length > 0) {
+        handleSelectDept(targetDepts.value[0])
+      }
+    })
+    .finally(() => {
+      navLoading.value = false
+    })
+}
+
+// 选中部门
+function handleSelectDept(dept: PeerEvalTargetDept) {
+  selectedTargetOrgId.value = dept.targetOrgId
+  loadDeptIndicators(dept.targetOrgId)
+}
+
+// 加载指标数据
+function loadDeptIndicators(targetOrgId: number) {
+  const evaluatorOrgId = getCurrentEvaluatorOrgId()
+  if (!evaluatorOrgId || !selectedExamGroupId.value) return
+
+  tableLoading.value = true
+  getPeerEvalByDept(selectedExamGroupId.value, evaluatorOrgId, targetOrgId)
+    .then((res: any) => {
+      indicatorList.value = (res.data || []).map((item: any) => ({ ...item }))
+    })
+    .finally(() => {
+      tableLoading.value = false
+    })
+}
+
+// 完成按钮
+async function handleComplete() {
+  const evaluatorOrgId = getCurrentEvaluatorOrgId()
+  if (!evaluatorOrgId || !selectedExamGroupId.value || !selectedTargetOrgId.value) return
+
+  const unscoredRows = indicatorList.value.filter(
+    (row: any) => row.peerScore === null || row.peerScore === undefined
+  )
+  if (unscoredRows.length > 0) {
+    ElMessage.warning(`还有 ${unscoredRows.length} 项指标未填写他评得分，请全部填写后再提交`)
     return
   }
-  loading.value = true
-  getPeerEvalTaskList({ evaluatorOrgId })
-    .then((res: any) => {
-      const tasks: PeerEvalTask[] = res.data || []
-      if (tasks.length > 0) {
-        currentTask.value = tasks[0]
-        loadDeptTargets(tasks[0].examGroupId, evaluatorOrgId)
-        loadIndicatorData(tasks[0].examGroupId, evaluatorOrgId)
-      }
-    })
-    .finally(() => {
-      loading.value = false
-    })
-}
 
-function loadDeptTargets(examGroupId: number, evaluatorOrgId: number) {
-  loading.value = true
-  getPeerEvalTargets(examGroupId, evaluatorOrgId)
-    .then((res: any) => {
-      rawDeptData.value = res.data || []
-      filterDeptData()
-    })
-    .finally(() => {
-      loading.value = false
-    })
-}
+  const scoredRows = indicatorList.value
 
-function loadIndicatorData(examGroupId: number, evaluatorOrgId: number) {
-  indicatorLoading.value = true
-  getPeerEvalByIndicator(examGroupId, evaluatorOrgId)
-    .then((res: any) => {
-      rawIndicatorData.value = res.data || []
-      filterIndicatorData()
-    })
-    .finally(() => {
-      indicatorLoading.value = false
-    })
-}
-
-function handleSearch(data: Record<string, any>) {
-  deptQuery.current = 1
-  deptQuery.examGroupId = data.examGroupId
-  deptQuery.examType = data.examType || ''
-  deptQuery.status = data.status || ''
-  filterDeptData()
-}
-
-function handleReset() {
-  deptQuery.current = 1
-  deptQuery.examGroupId = undefined
-  deptQuery.examType = ''
-  deptQuery.status = ''
-  filterDeptData()
-}
-
-function handleTabChange() {
-  if (activeTab.value === 'dept') {
-    filterDeptData()
-  } else {
-    filterIndicatorData()
+  try {
+    await ElMessageBox.confirm('提交后将无法修改，确认完成？', '确认提交', { type: 'warning' })
+  } catch {
+    return
   }
-}
 
-function handleDeptPageChange(page: number, size: number) {
-  deptQuery.current = page
-  deptQuery.size = size
-  filterDeptData()
-}
-
-function handleIndicatorPageChange(page: number, size: number) {
-  indicatorQuery.current = page
-  indicatorQuery.size = size
-  filterIndicatorData()
-}
-
-function handleDeptEval(row: PeerEvalTargetDept) {
-  currentTargetDept.value = row
-  deptDialogVisible.value = true
-  loadDeptIndicators(row.targetOrgId)
-}
-
-function loadDeptIndicators(targetOrgId: number) {
-  const evaluatorOrgId = userStore.userInfo?.orgId
-  if (!evaluatorOrgId || !currentTask.value) return
-  dialogLoading.value = true
-  getPeerEvalByDept(currentTask.value.examGroupId, evaluatorOrgId, targetOrgId)
-    .then((res: any) => {
-      deptIndicatorList.value = (res.data || []).map((item: PeerEvalIndicator) => ({ ...item }))
-    })
-    .finally(() => {
-      dialogLoading.value = false
-    })
-}
-
-function handleIndicatorEval(row: PeerEvalByIndicator) {
-  currentIndicator.value = row
-  indicatorDialogVisible.value = true
-  indicatorDeptList.value = (row.deptScores || []).map((item: any) => ({ ...item }))
-}
-
-function handleSaveDeptEval() {
-  const evaluatorOrgId = userStore.userInfo?.orgId
-  if (!evaluatorOrgId || !currentTask.value) return
-
-  const promises = deptIndicatorList.value
-    .filter((row: any) => row.peerScore !== null && row.peerScore !== undefined)
-    .map((row: any) => {
+  submitLoading.value = true
+  try {
+    // 1. 保存所有已填分的行
+    const savePromises = scoredRows.map((row: any) => {
       const data: PeerEvalSaveData = {
         id: row.peerEvalId || undefined,
-        examGroupId: currentTask.value!.examGroupId,
+        examGroupId: selectedExamGroupId.value!,
         evaluatorOrgId,
-        targetOrgId: currentTargetDept.value!.targetOrgId,
+        targetOrgId: selectedTargetOrgId.value!,
         indicatorId: row.indicatorId,
         peerScore: row.peerScore,
         scoreComment: row.scoreComment
       }
       return savePeerEval(data)
     })
+    await Promise.all(savePromises)
 
-  Promise.all(promises).then(() => {
-    ElMessage.success('保存成功')
-    loadDeptIndicators(currentTargetDept.value!.targetOrgId)
-    if (currentTask.value) {
-      loadDeptTargets(currentTask.value.examGroupId, evaluatorOrgId)
-    }
-  }).catch(() => {
-    ElMessage.error('保存失败')
-  })
-}
+    // 2. 提交
+    await submitPeerEval(selectedExamGroupId.value, evaluatorOrgId, selectedTargetOrgId.value)
+    ElMessage.success('提交成功')
 
-function handleSubmitDeptEval() {
-  const evaluatorOrgId = userStore.userInfo?.orgId
-  if (!evaluatorOrgId || !currentTask.value || !currentTargetDept.value) return
-
-  const promises = deptIndicatorList.value
-    .filter((row: any) => row.peerScore !== null && row.peerScore !== undefined)
-    .map((row: any) => {
-      const data: PeerEvalSaveData = {
-        id: row.peerEvalId || undefined,
-        examGroupId: currentTask.value!.examGroupId,
-        evaluatorOrgId,
-        targetOrgId: currentTargetDept.value!.targetOrgId,
-        indicatorId: row.indicatorId,
-        peerScore: row.peerScore,
-        scoreComment: row.scoreComment
-      }
-      return savePeerEval(data)
-    })
-
-  Promise.all(promises).then(() => {
-    ElMessageBox.confirm('提交后将无法修改，确认提交？', '确认提交', { type: 'warning' }).then(() => {
-      submitPeerEval(currentTask.value!.examGroupId, evaluatorOrgId, currentTargetDept.value!.targetOrgId).then(() => {
-        ElMessage.success('提交成功')
-        deptDialogVisible.value = false
-        loadDeptTargets(currentTask.value!.examGroupId, evaluatorOrgId)
-      })
-    })
-  }).catch(() => {
-    ElMessage.error('保存失败')
-  })
-}
-
-function handleSaveIndicatorEval() {
-  const evaluatorOrgId = userStore.userInfo?.orgId
-  if (!evaluatorOrgId || !currentTask.value || !currentIndicator.value) return
-
-  const promises = indicatorDeptList.value
-    .filter((row: any) => row.peerScore !== null && row.peerScore !== undefined)
-    .map((row: any) => {
-      const data: PeerEvalSaveData = {
-        examGroupId: currentTask.value!.examGroupId,
-        evaluatorOrgId,
-        targetOrgId: row.targetOrgId,
-        indicatorId: currentIndicator.value!.indicatorId,
-        peerScore: row.peerScore,
-        scoreComment: row.scoreComment
-      }
-      return savePeerEval(data)
-    })
-
-  Promise.all(promises).then(() => {
-    ElMessage.success('保存成功')
-    indicatorDialogVisible.value = false
-    loadIndicatorData(currentTask.value!.examGroupId, evaluatorOrgId)
-  }).catch(() => {
-    ElMessage.error('保存失败')
-  })
+    // 3. 刷新左侧部门状态
+    loadTargetDepts()
+  } catch {
+    ElMessage.error('提交失败，请重试')
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 onMounted(() => {
-  loadTaskList()
+  loadExamGroupOptions()
 })
 </script>
 
 <style scoped lang="scss">
 .peer-evaluation {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   padding: 16px;
+  box-sizing: border-box;
 }
+
 .page-header {
   margin-bottom: 16px;
-  h2 {
-    margin: 0 0 4px 0;
-    font-size: 20px;
-  }
-  .subtitle {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 14px;
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      white-space: nowrap;
+    }
   }
 }
-.dialog-header {
-  margin-bottom: 12px;
+
+.main-container {
   display: flex;
-  gap: 24px;
-  font-weight: bold;
-  color: var(--text-primary);
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--el-border-color-light, #e4e7ed);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.left-nav {
+  width: 240px;
+  min-width: 240px;
+  border-right: 1px solid var(--el-border-color-light, #e4e7ed);
+  overflow-y: auto;
+  background: var(--el-bg-color-page, #f5f7fa);
+
+  .nav-title {
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+    border-bottom: 1px solid var(--el-border-color-light, #e4e7ed);
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+
+    &:hover {
+      background-color: var(--el-fill-color-light, #f0f2f5);
+    }
+
+    &.active {
+      background-color: var(--el-color-primary-light-9, #ecf5ff);
+      border-left: 3px solid var(--el-color-primary, #409eff);
+      padding-left: 13px;
+    }
+
+    .dept-name {
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      margin-right: 8px;
+    }
+  }
+
+  .nav-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 0;
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+  }
+}
+
+.right-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  overflow: auto;
+  min-width: 0;
+}
+
+.indicator-card-list {
+  flex: 1;
+  min-height: 280px;
+  max-height: calc(100vh - 232px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.indicator-card {
+  border: 1px solid var(--el-border-color-light, #e4e7ed);
+  border-radius: 8px;
+  background: var(--el-bg-color, #fff);
+  box-shadow: 0 1px 3px rgba(31, 45, 61, 0.04);
+  overflow: hidden;
+
+  & + .indicator-card {
+    margin-top: 14px;
+  }
+}
+
+.card-upper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(180deg, #fafcff 0%, #fff 100%);
+}
+
+.assessment-section,
+.self-section {
+  min-width: 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.serial-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.content-title {
+  margin-bottom: 12px;
+  color: var(--el-text-color-primary);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 10px 14px;
+}
+
+.info-item,
+.self-completion,
+.attachment-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.info-item.wide {
+  grid-column: span 2;
+}
+
+.info-label,
+.input-label,
+.score-label {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.info-value {
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.prewrap {
+  white-space: pre-wrap;
+}
+
+.self-section {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 12px;
+  padding-left: 16px;
+  border-left: 1px solid var(--el-border-color-lighter, #ebeef5);
+
+  .section-title {
+    grid-column: span 2;
+    margin-bottom: 0;
+  }
+}
+
+.self-score-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 6px;
+  background: var(--el-fill-color-extra-light, #fafafa);
+
+  strong {
+    color: var(--el-color-success, #67c23a);
+    font-size: 26px;
+    line-height: 1.1;
+  }
+}
+
+.self-completion {
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 6px;
+  background: var(--el-fill-color-extra-light, #fafafa);
+}
+
+.attachment-row {
+  grid-column: span 2;
+  flex-direction: row;
+  align-items: center;
+  min-height: 24px;
+}
+
+.card-lower {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  background: var(--el-fill-color-blank, #fff);
+}
+
+.peer-score-panel,
+.peer-comment-panel {
+  min-width: 0;
+}
+
+.input-label {
+  margin-bottom: 2px;
+  font-weight: 600;
+
+  .required-mark {
+    color: var(--el-color-danger, #f56c6c);
+    margin-right: 2px;
+  }
+}
+
+.input-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+  margin-bottom: 6px;
+}
+
+.peer-score-input {
+  width: 100%;
+}
+
+.footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  margin-top: 16px;
+}
+
+@media (max-width: 1200px) {
+  .card-upper,
+  .card-lower {
+    grid-template-columns: 1fr;
+  }
+
+  .self-section {
+    padding-left: 0;
+    padding-top: 14px;
+    border-left: none;
+    border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  }
+}
+
+@media (max-width: 860px) {
+  .main-container {
+    flex-direction: column;
+  }
+
+  .left-nav {
+    width: 100%;
+    min-width: 0;
+    max-height: 220px;
+    border-right: none;
+    border-bottom: 1px solid var(--el-border-color-light, #e4e7ed);
+  }
+
+  .indicator-card-list {
+    max-height: none;
+  }
+
+  .info-grid,
+  .self-section {
+    grid-template-columns: 1fr;
+  }
+
+  .info-item.wide,
+  .self-section .section-title,
+  .attachment-row {
+    grid-column: auto;
+  }
 }
 </style>

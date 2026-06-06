@@ -8,111 +8,295 @@ import com.ccerphr.assessment.entity.SysOrganization;
 import com.ccerphr.assessment.entity.SysRole;
 import com.ccerphr.assessment.entity.SysUser;
 import com.ccerphr.assessment.entity.SysUserPermission;
-import com.ccerphr.assessment.entity.SysUserRole;
 import com.ccerphr.assessment.mapper.SysEmployeeMapper;
 import com.ccerphr.assessment.mapper.SysOrganizationMapper;
 import com.ccerphr.assessment.mapper.SysRoleMapper;
 import com.ccerphr.assessment.mapper.SysUserMapper;
 import com.ccerphr.assessment.mapper.SysUserPermissionMapper;
-import com.ccerphr.assessment.mapper.SysUserRoleMapper;
 import com.ccerphr.assessment.security.JwtTokenProvider;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import com.ccerphr.assessment.security.LoginDTO;
+import com.ccerphr.assessment.security.LoginRateLimiter;
+import com.ccerphr.assessment.security.SecurityUtil;
+import com.ccerphr.assessment.security.TokenBlacklistService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+    private static final String INVALID_CREDENTIALS = "用户名或密码错误";
+
     private final SysUserMapper userMapper;
     private final SysEmployeeMapper employeeMapper;
     private final SysOrganizationMapper organizationMapper;
-    private final SysUserRoleMapper sysUserRoleMapper;
     private final SysUserPermissionMapper sysUserPermissionMapper;
     private final SysRoleMapper sysRoleMapper;
     private final JwtTokenProvider jwtTokenProvider;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final LoginRateLimiter loginRateLimiter;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(SysUserMapper userMapper, SysEmployeeMapper employeeMapper, SysOrganizationMapper organizationMapper, SysUserRoleMapper sysUserRoleMapper, SysUserPermissionMapper sysUserPermissionMapper, SysRoleMapper sysRoleMapper, JwtTokenProvider jwtTokenProvider) {
+    public AuthController(SysUserMapper userMapper,
+                          SysEmployeeMapper employeeMapper,
+                          SysOrganizationMapper organizationMapper,
+                          SysUserPermissionMapper sysUserPermissionMapper,
+                          SysRoleMapper sysRoleMapper,
+                          JwtTokenProvider jwtTokenProvider,
+                          LoginRateLimiter loginRateLimiter,
+                          TokenBlacklistService tokenBlacklistService,
+                          PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
         this.employeeMapper = employeeMapper;
         this.organizationMapper = organizationMapper;
-        this.sysUserRoleMapper = sysUserRoleMapper;
         this.sysUserPermissionMapper = sysUserPermissionMapper;
         this.sysRoleMapper = sysRoleMapper;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.loginRateLimiter = loginRateLimiter;
+        this.tokenBlacklistService = tokenBlacklistService;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * 查询用户的所有角色列表，优先从sys_user_permission查询当前生效权限，
-     * 无记录则回退到sys_user_role，最终回退到sys_user表的单角色
-     */
-    private List<Map<String, Object>> getAvailableRoles(SysUser user) {
-        // 从 sys_user_permission 查询当前生效的权限
-        LocalDate today = LocalDate.now();
-        LambdaQueryWrapper<SysUserPermission> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysUserPermission::getUserId, user.getId())
-               .eq(SysUserPermission::getDeleted, 0)
-               .le(SysUserPermission::getStartDate, today)
-               .and(w -> w.isNull(SysUserPermission::getEndDate)
-                          .or().ge(SysUserPermission::getEndDate, today));
-    
-        List<SysUserPermission> permissions = sysUserPermissionMapper.selectList(wrapper);
-    
-        if (permissions != null && !permissions.isEmpty()) {
-            return permissions.stream().map(p -> {
-                Map<String, Object> role = new HashMap<>();
-                role.put("roleCode", p.getRoleCode());
-                role.put("roleName", getRoleName(p.getRoleCode()));
-                role.put("dataScope", p.getDataScope());
-                role.put("scopeId", p.getScopeId() != null ? p.getScopeId() : 0L);
-                role.put("scopeName", p.getScopeName() != null ? p.getScopeName() : "全部");
-                // 如果 scopeId 不为空且 dataScope 不是 ALL，查组织获取 orgType
-                if (p.getScopeId() != null && !"ALL".equals(p.getDataScope())) {
-                    SysOrganization org = organizationMapper.selectById(p.getScopeId());
-                    if (org != null) {
-                        role.put("orgType", org.getOrgType());
-                    }
-                }
-                return role;
-            }).collect(Collectors.toList());
-        }
-    
-        // 兼容：如果 sys_user_permission 没有记录，回退到 sys_user_role
-        List<SysUserRole> userRoles = sysUserRoleMapper.selectList(
-            new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, user.getId())
+    @PostMapping("/login")
+    public Result<Map<String, Object>> login(@Valid @RequestBody LoginDTO loginRequest,
+                                             HttpServletRequest request) {
+        String normalizedUsername = loginRequest.getUsername().trim();
+        String normalizedPassword = loginRequest.getPassword().trim();
+
+        String clientIp = resolveClientIp(request);
+        loginRateLimiter.check("ip:" + clientIp);
+        loginRateLimiter.check("user:" + normalizedUsername);
+
+        SysUser user = userMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getUsername, normalizedUsername)
+                        .eq(SysUser::getDeleted, 0)
         );
-        if (userRoles != null && !userRoles.isEmpty()) {
-            return userRoles.stream().map(r -> {
-                Map<String, Object> role = new HashMap<>();
-                role.put("roleCode", r.getRoleCode());
-                role.put("roleName", r.getRoleName());
-                role.put("dataScope", "ALL");
-                role.put("scopeId", 0L);
-                role.put("scopeName", "全部");
-                return role;
-            }).collect(Collectors.toList());
+
+        if (user == null) {
+            log.warn("Login failed: username not found, username={}", normalizedUsername);
+            throw new BusinessException(INVALID_CREDENTIALS);
         }
-    
-        // 最终兖底：sys_user 表单角色
-        List<Map<String, Object>> fallback = new ArrayList<>();
-        if (user.getRoleCode() != null) {
-            Map<String, Object> role = new HashMap<>();
-            role.put("roleCode", user.getRoleCode());
-            role.put("roleName", user.getRoleName());
-            role.put("dataScope", "ALL");
-            role.put("scopeId", 0L);
-            role.put("scopeName", "全部");
-            fallback.add(role);
+        if (user.getIsEnabled() != null && user.getIsEnabled() == 0) {
+            throw new BusinessException("该账号已被禁用");
         }
-        return fallback;
+        if (!passwordEncoder.matches(normalizedPassword, user.getPassword())) {
+            log.warn("Login failed: password mismatch, userId={}, username={}", user.getId(), normalizedUsername);
+            throw new BusinessException(INVALID_CREDENTIALS);
+        }
+
+        SysEmployee employee = resolveEmployeeAndBackfillUserOrg(user);
+        List<Map<String, Object>> availableRoles = getAvailableRoles(user);
+        if (availableRoles.isEmpty()) {
+            throw new BusinessException("当前用户未配置有效职责和数据范围，请先在用户权限分配中维护");
+        }
+
+        user.setLastLoginTime(java.time.LocalDateTime.now());
+        userMapper.updateById(user);
+
+        Map<String, Object> activeRole = availableRoles.get(0);
+        Map<String, Object> userInfo = buildUserInfo(user, employee, activeRole, availableRoles);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", issueToken(user, activeRole));
+        result.put("userInfo", userInfo);
+
+        loginRateLimiter.reset("ip:" + clientIp);
+        loginRateLimiter.reset("user:" + normalizedUsername);
+        return Result.success(result);
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            int comma = xff.indexOf(',');
+            return (comma > 0 ? xff.substring(0, comma) : xff).trim();
+        }
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    @PostMapping("/switch-role")
+    public Result<Map<String, Object>> switchRole(@RequestBody Map<String, Object> request) {
+        String roleCode = request.get("roleCode") == null ? "" : request.get("roleCode").toString();
+        Long scopeId = toLong(request.get("scopeId"));
+
+        Long userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException("用户未登录");
+        }
+
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        SysUserPermission permission = findActivePermission(userId, roleCode, scopeId);
+        if (permission == null) {
+            throw new BusinessException("无权切换到该职责或数据范围，请检查用户权限分配");
+        }
+
+        Map<String, Object> role = toRoleMap(permission);
+        role.put("token", issueToken(user, role));
+        log.info("User {} switched to role={}, scopeId={}", userId, roleCode, scopeId);
+        return Result.success(role);
+    }
+
+    @GetMapping("/user-info")
+    public Result<Map<String, Object>> getUserInfo() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException("未登录或token无效");
+        }
+
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        List<Map<String, Object>> availableRoles = getAvailableRoles(user);
+        if (availableRoles.isEmpty()) {
+            throw new BusinessException("当前用户未配置有效职责和数据范围，请先在用户权限分配中维护");
+        }
+
+        Map<String, Object> activeRole = findRoleMap(availableRoles,
+                SecurityUtil.getActiveRoleCode(), SecurityUtil.getActiveScopeId());
+        SysEmployee employee = user.getEmployeeId() == null ? null : employeeMapper.selectById(user.getEmployeeId());
+        return Result.success(buildUserInfo(user, employee, activeRole, availableRoles));
+    }
+
+    @PostMapping("/logout")
+    public Result<Void> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            long ttl = jwtTokenProvider.getRemainingTtl(token);
+            if (ttl > 0) {
+                tokenBlacklistService.revoke(token, ttl);
+            }
+        }
+        return Result.success();
+    }
+
+    private List<Map<String, Object>> getAvailableRoles(SysUser user) {
+        return sysUserPermissionMapper.selectActiveByUserId(user.getId())
+                .stream()
+                .map(this::toRoleMap)
+                .collect(Collectors.toList());
+    }
+
+private Map<String, Object> toRoleMap(SysUserPermission permission) {
+        Map<String, Object> role = new HashMap<>();
+        role.put("roleCode", permission.getRoleCode());
+        role.put("roleName", getRoleName(permission.getRoleCode()));
+        role.put("dataScope", permission.getDataScope());
+        // scopeId 为 null 时使用 0，前端会用 orgId 作为回退
+role.put("scopeId", permission.getScopeId() != null ? permission.getScopeId() : 0L);
+        role.put("scopeName", permission.getScopeName() != null ? permission.getScopeName() : "全部");
+        if (permission.getScopeId() != null && !"ALL".equals(permission.getDataScope())) {
+            SysOrganization org = organizationMapper.selectById(permission.getScopeId());
+            if (org != null) {
+                role.put("orgType", org.getOrgType());
+            }
+        }
+        return role;
+    }
+
+    private SysUserPermission findActivePermission(Long userId, String roleCode, Long scopeId) {
+        return sysUserPermissionMapper.selectActiveByUserId(userId)
+                .stream()
+                .filter(permission -> Objects.equals(permission.getRoleCode(), roleCode))
+                .filter(permission -> Objects.equals(permission.getScopeId() != null ? permission.getScopeId() : 0L, scopeId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Map<String, Object> findRoleMap(List<Map<String, Object>> roles, String roleCode, Long scopeId) {
+        if (roleCode != null && scopeId != null) {
+            return roles.stream()
+                    .filter(role -> Objects.equals(role.get("roleCode"), roleCode))
+                    .filter(role -> Objects.equals(toLong(role.get("scopeId")), scopeId))
+                    .findFirst()
+                    .orElse(roles.get(0));
+        }
+        return roles.get(0);
+    }
+
+    private String issueToken(SysUser user, Map<String, Object> activeRole) {
+        return jwtTokenProvider.generateToken(
+                user.getId(),
+                user.getRealName(),
+                user.getRoleCode(),
+                user.getOrgId(),
+                (String) activeRole.get("roleCode"),
+                toLong(activeRole.get("scopeId")),
+                (String) activeRole.get("dataScope")
+        );
+    }
+
+    private Map<String, Object> buildUserInfo(SysUser user,
+                                              SysEmployee employee,
+                                              Map<String, Object> activeRole,
+                                              List<Map<String, Object>> availableRoles) {
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getId());
+        userInfo.put("userName", user.getRealName());
+        userInfo.put("roleCode", activeRole.get("roleCode"));
+        userInfo.put("roleName", activeRole.get("roleName"));
+        userInfo.put("orgId", user.getOrgId());
+        userInfo.put("orgName", user.getOrgName());
+        userInfo.put("unitId", user.getUnitId());
+        if (activeRole.get("orgType") != null) {
+            userInfo.put("orgType", activeRole.get("orgType"));
+        } else if (user.getOrgId() != null) {
+            SysOrganization org = organizationMapper.selectById(user.getOrgId());
+            if (org != null) {
+                userInfo.put("orgType", org.getOrgType());
+            }
+        }
+        if (employee != null) {
+            userInfo.put("employeeId", employee.getId());
+            userInfo.put("employeeNo", employee.getEmployeeNo());
+            userInfo.put("position", employee.getPosition());
+            userInfo.put("level", employee.getLevel());
+            userInfo.put("deptId", employee.getDeptId());
+            userInfo.put("deptName", employee.getDeptName());
+        }
+        userInfo.put("availableRoles", availableRoles);
+        return userInfo;
+    }
+
+    private SysEmployee resolveEmployeeAndBackfillUserOrg(SysUser user) {
+        SysEmployee employee = null;
+        if (user.getEmployeeId() != null) {
+            employee = employeeMapper.selectById(user.getEmployeeId());
+        }
+        if (user.getOrgId() == null && employee != null && employee.getDeptId() != null) {
+            user.setOrgId(employee.getDeptId());
+            user.setOrgName(employee.getDeptName());
+        }
+        return employee;
     }
 
     private String getRoleName(String roleCode) {
@@ -120,164 +304,15 @@ public class AuthController {
             return null;
         }
         SysRole role = sysRoleMapper.selectOne(
-            new LambdaQueryWrapper<SysRole>().eq(SysRole::getRoleCode, roleCode)
+                new LambdaQueryWrapper<SysRole>().eq(SysRole::getRoleCode, roleCode)
         );
         return role != null ? role.getRoleName() : roleCode;
     }
 
-    @PostMapping("/login")
-    public Result<Map<String, Object>> login(@RequestBody Map<String, String> loginRequest) {
-        String username = loginRequest.get("username");
-        String password = loginRequest.get("password");
-
-        if (username == null || username.trim().isEmpty()) {
-            throw new BusinessException("用户名不能为空");
+    private Long toLong(Object value) {
+        if (value == null || value.toString().isBlank()) {
+            return 0L;
         }
-        if (password == null || password.trim().isEmpty()) {
-            throw new BusinessException("密码不能为空");
-        }
-
-        // 查询用户
-        SysUser user = userMapper.selectOne(
-            new LambdaQueryWrapper<SysUser>()
-                .eq(SysUser::getUsername, username.trim())
-                .eq(SysUser::getDeleted, 0)
-        );
-
-        if (user == null) {
-            throw new BusinessException("用户名或密码错误");
-        }
-
-        if (user.getIsEnabled() != null && user.getIsEnabled() == 0) {
-            throw new BusinessException("该账户已被禁用");
-        }
-
-        // 验证密码
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new BusinessException("用户名或密码错误");
-        }
-
-        // 更新最后登录时间
-        user.setLastLoginTime(LocalDateTime.now());
-        userMapper.updateById(user);
-
-        // 生成JWT Token
-        String token = jwtTokenProvider.generateToken(
-            user.getId(),
-            user.getRealName(),
-            user.getRoleCode(),
-            user.getOrgId()
-        );
-
-        // 如果用户关联了人员，读取人员信息
-        SysEmployee employee = null;
-        if (user.getEmployeeId() != null) {
-            employee = employeeMapper.selectById(user.getEmployeeId());
-        }
-
-        // 如果user的orgId为空但employee的deptId不为空，自动填充
-        if (user.getOrgId() == null && employee != null && employee.getDeptId() != null) {
-            user.setOrgId(employee.getDeptId());
-            user.setOrgName(employee.getDeptName());
-            userMapper.updateById(user);
-        }
-
-        // 构建返回信息
-        Map<String, Object> result = new HashMap<>();
-        result.put("token", token);
-
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("id", user.getId());
-        userInfo.put("userName", user.getRealName());
-        // 优先从 availableRoles 中取第一个角色作为默认 roleCode
-        List<Map<String, Object>> availableRolesList = getAvailableRoles(user);
-        if (availableRolesList != null && !availableRolesList.isEmpty()) {
-            userInfo.put("roleCode", availableRolesList.get(0).get("roleCode"));
-            userInfo.put("roleName", availableRolesList.get(0).get("roleName"));
-        } else {
-            userInfo.put("roleCode", user.getRoleCode());
-            userInfo.put("roleName", user.getRoleName());
-        }
-        userInfo.put("orgId", user.getOrgId());
-        userInfo.put("orgName", user.getOrgName());
-        userInfo.put("unitId", user.getUnitId());
-        // 查询组织类型
-        if (user.getOrgId() != null) {
-            SysOrganization org = organizationMapper.selectById(user.getOrgId());
-            if (org != null) {
-                userInfo.put("orgType", org.getOrgType());
-            }
-        }
-        // 新增人员关联信息
-        if (employee != null) {
-            userInfo.put("employeeId", employee.getId());
-            userInfo.put("employeeNo", employee.getEmployeeNo());
-            userInfo.put("position", employee.getPosition());
-            userInfo.put("level", employee.getLevel());
-            userInfo.put("deptId", employee.getDeptId());
-            userInfo.put("deptName", employee.getDeptName());
-        }
-        // 查询用户的所有角色列表
-        userInfo.put("availableRoles", availableRolesList);
-        result.put("userInfo", userInfo);
-
-        return Result.success(result);
-    }
-
-    @GetMapping("/user-info")
-    public Result<Map<String, Object>> getUserInfo(@RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new BusinessException("未登录或token无效");
-        }
-        String token = authHeader.substring(7);
-        if (!jwtTokenProvider.validateToken(token)) {
-            throw new BusinessException("token已过期");
-        }
-
-        Long userId = jwtTokenProvider.getUserIdFromToken(token);
-        SysUser user = userMapper.selectById(userId);
-        if (user == null) {
-            throw new BusinessException("用户不存在");
-        }
-
-        // 如果用户关联了人员，读取人员信息
-        SysEmployee employee = null;
-        if (user.getEmployeeId() != null) {
-            employee = employeeMapper.selectById(user.getEmployeeId());
-        }
-
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("id", user.getId());
-        userInfo.put("userName", user.getRealName());
-        userInfo.put("roleCode", user.getRoleCode());
-        userInfo.put("roleName", user.getRoleName());
-        userInfo.put("orgId", user.getOrgId());
-        userInfo.put("orgName", user.getOrgName());
-        userInfo.put("unitId", user.getUnitId());
-        // 查询组织类型
-        if (user.getOrgId() != null) {
-            SysOrganization org = organizationMapper.selectById(user.getOrgId());
-            if (org != null) {
-                userInfo.put("orgType", org.getOrgType());
-            }
-        }
-        // 新增人员关联信息
-        if (employee != null) {
-            userInfo.put("employeeId", employee.getId());
-            userInfo.put("employeeNo", employee.getEmployeeNo());
-            userInfo.put("position", employee.getPosition());
-            userInfo.put("level", employee.getLevel());
-            userInfo.put("deptId", employee.getDeptId());
-            userInfo.put("deptName", employee.getDeptName());
-        }
-        // 查询用户的所有角色列表
-        userInfo.put("availableRoles", getAvailableRoles(user));
-
-        return Result.success(userInfo);
-    }
-
-    @PostMapping("/logout")
-    public Result<Void> logout() {
-        return Result.success();
+        return Long.valueOf(value.toString());
     }
 }

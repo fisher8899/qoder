@@ -61,7 +61,7 @@
           <!-- 角色切换 -->
           <div v-if="userStore.userInfo?.availableRoles && userStore.userInfo.availableRoles.length > 0" class="role-switcher">
             <el-tag v-if="userStore.userInfo.availableRoles.length === 1" size="small" type="info">
-              {{ formatRoleLabel(userStore.userInfo.availableRoles[0]) }}
+              {{ formatRoleLabel(userStore.sortedAvailableRoles[0]) }}
             </el-tag>
             <el-select
               v-else
@@ -71,7 +71,7 @@
               @change="handleRoleChange"
             >
               <el-option
-                v-for="(role, index) in userStore.userInfo.availableRoles"
+                v-for="(role, index) in userStore.sortedAvailableRoles"
                 :key="`${role.roleCode}_${role.scopeId || 0}_${index}`"
                 :label="formatRoleLabel(role)"
                 :value="`${role.roleCode}__${role.scopeId || 0}`"
@@ -136,22 +136,37 @@ const currentRoleKey = computed(() => {
   return `${roleCode}__${scopeId}`
 })
 
+// 单位名称缩写映射（展示用，不影响数据）
+function shortenScopeName(name: string): string {
+  if (!name) return name
+  const map: Record<string, string> = {
+    '中煤鄂能化能源化工有限公司': '鄂能化',
+  }
+  return map[name] || name
+}
+
 function formatRoleLabel(role: { roleCode: string; roleName: string; dataScope?: string; scopeId?: number; scopeName?: string }) {
   if (!role.dataScope || role.dataScope === 'ALL') {
     return `${role.roleName}-全部`
   }
-  // UNIT 或 ORG 时显示范围名称
-  return `${role.roleName}-${role.scopeName || ''}`
+  // UNIT 或 ORG 时显示范围名称（使用缩写）
+  const displayName = shortenScopeName(role.scopeName || '')
+  return `${role.roleName}-${displayName}`
 }
 
 async function handleRoleChange(compositeKey: string) {
   // compositeKey 格式：roleCode__scopeId
   const [roleCode, scopeIdStr] = compositeKey.split('__')
   const scopeId = Number(scopeIdStr) || 0
-  userStore.switchRoleByScope(roleCode, scopeId)
-  await loadMenus()
-  // 角色切换后导航到首页，避免停留在无权限页面
-  router.push('/dashboard')
+  const switched = await userStore.switchRoleByScope(roleCode, scopeId)
+  if (!switched) {
+    return
+  }
+
+  if (route.path !== '/dashboard') {
+    await router.replace('/dashboard')
+  }
+  window.location.reload()
 }
 
 function handleUserCommand(cmd: string) {
@@ -164,8 +179,18 @@ function handleUserCommand(cmd: string) {
 const pendingEvalCount = ref(0)
 const pendingAppealCount = ref(0)
 
+function getCurrentRoleCode() {
+  return userStore.userInfo?.roleCode || ''
+}
+
 function loadPendingEvalCount() {
-  const orgId = userStore.userInfo?.orgId
+  const roleCode = getCurrentRoleCode()
+  if (roleCode !== 'DEPT_ADMIN') {
+    pendingEvalCount.value = 0
+    return
+  }
+  // 使用当前角色作用域 scopeId，而非用户原始 orgId，防止角色切换后不匹配
+  const orgId = userStore.scopeId || userStore.userInfo?.orgId
   if (!orgId) return
   getPeerEvalTaskList({ evaluatorOrgId: orgId })
     .then((res: any) => {
@@ -176,6 +201,11 @@ function loadPendingEvalCount() {
 }
 
 function loadPendingAppealCount() {
+  const roleCode = getCurrentRoleCode()
+  if (roleCode !== 'SUPERVISOR') {
+    pendingAppealCount.value = 0
+    return
+  }
   const orgId = userStore.userInfo?.orgId
   if (!orgId) return
   getPendingReevalList(orgId)
@@ -228,7 +258,7 @@ const loadMenus = async () => {
   }
 
   try {
-    const res = await menuApi.getByRole(role)
+    const res = await menuApi.current()
     const data = res.data || res
     const menus: any[] = [
       { title: '首页', path: '/dashboard', icon: 'HomeFilled' }
@@ -271,7 +301,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import '@/assets/styles/layout.scss';
+@use '@/assets/styles/layout.scss';
 
 .sidebar-menu {
   border-right: none;

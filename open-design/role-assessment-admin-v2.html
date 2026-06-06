@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>业绩考核管理员 — 月度业绩考核 v2</title>
+<style>
+  :root {
+    --accent: oklch(52% 0.18 250);
+    --accent-hover: oklch(46% 0.2 250);
+    --accent-light: oklch(94% 0.04 250);
+    --bg: oklch(98% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --fg: oklch(22% 0.02 240);
+    --muted: oklch(50% 0.018 240);
+    --border: oklch(90% 0.008 240);
+    --border-strong: oklch(82% 0.012 240);
+    --success: oklch(55% 0.16 155);
+    --success-bg: oklch(94% 0.04 155);
+    --warning: oklch(62% 0.18 75);
+    --warning-bg: oklch(94% 0.04 75);
+    --danger: oklch(55% 0.2 25);
+    --danger-bg: oklch(94% 0.04 25);
+    --sidebar-bg: oklch(20% 0.02 250);
+    --sidebar-fg: oklch(80% 0.01 250);
+    --sidebar-hover: oklch(28% 0.025 250);
+    --sidebar-active: oklch(52% 0.18 250);
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', system-ui, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--fg); min-height: 100vh; display: flex; }
+
+  .sidebar { width: 240px; background: var(--sidebar-bg); color: var(--sidebar-fg); min-height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .sidebar-brand { padding: 20px 24px; border-bottom: 1px solid oklch(28% 0.025 250); display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); font-weight: 700; font-size: 13px; }
+  .brand-name { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: white; }
+  .brand-name .role-tag { font-size: 11px; color: oklch(70% 0.02 250); font-weight: 400; display: block; margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-group { padding: 12px 24px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: oklch(55% 0.02 250); font-family: var(--font-mono); }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 24px; font-size: 13.5px; color: oklch(80% 0.01 250); cursor: pointer; transition: background 0.1s; user-select: none; }
+  .nav-item:hover { background: var(--sidebar-hover); color: white; }
+  .nav-item.active { background: var(--sidebar-active); color: white; }
+  .nav-item .icon { width: 16px; height: 16px; opacity: 0.9; }
+  .sidebar-foot { padding: 12px 24px; border-top: 1px solid oklch(28% 0.025 250); display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: oklch(40% 0.05 280); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 600; }
+  .avatar-info { flex: 1; }
+  .avatar-info .name { font-size: 13px; color: white; }
+  .avatar-info .role { font-size: 11px; color: oklch(65% 0.02 250); }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .crumb .sep { color: var(--border-strong); }
+  .crumb .current { color: var(--fg); font-weight: 500; }
+  .top-actions { display: flex; align-items: center; gap: 12px; }
+  .search-input { padding: 7px 12px 7px 32px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; width: 240px; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2375828b' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 10px center; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); position: relative; }
+  .icon-btn:hover { background: var(--bg); color: var(--fg); }
+  .dot-red { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; background: var(--danger); border-radius: 50%; }
+  .nav-link { font-size: 13px; color: var(--accent); text-decoration: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+  .nav-link:hover { background: var(--accent-light); }
+
+  .page { padding: 24px 32px; max-width: 1400px; margin: 0 auto; width: 100%; }
+  .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .stat-head { display: flex; align-items: center; justify-content: space-between; }
+  .stat-label { font-size: 12.5px; color: var(--muted); }
+  .stat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .stat-icon.blue { background: var(--accent-light); color: var(--accent); }
+  .stat-icon.green { background: var(--success-bg); color: var(--success); }
+  .stat-icon.amber { background: var(--warning-bg); color: var(--warning); }
+  .stat-icon.red { background: var(--danger-bg); color: var(--danger); }
+  .stat-num { font-family: var(--font-display); font-size: 28px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stat-trend { font-size: 12px; color: var(--success); margin-top: 2px; }
+  .stat-trend.down { color: var(--danger); }
+
+  .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px 10px 0 0; border-bottom: none; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-select { padding: 7px 28px 7px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2375828b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center; appearance: none; cursor: pointer; min-width: 120px; }
+  .filter-input { padding: 7px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; min-width: 200px; }
+  .actions { display: flex; gap: 8px; }
+  .btn { padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--fg); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+  .btn:hover { background: var(--bg); border-color: var(--border-strong); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-danger { color: var(--danger); border-color: var(--danger-bg); }
+  .btn-danger:hover { background: var(--danger-bg); }
+
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--bg); }
+  th { padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--muted); text-align: left; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  td { padding: 14px 20px; font-size: 13.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+  .checkbox { width: 16px; height: 16px; border: 1.5px solid var(--border-strong); border-radius: 4px; cursor: pointer; display: inline-block; vertical-align: middle; }
+  .checkbox.checked { background: var(--accent); border-color: var(--accent); position: relative; }
+  .checkbox.checked::after { content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .pill { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+  .pill.green { background: var(--success-bg); color: var(--success); }
+  .pill.amber { background: var(--warning-bg); color: var(--warning); }
+  .pill.gray { background: var(--bg); color: var(--muted); }
+  .pill.blue { background: var(--accent-light); color: var(--accent); }
+  .pill.red { background: var(--danger-bg); color: var(--danger); }
+  .row-actions { display: flex; gap: 4px; }
+  .row-action { padding: 4px 8px; font-size: 12px; color: var(--accent); cursor: pointer; border-radius: 4px; }
+  .row-action:hover { background: var(--accent-light); }
+  .row-action.danger { color: var(--danger); }
+  .row-action.danger:hover { background: var(--danger-bg); }
+
+  .pagination { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
+  .pagination-info { font-size: 13px; color: var(--muted); }
+  .pagination-controls { display: flex; gap: 4px; }
+  .page-btn { min-width: 32px; height: 32px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; font-size: 13px; color: var(--fg); cursor: pointer; padding: 0 10px; }
+  .page-btn:hover { background: var(--bg); }
+  .page-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .card-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 14.5px; font-weight: 600; }
+  .card-body { padding: 20px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Modal */
+  .modal-mask { position: fixed; inset: 0; background: oklch(20% 0.02 250 / 0.45); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+  .modal-mask.show { display: flex; }
+  .modal { background: var(--surface); border-radius: 12px; box-shadow: 0 25px 50px -12px oklch(20% 0.02 250 / 0.4); width: 100%; max-width: 640px; max-height: 88vh; display: flex; flex-direction: column; animation: modalIn 0.15s ease-out; }
+  .modal.lg { max-width: 880px; }
+  .modal.sm { max-width: 460px; }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .modal-head { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+  .modal-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .modal-close { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); }
+  .modal-close:hover { background: var(--bg); color: var(--fg); }
+  .modal-body { padding: 22px 24px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: var(--bg); border-radius: 0 0 12px 12px; }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .form-group { margin-bottom: 14px; }
+  .form-group.col-2 { grid-column: span 2; }
+  .form-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; font-weight: 500; }
+  .form-label .req { color: var(--danger); margin-left: 2px; }
+  .form-input, .form-select, .form-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px; font-family: var(--font-body); color: var(--fg); background: var(--surface); }
+  .form-select { appearance: none; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2375828b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center; padding-right: 32px; cursor: pointer; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px oklch(52% 0.18 250 / 0.1); }
+  .form-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer; padding: 4px 0; }
+  .checkbox-row .checkbox { margin: 0; }
+  .form-hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  /* Dashboard specific */
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .dash-grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+  /* Quick actions */
+  .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .quick-action { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; cursor: pointer; text-align: center; transition: border-color 0.15s, box-shadow 0.15s; }
+  .quick-action:hover { border-color: var(--accent); box-shadow: 0 2px 8px oklch(52% 0.18 250 / 0.1); }
+  .quick-action .qa-icon { width: 40px; height: 40px; border-radius: 10px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; }
+  .quick-action .qa-label { font-size: 13px; font-weight: 500; }
+  .quick-action .qa-desc { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  /* Ring chart (CSS) */
+  .ring-chart { position: relative; width: 120px; height: 120px; margin: 0 auto; }
+  .ring-chart svg { transform: rotate(-90deg); }
+  .ring-chart .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-chart .ring-pct { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums; }
+  .ring-chart .ring-text { font-size: 11px; color: var(--muted); }
+  .ring-sm { width: 80px; height: 80px; }
+  .ring-sm .ring-pct { font-size: 16px; }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before { content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px; width: 2px; background: var(--border); }
+  .tl-item { position: relative; padding: 8px 0 16px 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -20px; top: 13px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 2px var(--accent-light); }
+  .tl-item.warn::before { background: var(--warning); box-shadow: 0 0 0 2px var(--warning-bg); }
+  .tl-item.success::before { background: var(--success); box-shadow: 0 0 0 2px var(--success-bg); }
+  .tl-time { font-size: 11.5px; color: var(--muted); font-family: var(--font-mono); }
+  .tl-text { font-size: 13px; margin-top: 3px; }
+  .tl-user { color: var(--muted); font-size: 12px; }
+
+  /* Progress bar */
+  .progress-bar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; flex: 1; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+  .progress-fill.green { background: var(--success); }
+  .progress-fill.amber { background: var(--warning); }
+  .progress-fill.red { background: var(--danger); }
+
+  /* Dept tabs */
+  .dept-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+  .dept-tab { padding: 10px 20px; font-size: 13.5px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; font-weight: 500; }
+  .dept-tab:hover { color: var(--fg); }
+  .dept-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Indicator tree (left panel) */
+  .indicator-grid { display: grid; grid-template-columns: 240px 1fr; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .indicator-tree { border-right: 1px solid var(--border); padding: 16px; }
+  .indicator-tree-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .cat-item { padding: 7px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+  .cat-item:hover { background: var(--bg); }
+  .cat-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .cat-count { font-size: 11px; font-family: var(--font-mono); color: var(--muted); }
+
+  /* Chart area */
+  .chart-container { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .chart-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+  .chart-area { position: relative; height: 260px; }
+  .chart-grid { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; }
+  .chart-grid-line { border-bottom: 1px dashed var(--border); height: 0; position: relative; }
+  .chart-grid-label { position: absolute; left: -36px; top: -8px; font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* Line chart (CSS) */
+  .line-chart { position: relative; height: 260px; padding: 0 0 28px 40px; }
+  .line-chart-y { position: absolute; left: 0; top: 0; bottom: 28px; width: 36px; display: flex; flex-direction: column; justify-content: space-between; }
+  .line-chart-y span { font-size: 11px; color: var(--muted); font-family: var(--font-mono); text-align: right; }
+  .line-chart-x { position: absolute; bottom: 0; left: 40px; right: 0; display: flex; justify-content: space-between; }
+  .line-chart-x span { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .line-chart-body { position: absolute; top: 0; left: 40px; right: 0; bottom: 28px; }
+  .line-chart-svg { width: 100%; height: 100%; }
+  .lc-grid-line { stroke: var(--border); stroke-dasharray: 4 3; }
+
+  /* Bar chart (CSS) */
+  .bar-chart { display: flex; align-items: flex-end; gap: 16px; height: 220px; padding: 0 0 28px 0; position: relative; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; height: 100%; justify-content: flex-end; }
+  .bar-val { font-size: 11px; font-family: var(--font-mono); font-weight: 600; color: var(--fg); }
+  .bar-block { width: 100%; max-width: 48px; border-radius: 4px 4px 0 0; transition: height 0.3s; }
+  .bar-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* Results preview */
+  .result-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+  .result-row:last-child { border-bottom: none; }
+  .result-score { font-family: var(--font-display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 56px; }
+  .result-score.high { color: var(--success); }
+  .result-score.mid { color: var(--accent); }
+  .result-score.low { color: var(--warning); }
+
+  /* Inline table (inside card) */
+  .inline-table { width: 100%; border-collapse: collapse; }
+  .inline-table th { padding: 10px 14px; font-size: 12px; font-weight: 600; color: var(--muted); text-align: left; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .inline-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .inline-table tbody tr:last-child td { border-bottom: none; }
+  .inline-table tbody tr:hover { background: var(--bg); }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark">考</div>
+    <div class="brand-name">月度业绩考核<span class="role-tag">业绩考核管理员</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">考核管理</div>
+    <div class="nav-item active" data-view="dashboard">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      工作台
+    </div>
+    <div class="nav-item" data-view="cycle">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      考核周期管理
+    </div>
+    <div class="nav-item" data-view="indicator">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      指标库管理
+    </div>
+    <div class="nav-item" data-view="assign">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      部门指标下达
+    </div>
+    <div class="nav-group">评分流程</div>
+    <div class="nav-item" data-view="progress">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      评分进度监控
+    </div>
+    <div class="nav-item" data-view="review">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      复核与调整
+    </div>
+    <div class="nav-item" data-view="appeal">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      申诉处理
+    </div>
+    <div class="nav-group">结果发布</div>
+    <div class="nav-item" data-view="pre-release">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      结果预发布
+    </div>
+    <div class="nav-item" data-view="release">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      结果正式发布
+    </div>
+    <div class="nav-item" data-view="analytics">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      数据分析
+    </div>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="avatar">李</div>
+    <div class="avatar-info">
+      <div class="name">李建国</div>
+      <div class="role">业绩考核管理员</div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="crumb">
+      <span>考核管理</span><span class="sep">/</span><span class="current" id="crumb-current">工作台</span>
+    </div>
+    <div class="top-actions">
+      <input class="search-input" placeholder="搜索指标、部门、周期…">
+      <a class="nav-link" href="index.html">返回导航</a>
+      <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot-red"></span></div>
+      <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- ========== VIEW: DASHBOARD ========== -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">工作台</h1>
+          <div class="page-sub">2026年5月考核周期 · 当前阶段：评分复核</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('cycle-new')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>创建新周期</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">待办任务</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+          <div class="stat-num">7</div>
+          <div class="stat-trend down">含 3 项紧急</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">考核进度</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
+          <div class="stat-num">72<span style="font-size:14px;color:var(--muted)">%</span></div>
+          <div class="stat-trend">13/18 部门已完成评分</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">待复核</div><div class="stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div></div>
+          <div class="stat-num">24</div>
+          <div class="stat-trend down">5 个部门存在异常评分</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">待处理申诉</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div></div>
+          <div class="stat-num">3</div>
+          <div class="stat-trend down">需尽快处理</div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">考核进度概览</div>
+            <span class="pill blue">2026年5月</span>
+          </div>
+          <div class="card-body" style="display:flex;gap:32px;align-items:center">
+            <div class="ring-chart">
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="10"/>
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--accent)" stroke-width="10" stroke-dasharray="236.2 326.7" stroke-linecap="round"/>
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--success)" stroke-width="10" stroke-dasharray="66 326.7" stroke-dashoffset="-236.2" stroke-linecap="round"/>
+              </svg>
+              <div class="ring-label">
+                <span class="ring-pct">72%</span>
+                <span class="ring-text">已完成</span>
+              </div>
+            </div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <span style="width:10px;height:10px;border-radius:2px;background:var(--accent)"></span>
+                <span style="font-size:13px">评分阶段完成</span>
+                <span style="flex:1"></span>
+                <span style="font-family:var(--font-mono);font-size:13px;font-weight:600">13 / 18 部门</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <span style="width:10px;height:10px;border-radius:2px;background:var(--success)"></span>
+                <span style="font-size:13px">复核完成</span>
+                <span style="flex:1"></span>
+                <span style="font-family:var(--font-mono);font-size:13px;font-weight:600">3 / 18 部门</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <span style="width:10px;height:10px;border-radius:2px;background:var(--border-strong)"></span>
+                <span style="font-size:13px">未完成</span>
+                <span style="flex:1"></span>
+                <span style="font-family:var(--font-mono);font-size:13px;font-weight:600">5 / 18 部门</span>
+              </div>
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)">
+                <span>截止日期：2026-05-25</span>
+                <span>剩余 <strong style="color:var(--fg)">3 天</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">近期活动</div>
+            <span class="row-action">查看全部</span>
+          </div>
+          <div class="card-body" style="padding-top:12px">
+            <div class="timeline">
+              <div class="tl-item success">
+                <div class="tl-time">今天 15:42</div>
+                <div class="tl-text">生产运行部提交自评，8 项指标全部完成</div>
+                <div class="tl-user">张晓燕</div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-time">今天 14:30</div>
+                <div class="tl-text">安全环保部提交互评评分</div>
+                <div class="tl-user">陈志强</div>
+              </div>
+              <div class="tl-item warn">
+                <div class="tl-time">今天 11:20</div>
+                <div class="tl-text">营销中心提交申诉 — 客户满意度评分异议</div>
+                <div class="tl-user">周建国</div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-time">昨天 16:05</div>
+                <div class="tl-text">5月考核周期进入评分复核阶段</div>
+                <div class="tl-user">系统自动</div>
+              </div>
+              <div class="tl-item success">
+                <div class="tl-time">昨天 10:00</div>
+                <div class="tl-text">下达 18 个部门 5 月考核指标</div>
+                <div class="tl-user">李建国</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:12px">快捷操作</div>
+        <div class="quick-actions">
+          <div class="quick-action" onclick="switchView('cycle')">
+            <div class="qa-icon" style="background:var(--accent-light);color:var(--accent)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div class="qa-label">创建考核周期</div>
+            <div class="qa-desc">新建月度考核周期</div>
+          </div>
+          <div class="quick-action" onclick="switchView('assign')">
+            <div class="qa-icon" style="background:var(--success-bg);color:var(--success)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            <div class="qa-label">下达部门指标</div>
+            <div class="qa-desc">分配考核指标</div>
+          </div>
+          <div class="quick-action" onclick="switchView('review')">
+            <div class="qa-icon" style="background:var(--warning-bg);color:var(--warning)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="qa-label">复核评分</div>
+            <div class="qa-desc">审核调整评分结果</div>
+          </div>
+          <div class="quick-action" onclick="switchView('analytics')">
+            <div class="qa-icon" style="background:var(--danger-bg);color:var(--danger)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="qa-label">数据分析</div>
+            <div class="qa-desc">查看趋势与分布</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: CYCLE (考核周期管理) ========== -->
+    <section class="view" id="view-cycle">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">考核周期管理</h1>
+          <div class="page-sub">创建和管理月度考核周期，控制考核流程各阶段</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('cycle-new')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增周期</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">考核周期总数</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div><div class="stat-num">14</div><div class="stat-trend">2025年7月至今</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">当前进行中</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div><div class="stat-num">1</div><div class="stat-trend">2026年5月</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">已完成</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div><div class="stat-num">12</div><div class="stat-trend">已正式发布</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">已停用</div><div class="stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div></div><div class="stat-num">1</div><div class="stat-trend down">已废弃</div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <select class="filter-select"><option>全部年份</option><option>2026</option><option>2025</option></select>
+          <select class="filter-select"><option>全部状态</option><option>进行中</option><option>已完成</option><option>草稿</option><option>已停用</option></select>
+          <input class="filter-input" placeholder="搜索周期名称…">
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th style="width:48px"><span class="checkbox" onclick="this.classList.toggle('checked')"></span></th><th>考核周期</th><th>年月</th><th>当前阶段</th><th>起止日期</th><th>参与部门</th><th>状态</th><th style="text-align:right">操作</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><strong>2026年5月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-05</td>
+              <td><span class="pill blue">评分复核</span></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">05-01 ~ 05-31</td>
+              <td style="font-family:var(--font-mono)">18</td>
+              <td><span class="pill green">进行中</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('cycle-edit',{name:'2026年5月考核'})">编辑</span><span class="row-action" onclick="openModal('cycle-stage',{name:'2026年5月考核'})">推进阶段</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><strong>2026年4月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-04</td>
+              <td><span class="pill green">已发布</span></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">04-01 ~ 04-30</td>
+              <td style="font-family:var(--font-mono)">18</td>
+              <td><span class="pill gray">已完成</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('cycle-edit',{name:'2026年4月考核'})">查看</span><span class="row-action">导出</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><strong>2026年3月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-03</td>
+              <td><span class="pill green">已发布</span></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">03-01 ~ 03-31</td>
+              <td style="font-family:var(--font-mono)">18</td>
+              <td><span class="pill gray">已完成</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">查看</span><span class="row-action">导出</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><strong>2026年2月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-02</td>
+              <td><span class="pill green">已发布</span></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">02-01 ~ 02-28</td>
+              <td style="font-family:var(--font-mono)">18</td>
+              <td><span class="pill gray">已完成</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">查看</span><span class="row-action">导出</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><strong>2026年1月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-01</td>
+              <td><span class="pill green">已发布</span></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">01-01 ~ 01-31</td>
+              <td style="font-family:var(--font-mono)">18</td>
+              <td><span class="pill gray">已完成</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">查看</span><span class="row-action">导出</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><strong>2025年12月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2025-12</td>
+              <td><span class="pill red">已停用</span></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">12-01 ~ 12-31</td>
+              <td style="font-family:var(--font-mono)">16</td>
+              <td><span class="pill gray">已停用</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">查看</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="pagination-info">共 14 条，第 1-6 条</div>
+          <div class="pagination-controls">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: INDICATOR (指标库管理) ========== -->
+    <section class="view" id="view-indicator">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">指标库管理</h1>
+          <div class="page-sub">维护全公司年度考核指标，按分类管理，支持复用到各月度周期</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('indicator-new')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增指标</button>
+      </div>
+
+      <div class="indicator-grid">
+        <div class="indicator-tree">
+          <div class="indicator-tree-title">指标分类</div>
+          <div class="cat-item active">经营管理 <span class="cat-count">12</span></div>
+          <div class="cat-item">安全环保 <span class="cat-count">8</span></div>
+          <div class="cat-item">运营效率 <span class="cat-count">10</span></div>
+          <div class="cat-item">创新发展 <span class="cat-count">6</span></div>
+          <div class="cat-item">团队建设 <span class="cat-count">5</span></div>
+          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+            <div class="cat-item" style="color:var(--muted)">全部指标 <span class="cat-count">41</span></div>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>指标名称</th><th>计算方式</th><th>权重</th><th>数据来源</th><th>适用部门</th><th>状态</th><th style="text-align:right">操作</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>月度产量完成率</strong></td>
+                <td><span class="pill blue">定量</span></td>
+                <td style="font-family:var(--font-mono);font-weight:600">20%</td>
+                <td>生产管理系统</td>
+                <td>生产系统各部门</td>
+                <td><span class="pill green">启用</span></td>
+                <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('indicator-edit',{name:'月度产量完成率'})">编辑</span><span class="row-action danger">停用</span></div></td>
+              </tr>
+              <tr>
+                <td><strong>利润总额完成率</strong></td>
+                <td><span class="pill blue">定量</span></td>
+                <td style="font-family:var(--font-mono);font-weight:600">15%</td>
+                <td>财务系统</td>
+                <td>全公司</td>
+                <td><span class="pill green">启用</span></td>
+                <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('indicator-edit',{name:'利润总额完成率'})">编辑</span><span class="row-action danger">停用</span></div></td>
+              </tr>
+              <tr>
+                <td><strong>成本控制达标率</strong></td>
+                <td><span class="pill blue">定量</span></td>
+                <td style="font-family:var(--font-mono);font-weight:600">10%</td>
+                <td>财务系统</td>
+                <td>全公司</td>
+                <td><span class="pill green">启用</span></td>
+                <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('indicator-edit',{name:'成本控制达标率'})">编辑</span><span class="row-action danger">停用</span></div></td>
+              </tr>
+              <tr>
+                <td><strong>安全生产事故零发生率</strong></td>
+                <td><span class="pill amber">定性</span></td>
+                <td style="font-family:var(--font-mono);font-weight:600">15%</td>
+                <td>安全管理平台</td>
+                <td>全公司</td>
+                <td><span class="pill green">启用</span></td>
+                <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('indicator-edit',{name:'安全生产事故零发生率'})">编辑</span><span class="row-action danger">停用</span></div></td>
+              </tr>
+              <tr>
+                <td><strong>设备完好率</strong></td>
+                <td><span class="pill blue">定量</span></td>
+                <td style="font-family:var(--font-mono);font-weight:600">10%</td>
+                <td>设备管理系统</td>
+                <td>设备工程部</td>
+                <td><span class="pill green">启用</span></td>
+                <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('indicator-edit',{name:'设备完好率'})">编辑</span><span class="row-action danger">停用</span></div></td>
+              </tr>
+              <tr>
+                <td><strong>客户满意度</strong></td>
+                <td><span class="pill amber">定性</span></td>
+                <td style="font-family:var(--font-mono);font-weight:600">10%</td>
+                <td>客户管理系统</td>
+                <td>营销中心</td>
+                <td><span class="pill green">启用</span></td>
+                <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('indicator-edit',{name:'客户满意度'})">编辑</span><span class="row-action danger">停用</span></div></td>
+              </tr>
+              <tr>
+                <td><strong>信息化项目交付率</strong></td>
+                <td><span class="pill blue">定量</span></td>
+                <td style="font-family:var(--font-mono);font-weight:600">8%</td>
+                <td>项目管理系统</td>
+                <td>信息技术部</td>
+                <td><span class="pill green">启用</span></td>
+                <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('indicator-edit',{name:'信息化项目交付率'})">编辑</span><span class="row-action danger">停用</span></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: ASSIGN (部门指标下达) ========== -->
+    <section class="view" id="view-assign">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">部门指标下达</h1>
+          <div class="page-sub">向各部门下达月度考核指标并设置权重，2026年5月考核周期</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="openModal('assign-batch')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>批量下达</button>
+          <button class="btn btn-primary" onclick="openModal('assign-new')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增下达</button>
+        </div>
+      </div>
+
+      <div class="dept-tabs">
+        <div class="dept-tab active">生产运行部</div>
+        <div class="dept-tab">安全环保部</div>
+        <div class="dept-tab">设备工程部</div>
+        <div class="dept-tab">人力资源部</div>
+        <div class="dept-tab">营销中心</div>
+        <div class="dept-tab">研究发展部</div>
+        <div class="dept-tab">运营管理部</div>
+        <div class="dept-tab">信息技术部</div>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">下达指标数</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div><div class="stat-num">8</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">权重合计</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div><div class="stat-num">100<span style="font-size:14px;color:var(--muted)">%</span></div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">下达状态</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div><div class="stat-num" style="font-size:18px"><span class="pill green">已下达</span></div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <select class="filter-select"><option>全部分类</option><option>经营管理</option><option>安全环保</option><option>运营效率</option></select>
+          <input class="filter-input" placeholder="搜索指标名称…">
+        </div>
+        <div class="actions">
+          <button class="btn btn-danger">撤回下达</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th>指标名称</th><th>分类</th><th>计算方式</th><th>权重</th><th>目标值</th><th>数据来源</th><th style="text-align:right">操作</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>月度产量完成率</strong></td><td><span class="pill blue">经营管理</span></td><td><span class="pill blue">定量</span></td><td style="font-family:var(--font-mono);font-weight:600">20%</td><td style="font-family:var(--font-mono)">95%</td><td>生产管理系统</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('assign-edit',{name:'月度产量完成率'})">编辑</span><span class="row-action danger">移除</span></div></td></tr>
+            <tr><td><strong>利润总额完成率</strong></td><td><span class="pill blue">经营管理</span></td><td><span class="pill blue">定量</span></td><td style="font-family:var(--font-mono);font-weight:600">15%</td><td style="font-family:var(--font-mono)">100%</td><td>财务系统</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('assign-edit',{name:'利润总额完成率'})">编辑</span><span class="row-action danger">移除</span></div></td></tr>
+            <tr><td><strong>成本控制达标率</strong></td><td><span class="pill blue">经营管理</span></td><td><span class="pill blue">定量</span></td><td style="font-family:var(--font-mono);font-weight:600">10%</td><td style="font-family:var(--font-mono)">92%</td><td>财务系统</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('assign-edit',{name:'成本控制达标率'})">编辑</span><span class="row-action danger">移除</span></div></td></tr>
+            <tr><td><strong>安全生产事故零发生率</strong></td><td><span class="pill red">安全环保</span></td><td><span class="pill amber">定性</span></td><td style="font-family:var(--font-mono);font-weight:600">15%</td><td style="font-family:var(--font-mono)">100%</td><td>安全管理平台</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('assign-edit',{name:'安全生产事故零发生率'})">编辑</span><span class="row-action danger">移除</span></div></td></tr>
+            <tr><td><strong>环保达标排放率</strong></td><td><span class="pill red">安全环保</span></td><td><span class="pill blue">定量</span></td><td style="font-family:var(--font-mono);font-weight:600">10%</td><td style="font-family:var(--font-mono)">100%</td><td>环保监测系统</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('assign-edit',{name:'环保达标排放率'})">编辑</span><span class="row-action danger">移除</span></div></td></tr>
+            <tr><td><strong>设备完好率</strong></td><td><span class="pill amber">运营效率</span></td><td><span class="pill blue">定量</span></td><td style="font-family:var(--font-mono);font-weight:600">10%</td><td style="font-family:var(--font-mono)">98%</td><td>设备管理系统</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('assign-edit',{name:'设备完好率'})">编辑</span><span class="row-action danger">移除</span></div></td></tr>
+            <tr><td><strong>工艺指标合格率</strong></td><td><span class="pill amber">运营效率</span></td><td><span class="pill blue">定量</span></td><td style="font-family:var(--font-mono);font-weight:600">10%</td><td style="font-family:var(--font-mono)">96%</td><td>DCS系统</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('assign-edit',{name:'工艺指标合格率'})">编辑</span><span class="row-action danger">移除</span></div></td></tr>
+            <tr><td><strong>团队培训完成率</strong></td><td><span class="pill green">团队建设</span></td><td><span class="pill blue">定量</span></td><td style="font-family:var(--font-mono);font-weight:600">10%</td><td style="font-family:var(--font-mono)">100%</td><td>培训管理系统</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('assign-edit',{name:'团队培训完成率'})">编辑</span><span class="row-action danger">移除</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: PROGRESS (评分进度监控) ========== -->
+    <section class="view" id="view-progress">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">评分进度监控</h1>
+          <div class="page-sub">实时跟踪各部门自评、互评完成情况，2026年5月考核周期</div>
+        </div>
+        <button class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>刷新</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">总部门数</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg></div></div><div class="stat-num">18</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">自评完成</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div><div class="stat-num">16<span style="font-size:14px;color:var(--muted)">/18</span></div><div class="stat-trend">88.9%</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">互评完成</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div><div class="stat-num">13<span style="font-size:14px;color:var(--muted)">/18</span></div><div class="stat-trend down">72.2%</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">异常评分</div><div class="stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div></div><div class="stat-num">5</div><div class="stat-trend down">需复核</div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <select class="filter-select"><option>全部状态</option><option>已完成</option><option>进行中</option><option>未开始</option></select>
+          <select class="filter-select"><option>全部分类</option><option>生产系统</option><option>职能管理</option><option>安全与设备</option></select>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th>部门</th><th>指标数</th><th>自评状态</th><th>互评状态</th><th>完成率</th><th>最后更新</th><th style="text-align:right">操作</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>生产运行部</strong></td>
+              <td style="font-family:var(--font-mono)">8</td>
+              <td><span class="pill green">已完成</span></td>
+              <td><span class="pill green">已完成</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:100px"><div class="progress-fill green" style="width:100%"></div></div><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">100%</span></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-22 15:18</td>
+              <td style="text-align:right"><span class="row-action" onclick="openModal('progress-detail',{name:'生产运行部'})">查看详情</span></td>
+            </tr>
+            <tr>
+              <td><strong>安全环保部</strong></td>
+              <td style="font-family:var(--font-mono)">8</td>
+              <td><span class="pill green">已完成</span></td>
+              <td><span class="pill green">已完成</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:100px"><div class="progress-fill green" style="width:100%"></div></div><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">100%</span></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-22 14:30</td>
+              <td style="text-align:right"><span class="row-action" onclick="openModal('progress-detail',{name:'安全环保部'})">查看详情</span></td>
+            </tr>
+            <tr>
+              <td><strong>设备工程部</strong></td>
+              <td style="font-family:var(--font-mono)">7</td>
+              <td><span class="pill green">已完成</span></td>
+              <td><span class="pill green">已完成</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:100px"><div class="progress-fill green" style="width:100%"></div></div><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">100%</span></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-22 11:14</td>
+              <td style="text-align:right"><span class="row-action" onclick="openModal('progress-detail',{name:'设备工程部'})">查看详情</span></td>
+            </tr>
+            <tr>
+              <td><strong>人力资源部</strong></td>
+              <td style="font-family:var(--font-mono)">6</td>
+              <td><span class="pill green">已完成</span></td>
+              <td><span class="pill amber">进行中</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:100px"><div class="progress-fill amber" style="width:67%"></div></div><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">67%</span></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-22 10:05</td>
+              <td style="text-align:right"><span class="row-action" onclick="openModal('progress-detail',{name:'人力资源部'})">查看详情</span></td>
+            </tr>
+            <tr>
+              <td><strong>营销中心</strong></td>
+              <td style="font-family:var(--font-mono)">6</td>
+              <td><span class="pill green">已完成</span></td>
+              <td><span class="pill red">未开始</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:100px"><div class="progress-fill red" style="width:50%"></div></div><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">50%</span></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-21 16:22</td>
+              <td style="text-align:right"><span class="row-action" onclick="openModal('progress-detail',{name:'营销中心'})">查看详情</span></td>
+            </tr>
+            <tr>
+              <td><strong>研究发展部</strong></td>
+              <td style="font-family:var(--font-mono)">5</td>
+              <td><span class="pill amber">进行中</span></td>
+              <td><span class="pill red">未开始</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:100px"><div class="progress-fill red" style="width:30%"></div></div><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">30%</span></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-21 14:00</td>
+              <td style="text-align:right"><span class="row-action" onclick="openModal('progress-detail',{name:'研究发展部'})">查看详情</span></td>
+            </tr>
+            <tr>
+              <td><strong>运营管理部</strong></td>
+              <td style="font-family:var(--font-mono)">6</td>
+              <td><span class="pill green">已完成</span></td>
+              <td><span class="pill amber">进行中</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:100px"><div class="progress-fill amber" style="width:58%"></div></div><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">58%</span></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-22 09:10</td>
+              <td style="text-align:right"><span class="row-action" onclick="openModal('progress-detail',{name:'运营管理部'})">查看详情</span></td>
+            </tr>
+            <tr>
+              <td><strong>信息技术部</strong></td>
+              <td style="font-family:var(--font-mono)">5</td>
+              <td><span class="pill green">已完成</span></td>
+              <td><span class="pill green">已完成</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:100px"><div class="progress-fill green" style="width:100%"></div></div><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">100%</span></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-22 11:45</td>
+              <td style="text-align:right"><span class="row-action" onclick="openModal('progress-detail',{name:'信息技术部'})">查看详情</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="pagination-info">共 18 条，第 1-8 条</div>
+          <div class="pagination-controls">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: REVIEW (复核与调整) ========== -->
+    <section class="view" id="view-review">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">复核与调整</h1>
+          <div class="page-sub">审核各部门评分结果，对异常分值进行人工调整</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn">批量确认</button>
+          <button class="btn btn-primary">全部通过</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">待复核</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div><div class="stat-num">24</div><div class="stat-trend down">5 部门含异常</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">已复核</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div><div class="stat-num">96</div><div class="stat-trend">4 部门已确认</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">已调整</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div></div><div class="stat-num">8</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">异常率</div><div class="stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div></div><div class="stat-num">6.7<span style="font-size:14px;color:var(--muted)">%</span></div><div class="stat-trend down">偏高</div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <select class="filter-select"><option>全部部门</option><option>生产运行部</option><option>安全环保部</option><option>设备工程部</option><option>人力资源部</option></select>
+          <select class="filter-select"><option>全部状态</option><option>待复核</option><option>异常</option><option>已通过</option><option>已调整</option></select>
+          <select class="filter-select"><option>全部分类</option><option>经营管理</option><option>安全环保</option><option>运营效率</option></select>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th>部门</th><th>指标名称</th><th>自评分</th><th>互评分</th><th>系统建议分</th><th>偏差</th><th>状态</th><th style="text-align:right">操作</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>安全环保部</td>
+              <td><strong>安全事故零发生率</strong></td>
+              <td style="font-family:var(--font-mono);font-weight:600">100</td>
+              <td style="font-family:var(--font-mono);font-weight:600">65</td>
+              <td style="font-family:var(--font-mono);font-weight:600">82.5</td>
+              <td><span class="pill red">35 分</span></td>
+              <td><span class="pill red">异常</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('review-adjust',{dept:'安全环保部',name:'安全事故零发生率',self:'100',peer:'65',suggest:'82.5'})">调整</span><span class="row-action">采纳建议</span></div></td>
+            </tr>
+            <tr>
+              <td>营销中心</td>
+              <td><strong>客户满意度</strong></td>
+              <td style="font-family:var(--font-mono);font-weight:600">88</td>
+              <td style="font-family:var(--font-mono);font-weight:600">72</td>
+              <td style="font-family:var(--font-mono);font-weight:600">80</td>
+              <td><span class="pill amber">16 分</span></td>
+              <td><span class="pill red">异常</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('review-adjust',{dept:'营销中心',name:'客户满意度',self:'88',peer:'72',suggest:'80'})">调整</span><span class="row-action">采纳建议</span></div></td>
+            </tr>
+            <tr>
+              <td>生产运行部</td>
+              <td><strong>月度产量完成率</strong></td>
+              <td style="font-family:var(--font-mono);font-weight:600">95</td>
+              <td style="font-family:var(--font-mono);font-weight:600">82</td>
+              <td style="font-family:var(--font-mono);font-weight:600">88.5</td>
+              <td><span class="pill amber">13 分</span></td>
+              <td><span class="pill amber">需确认</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('review-adjust',{dept:'生产运行部',name:'月度产量完成率',self:'95',peer:'82',suggest:'88.5'})">调整</span><span class="row-action">采纳建议</span></div></td>
+            </tr>
+            <tr>
+              <td>设备工程部</td>
+              <td><strong>设备完好率</strong></td>
+              <td style="font-family:var(--font-mono);font-weight:600">92</td>
+              <td style="font-family:var(--font-mono);font-weight:600">88</td>
+              <td style="font-family:var(--font-mono);font-weight:600">90</td>
+              <td><span class="pill green">4 分</span></td>
+              <td><span class="pill blue">待复核</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('review-adjust',{dept:'设备工程部',name:'设备完好率',self:'92',peer:'88',suggest:'90'})">调整</span><span class="row-action">采纳建议</span></div></td>
+            </tr>
+            <tr>
+              <td>人力资源部</td>
+              <td><strong>团队培训完成率</strong></td>
+              <td style="font-family:var(--font-mono);font-weight:600">96</td>
+              <td style="font-family:var(--font-mono);font-weight:600">90</td>
+              <td style="font-family:var(--font-mono);font-weight:600">93</td>
+              <td><span class="pill green">6 分</span></td>
+              <td><span class="pill green">已通过</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">查看</span></div></td>
+            </tr>
+            <tr>
+              <td>运营管理部</td>
+              <td><strong>流程优化完成率</strong></td>
+              <td style="font-family:var(--font-mono);font-weight:600">85</td>
+              <td style="font-family:var(--font-mono);font-weight:600">78</td>
+              <td style="font-family:var(--font-mono);font-weight:600">81.5</td>
+              <td><span class="pill green">7 分</span></td>
+              <td><span class="pill blue">待复核</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('review-adjust',{dept:'运营管理部',name:'流程优化完成率',self:'85',peer:'78',suggest:'81.5'})">调整</span><span class="row-action">采纳建议</span></div></td>
+            </tr>
+            <tr>
+              <td>信息技术部</td>
+              <td><strong>信息化项目交付率</strong></td>
+              <td style="font-family:var(--font-mono);font-weight:600">90</td>
+              <td style="font-family:var(--font-mono);font-weight:600">85</td>
+              <td style="font-family:var(--font-mono);font-weight:600">87.5</td>
+              <td><span class="pill green">5 分</span></td>
+              <td><span class="pill green">已通过</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action">查看</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="pagination-info">共 120 条，第 1-7 条</div>
+          <div class="pagination-controls">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">…</button>
+            <button class="page-btn">18</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: APPEAL (申诉处理) ========== -->
+    <section class="view" id="view-appeal">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">申诉处理</h1>
+          <div class="page-sub">受理和处理各部门对评分结果的申诉，确保考核公平公正</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">待受理</div><div class="stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div></div><div class="stat-num">3</div><div class="stat-trend down">需尽快处理</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">调查中</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div></div><div class="stat-num">2</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">已答复</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div><div class="stat-num">8</div><div class="stat-trend">本月累计</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">已撤销</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></div></div><div class="stat-num">1</div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <select class="filter-select"><option>全部状态</option><option>待受理</option><option>调查中</option><option>已答复</option><option>已撤销</option></select>
+          <select class="filter-select"><option>全部部门</option><option>营销中心</option><option>研究发展部</option><option>生产运行部</option></select>
+          <input class="filter-input" placeholder="搜索申诉内容…">
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th>申诉编号</th><th>申诉部门</th><th>涉及指标</th><th>申诉内容</th><th>提交时间</th><th>状态</th><th style="text-align:right">操作</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:var(--font-mono);font-size:12.5px">APL-202605-003</td>
+              <td><strong>营销中心</strong></td>
+              <td>客户满意度</td>
+              <td style="max-width:240px">互评评分明显偏低，与其他部门同类指标评分标准不一致，请求重新评定</td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-22 11:20</td>
+              <td><span class="pill red">待受理</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('appeal-handle',{id:'APL-202605-003',dept:'营销中心'})">处理</span><span class="row-action">查看</span></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:var(--font-mono);font-size:12.5px">APL-202605-002</td>
+              <td><strong>研究发展部</strong></td>
+              <td>创新成果转化率</td>
+              <td style="max-width:240px">数据源取数口径与年初指标定义不一致，导致实际完成率被低估</td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-21 16:45</td>
+              <td><span class="pill red">待受理</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('appeal-handle',{id:'APL-202605-002',dept:'研究发展部'})">处理</span><span class="row-action">查看</span></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:var(--font-mono);font-size:12.5px">APL-202605-001</td>
+              <td><strong>生产运行部</strong></td>
+              <td>成本控制达标率</td>
+              <td style="max-width:240px">4月大修期间成本超支属于不可控因素，请求豁免该指标评分</td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">05-20 09:30</td>
+              <td><span class="pill amber">调查中</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('appeal-handle',{id:'APL-202605-001',dept:'生产运行部'})">处理</span><span class="row-action">查看</span></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:var(--font-mono);font-size:12.5px">APL-202604-005</td>
+              <td><strong>安全环保部</strong></td>
+              <td>安全事故零发生率</td>
+              <td style="max-width:240px">互评评分 65 分与自评 100 分差距过大，请求复核互评原始评分依据</td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">04-28 14:10</td>
+              <td><span class="pill green">已答复</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('appeal-handle',{id:'APL-202604-005',dept:'安全环保部'})">查看</span></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:var(--font-mono);font-size:12.5px">APL-202604-004</td>
+              <td><strong>设备工程部</strong></td>
+              <td>设备完好率</td>
+              <td style="max-width:240px">设备大修期间完好率统计应排除计划停机设备</td>
+              <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">04-25 10:20</td>
+              <td><span class="pill green">已答复</span></td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('appeal-handle',{id:'APL-202604-004',dept:'设备工程部'})">查看</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="pagination-info">共 14 条，第 1-5 条</div>
+          <div class="pagination-controls">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: PRE-RELEASE (结果预发布) ========== -->
+    <section class="view" id="view-pre-release">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">结果预发布</h1>
+          <div class="page-sub">审核最终评分结果，确认无误后正式发布，2026年5月考核周期</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn">导出预览 PDF</button>
+          <button class="btn btn-primary" onclick="openModal('pre-release-confirm')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>确认发布</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">参与部门</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/></svg></div></div><div class="stat-num">18</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">平均分</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div></div><div class="stat-num">85.6</div><div class="stat-trend">较上月 +1.2</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">最高分</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div></div><div class="stat-num">93.2</div><div class="stat-trend">生产运行部</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">最低分</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg></div></div><div class="stat-num">74.8</div><div class="stat-trend down">研究发展部</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">预发布结果排名</div>
+          <div style="display:flex;gap:8px">
+            <select class="filter-select"><option>按总分排序</option><option>按部门排序</option><option>按等级排序</option></select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="inline-table">
+            <thead>
+              <tr><th>排名</th><th>部门</th><th>经营管理</th><th>安全环保</th><th>运营效率</th><th>创新发展</th><th>团队建设</th><th>总分</th><th>等级</th><th style="text-align:right">操作</th></tr>
+            </thead>
+            <tbody>
+              <tr><td style="font-family:var(--font-mono);font-weight:700;color:var(--accent)">1</td><td><strong>生产运行部</strong></td><td style="font-family:var(--font-mono)">35.2</td><td style="font-family:var(--font-mono)">23.5</td><td style="font-family:var(--font-mono)">19.5</td><td style="font-family:var(--font-mono)">8.0</td><td style="font-family:var(--font-mono)">7.0</td><td><strong style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">93.2</strong></td><td><span class="pill green">A</span></td><td style="text-align:right"><span class="row-action">查看</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-weight:700;color:var(--accent)">2</td><td><strong>设备工程部</strong></td><td style="font-family:var(--font-mono)">34.0</td><td style="font-family:var(--font-mono)">22.8</td><td style="font-family:var(--font-mono)">18.5</td><td style="font-family:var(--font-mono)">7.5</td><td style="font-family:var(--font-mono)">7.2</td><td><strong style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">90.0</strong></td><td><span class="pill green">A</span></td><td style="text-align:right"><span class="row-action">查看</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-weight:700;color:var(--accent)">3</td><td><strong>安全环保部</strong></td><td style="font-family:var(--font-mono)">32.5</td><td style="font-family:var(--font-mono)">24.0</td><td style="font-family:var(--font-mono)">17.8</td><td style="font-family:var(--font-mono)">7.2</td><td style="font-family:var(--font-mono)">6.8</td><td><strong style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">88.3</strong></td><td><span class="pill green">B+</span></td><td style="text-align:right"><span class="row-action">查看</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-weight:700">4</td><td><strong>信息技术部</strong></td><td style="font-family:var(--font-mono)">31.0</td><td style="font-family:var(--font-mono)">22.0</td><td style="font-family:var(--font-mono)">18.2</td><td style="font-family:var(--font-mono)">9.0</td><td style="font-family:var(--font-mono)">6.5</td><td><strong style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">86.7</strong></td><td><span class="pill blue">B</span></td><td style="text-align:right"><span class="row-action">查看</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-weight:700">5</td><td><strong>运营管理部</strong></td><td style="font-family:var(--font-mono)">30.5</td><td style="font-family:var(--font-mono)">21.5</td><td style="font-family:var(--font-mono)">17.0</td><td style="font-family:var(--font-mono)">7.8</td><td style="font-family:var(--font-mono)">7.0</td><td><strong style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">83.8</strong></td><td><span class="pill blue">B</span></td><td style="text-align:right"><span class="row-action">查看</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-weight:700">6</td><td><strong>人力资源部</strong></td><td style="font-family:var(--font-mono)">29.8</td><td style="font-family:var(--font-mono)">21.0</td><td style="font-family:var(--font-mono)">16.5</td><td style="font-family:var(--font-mono)">7.0</td><td style="font-family:var(--font-mono)">8.5</td><td><strong style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">82.8</strong></td><td><span class="pill blue">B</span></td><td style="text-align:right"><span class="row-action">查看</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-weight:700">7</td><td><strong>营销中心</strong></td><td style="font-family:var(--font-mono)">28.5</td><td style="font-family:var(--font-mono)">20.0</td><td style="font-family:var(--font-mono)">16.0</td><td style="font-family:var(--font-mono)">6.5</td><td style="font-family:var(--font-mono)">6.0</td><td><strong style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">77.0</strong></td><td><span class="pill amber">C</span></td><td style="text-align:right"><span class="row-action">查看</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-weight:700">8</td><td><strong>研究发展部</strong></td><td style="font-family:var(--font-mono)">26.0</td><td style="font-family:var(--font-mono)">19.8</td><td style="font-family:var(--font-mono)">14.5</td><td style="font-family:var(--font-mono)">8.5</td><td style="font-family:var(--font-mono)">6.0</td><td><strong style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">74.8</strong></td><td><span class="pill amber">C</span></td><td style="text-align:right"><span class="row-action">查看</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: RELEASE (结果正式发布) ========== -->
+    <section class="view" id="view-release">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">结果正式发布</h1>
+          <div class="page-sub">已正式发布的考核结果历史记录，所有部门可查看</div>
+        </div>
+        <button class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出全部</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <select class="filter-select"><option>全部年份</option><option>2026</option><option>2025</option></select>
+          <input class="filter-input" placeholder="搜索周期…">
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th>考核周期</th><th>发布日期</th><th>参与部门</th><th>平均分</th><th>最高分</th><th>最低分</th><th>发布人</th><th style="text-align:right">操作</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>2026年4月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-05-03 10:00</td>
+              <td style="font-family:var(--font-mono)">18</td>
+              <td style="font-family:var(--font-mono);font-weight:600">84.4</td>
+              <td style="font-family:var(--font-mono);color:var(--success)">91.8</td>
+              <td style="font-family:var(--font-mono);color:var(--warning)">72.5</td>
+              <td>李建国</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('release-detail',{name:'2026年4月考核'})">查看详情</span><span class="row-action">导出</span></div></td>
+            </tr>
+            <tr>
+              <td><strong>2026年3月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-04-04 09:30</td>
+              <td style="font-family:var(--font-mono)">18</td>
+              <td style="font-family:var(--font-mono);font-weight:600">83.2</td>
+              <td style="font-family:var(--font-mono);color:var(--success)">90.5</td>
+              <td style="font-family:var(--font-mono);color:var(--warning)">71.2</td>
+              <td>李建国</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('release-detail',{name:'2026年3月考核'})">查看详情</span><span class="row-action">导出</span></div></td>
+            </tr>
+            <tr>
+              <td><strong>2026年2月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-03-05 10:15</td>
+              <td style="font-family:var(--font-mono)">18</td>
+              <td style="font-family:var(--font-mono);font-weight:600">82.7</td>
+              <td style="font-family:var(--font-mono);color:var(--success)">89.3</td>
+              <td style="font-family:var(--font-mono);color:var(--warning)">70.8</td>
+              <td>李建国</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('release-detail',{name:'2026年2月考核'})">查看详情</span><span class="row-action">导出</span></div></td>
+            </tr>
+            <tr>
+              <td><strong>2026年1月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-02-04 11:00</td>
+              <td style="font-family:var(--font-mono)">18</td>
+              <td style="font-family:var(--font-mono);font-weight:600">81.9</td>
+              <td style="font-family:var(--font-mono);color:var(--success)">88.6</td>
+              <td style="font-family:var(--font-mono);color:var(--warning)">69.5</td>
+              <td>李建国</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('release-detail',{name:'2026年1月考核'})">查看详情</span><span class="row-action">导出</span></div></td>
+            </tr>
+            <tr>
+              <td><strong>2025年12月考核</strong></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">2026-01-06 09:45</td>
+              <td style="font-family:var(--font-mono)">16</td>
+              <td style="font-family:var(--font-mono);font-weight:600">80.5</td>
+              <td style="font-family:var(--font-mono);color:var(--success)">87.2</td>
+              <td style="font-family:var(--font-mono);color:var(--warning)">68.0</td>
+              <td>李建国</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('release-detail',{name:'2025年12月考核'})">查看详情</span><span class="row-action">导出</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="pagination-info">共 12 条，第 1-5 条</div>
+          <div class="pagination-controls">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: ANALYTICS (数据分析) ========== -->
+    <section class="view" id="view-analytics">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">数据分析</h1>
+          <div class="page-sub">各部门考核得分趋势、分布及对比分析</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <select class="filter-select"><option>近 6 个月</option><option>近 12 个月</option><option>本年度</option></select>
+          <button class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出报告</button>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <!-- Line chart: Department score trends -->
+        <div class="chart-container">
+          <div class="chart-title">各部门得分趋势（近 6 个月）</div>
+          <div class="line-chart">
+            <div class="line-chart-y">
+              <span>100</span>
+              <span>90</span>
+              <span>80</span>
+              <span>70</span>
+              <span>60</span>
+            </div>
+            <div class="line-chart-x">
+              <span>1月</span>
+              <span>2月</span>
+              <span>3月</span>
+              <span>4月</span>
+              <span>5月</span>
+            </div>
+            <div class="line-chart-body">
+              <svg class="line-chart-svg" viewBox="0 0 500 200" preserveAspectRatio="none">
+                <!-- Grid lines -->
+                <line x1="0" y1="0" x2="500" y2="0" class="lc-grid-line"/>
+                <line x1="0" y1="50" x2="500" y2="50" class="lc-grid-line"/>
+                <line x1="0" y1="100" x2="500" y2="100" class="lc-grid-line"/>
+                <line x1="0" y1="150" x2="500" y2="150" class="lc-grid-line"/>
+                <line x1="0" y1="200" x2="500" y2="200" class="lc-grid-line"/>
+                <!-- Production Dept line -->
+                <polyline points="0,160 125,140 250,120 375,100 500,68" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+                <circle cx="0" cy="160" r="3" fill="var(--accent)"/>
+                <circle cx="125" cy="140" r="3" fill="var(--accent)"/>
+                <circle cx="250" cy="120" r="3" fill="var(--accent)"/>
+                <circle cx="375" cy="100" r="3" fill="var(--accent)"/>
+                <circle cx="500" cy="68" r="3" fill="var(--accent)"/>
+                <!-- Equipment Dept line -->
+                <polyline points="0,170 125,150 250,140 375,120 500,100" fill="none" stroke="var(--success)" stroke-width="2"/>
+                <circle cx="0" cy="170" r="3" fill="var(--success)"/>
+                <circle cx="125" cy="150" r="3" fill="var(--success)"/>
+                <circle cx="250" cy="140" r="3" fill="var(--success)"/>
+                <circle cx="375" cy="120" r="3" fill="var(--success)"/>
+                <circle cx="500" cy="100" r="3" fill="var(--success)"/>
+                <!-- Safety Dept line -->
+                <polyline points="0,175 125,160 250,150 375,130 500,117" fill="none" stroke="var(--warning)" stroke-width="2"/>
+                <circle cx="0" cy="175" r="3" fill="var(--warning)"/>
+                <circle cx="125" cy="160" r="3" fill="var(--warning)"/>
+                <circle cx="250" cy="150" r="3" fill="var(--warning)"/>
+                <circle cx="375" cy="130" r="3" fill="var(--warning)"/>
+                <circle cx="500" cy="117" r="3" fill="var(--warning)"/>
+                <!-- R&D Dept line -->
+                <polyline points="0,190 125,185 250,170 375,155 500,152" fill="none" stroke="var(--danger)" stroke-width="2" stroke-dasharray="6 3"/>
+                <circle cx="0" cy="190" r="3" fill="var(--danger)"/>
+                <circle cx="125" cy="185" r="3" fill="var(--danger)"/>
+                <circle cx="250" cy="170" r="3" fill="var(--danger)"/>
+                <circle cx="375" cy="155" r="3" fill="var(--danger)"/>
+                <circle cx="500" cy="152" r="3" fill="var(--danger)"/>
+              </svg>
+            </div>
+          </div>
+          <div style="display:flex;gap:18px;margin-top:12px;justify-content:center">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:16px;height:3px;background:var(--accent);border-radius:2px"></span>生产运行部</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:16px;height:3px;background:var(--success);border-radius:2px"></span>设备工程部</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:16px;height:3px;background:var(--warning);border-radius:2px"></span>安全环保部</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:16px;height:3px;background:var(--danger);border-radius:2px"></span>研究发展部</div>
+          </div>
+        </div>
+
+        <!-- Bar chart: Score distribution -->
+        <div class="chart-container">
+          <div class="chart-title">5 月各部门得分分布</div>
+          <div class="bar-chart">
+            <div class="bar-col">
+              <div class="bar-val">93.2</div>
+              <div class="bar-block" style="height:78%;background:var(--accent)"></div>
+              <div class="bar-label">生产</div>
+            </div>
+            <div class="bar-col">
+              <div class="bar-val">90.0</div>
+              <div class="bar-block" style="height:72%;background:var(--accent)"></div>
+              <div class="bar-label">设备</div>
+            </div>
+            <div class="bar-col">
+              <div class="bar-val">88.3</div>
+              <div class="bar-block" style="height:68%;background:var(--accent)"></div>
+              <div class="bar-label">安全</div>
+            </div>
+            <div class="bar-col">
+              <div class="bar-val">86.7</div>
+              <div class="bar-block" style="height:64%;background:oklch(60% 0.14 250)"></div>
+              <div class="bar-label">信息</div>
+            </div>
+            <div class="bar-col">
+              <div class="bar-val">83.8</div>
+              <div class="bar-block" style="height:58%;background:oklch(65% 0.12 250)"></div>
+              <div class="bar-label">运营</div>
+            </div>
+            <div class="bar-col">
+              <div class="bar-val">82.8</div>
+              <div class="bar-block" style="height:55%;background:oklch(68% 0.10 250)"></div>
+              <div class="bar-label">人力</div>
+            </div>
+            <div class="bar-col">
+              <div class="bar-val">77.0</div>
+              <div class="bar-block" style="height:42%;background:var(--warning)"></div>
+              <div class="bar-label">营销</div>
+            </div>
+            <div class="bar-col">
+              <div class="bar-val">74.8</div>
+              <div class="bar-block" style="height:36%;background:var(--danger)"></div>
+              <div class="bar-label">研发</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">
+            <span>平均分：<strong style="color:var(--fg);font-variant-numeric:tabular-nums">84.6</strong></span>
+            <span>A 级 (90+): <strong style="color:var(--success)">2</strong></span>
+            <span>B 级 (80-89): <strong style="color:var(--accent)">4</strong></span>
+            <span>C 级 (&lt;80): <strong style="color:var(--warning)">2</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category breakdown table -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-head">
+          <div class="card-title">各部门分项得分明细</div>
+          <span style="font-size:12.5px;color:var(--muted)">2026年5月考核周期</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="inline-table">
+            <thead>
+              <tr><th>部门</th><th>经营管理<br><span style="font-weight:400;font-size:10px;color:var(--muted)">权重 40%</span></th><th>安全环保<br><span style="font-weight:400;font-size:10px;color:var(--muted)">权重 25%</span></th><th>运营效率<br><span style="font-weight:400;font-size:10px;color:var(--muted)">权重 20%</span></th><th>创新发展<br><span style="font-weight:400;font-size:10px;color:var(--muted)">权重 10%</span></th><th>团队建设<br><span style="font-weight:400;font-size:10px;color:var(--muted)">权重 5%</span></th><th>加权总分</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>生产运行部</strong></td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">35.2</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">23.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">19.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">8.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">7.0</td><td style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums">93.2</td></tr>
+              <tr><td><strong>设备工程部</strong></td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">34.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">22.8</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">18.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">7.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">7.2</td><td style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums">90.0</td></tr>
+              <tr><td><strong>安全环保部</strong></td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">32.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">24.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">17.8</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">7.2</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">6.8</td><td style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums">88.3</td></tr>
+              <tr><td><strong>信息技术部</strong></td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">31.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">22.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">18.2</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">9.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">6.5</td><td style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums">86.7</td></tr>
+              <tr><td><strong>运营管理部</strong></td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">30.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">21.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">17.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">7.8</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">7.0</td><td style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums">83.8</td></tr>
+              <tr><td><strong>人力资源部</strong></td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">29.8</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">21.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">16.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">7.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">8.5</td><td style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums">82.8</td></tr>
+              <tr><td><strong>营销中心</strong></td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">28.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">20.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">16.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">6.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">6.0</td><td style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums">77.0</td></tr>
+              <tr><td><strong>研究发展部</strong></td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">26.0</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">19.8</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">14.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">8.5</td><td style="font-family:var(--font-mono);font-variant-numeric:tabular-nums">6.0</td><td style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums">74.8</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ============ MODAL ============ -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="modalTitle">标题</div>
+        <div class="modal-sub" id="modalSub" style="display:none"></div>
+      </div>
+      <div class="modal-close" onclick="closeModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitModal()" id="modalSubmit">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // View switching
+  function switchView(view) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    const navItem = document.querySelector('.nav-item[data-view="' + view + '"]');
+    if (navItem) navItem.classList.add('active');
+    const target = document.getElementById('view-' + view);
+    if (target) target.classList.add('active');
+    const titles = {
+      dashboard:'工作台', cycle:'考核周期管理', indicator:'指标库管理',
+      assign:'部门指标下达', progress:'评分进度监控', review:'复核与调整',
+      appeal:'申诉处理', 'pre-release':'结果预发布', release:'结果正式发布',
+      analytics:'数据分析'
+    };
+    document.getElementById('crumb-current').textContent = titles[view] || '';
+    window.scrollTo({top:0, behavior:'instant'});
+  }
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const view = item.dataset.view;
+      if (!view) return;
+      switchView(view);
+    });
+  });
+
+  // Department tabs
+  document.querySelectorAll('.dept-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.dept-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+
+  // Category tree
+  document.querySelectorAll('.cat-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  // Modal templates
+  const MODAL_TPL = {
+    'cycle-new': {
+      title: '新增考核周期',
+      sub: '创建新的月度考核周期',
+      body: () => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">考核年份<span class="req">*</span></label><select class="form-select"><option>2026</option><option>2025</option></select></div>
+        <div class="form-group"><label class="form-label">考核月份<span class="req">*</span></label><select class="form-select"><option>6月</option><option>5月</option><option>4月</option></select></div>
+        <div class="form-group"><label class="form-label">周期名称<span class="req">*</span></label><input class="form-input" placeholder="如：2026年6月考核"></div>
+        <div class="form-group"><label class="form-label">初始阶段</label><select class="form-select"><option>指标发布</option><option>实绩填报</option></select></div>
+        <div class="form-group"><label class="form-label">开始日期<span class="req">*</span></label><input class="form-input" type="date" value="2026-06-01"></div>
+        <div class="form-group"><label class="form-label">截止日期<span class="req">*</span></label><input class="form-input" type="date" value="2026-06-30"></div>
+        <div class="form-group col-2"><label class="form-label">参与部门</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg);border-radius:6px">
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>生产运行部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>安全环保部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>设备工程部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>人力资源部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>营销中心</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>研究发展部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>运营管理部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>信息技术部</label>
+          </div>
+        </div>
+        <div class="form-group col-2"><label class="form-label">备注</label><textarea class="form-textarea" placeholder="考核周期说明…"></textarea></div>
+      </div>`
+    },
+    'cycle-edit': {
+      title: '编辑考核周期',
+      sub: opts => '正在编辑：' + (opts && opts.name ? opts.name : ''),
+      body: opts => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">周期名称</label><input class="form-input" value="${opts && opts.name ? opts.name : ''}"></div>
+        <div class="form-group"><label class="form-label">当前阶段</label><select class="form-select"><option>指标发布</option><option>实绩填报</option><option>自评</option><option>互评</option><option selected>评分复核</option><option>预发布</option><option>申诉处理</option><option>正式发布</option></select></div>
+        <div class="form-group"><label class="form-label">开始日期</label><input class="form-input" type="date" value="2026-05-01"></div>
+        <div class="form-group"><label class="form-label">截止日期</label><input class="form-input" type="date" value="2026-05-31"></div>
+        <div class="form-group col-2"><label class="form-label">备注</label><textarea class="form-textarea">本月考核正常推进中</textarea></div>
+      </div>`
+    },
+    'cycle-stage': {
+      title: '推进考核阶段',
+      sub: opts => (opts && opts.name ? opts.name : '') + ' - 阶段推进',
+      width: 'sm',
+      body: () => `<div>
+        <div style="background:var(--accent-light);padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">
+          <div style="font-weight:600;margin-bottom:4px">当前阶段：评分复核</div>
+          <div style="color:var(--muted)">13/18 部门已完成评分，5 个部门存在异常评分需处理</div>
+        </div>
+        <div class="form-group"><label class="form-label">推进到<span class="req">*</span></label><select class="form-select"><option>结果预发布</option><option>申诉处理</option></select></div>
+        <div class="form-group"><label class="form-label">推进说明</label><textarea class="form-textarea" placeholder="推进原因或备注…"></textarea></div>
+        <div class="form-group"><label class="form-label"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span> &nbsp; 跳过未完成部门的评分（自动取系统建议分）</label></div>
+      </div>`
+    },
+    'indicator-new': {
+      title: '新增指标',
+      sub: '在指标库中添加新的考核指标',
+      body: () => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">指标名称<span class="req">*</span></label><input class="form-input" placeholder="如：月度产量完成率"></div>
+        <div class="form-group"><label class="form-label">指标分类<span class="req">*</span></label><select class="form-select"><option>经营管理</option><option>安全环保</option><option>运营效率</option><option>创新发展</option><option>团队建设</option></select></div>
+        <div class="form-group"><label class="form-label">计算方式<span class="req">*</span></label><select class="form-select"><option>定量</option><option>定性</option></select></div>
+        <div class="form-group"><label class="form-label">指标编码<span class="req">*</span></label><input class="form-input" placeholder="IND_XXX" style="font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">建议权重</label><input class="form-input" placeholder="如：10%"></div>
+        <div class="form-group"><label class="form-label">数据来源</label><select class="form-select"><option>生产管理系统</option><option>财务系统</option><option>安全管理平台</option><option>设备管理系统</option><option>培训管理系统</option><option>其他</option></select></div>
+        <div class="form-group"><label class="form-label">计量单位</label><input class="form-input" placeholder="如：%、次、万元"></div>
+        <div class="form-group"><label class="form-label">适用部门</label><select class="form-select"><option>全公司</option><option>生产系统各部门</option><option>职能部门</option><option>自定义</option></select></div>
+        <div class="form-group col-2"><label class="form-label">计算公式</label><textarea class="form-textarea" placeholder="如：实际完成量 / 目标量 x 100%"></textarea></div>
+        <div class="form-group col-2"><label class="form-label">评分标准</label><textarea class="form-textarea" placeholder="描述评分规则和等级划分…"></textarea></div>
+        <div class="form-group"><label class="form-label">状态</label><select class="form-select"><option>启用</option><option>停用</option></select></div>
+      </div>`
+    },
+    'indicator-edit': {
+      title: '编辑指标',
+      sub: opts => '正在编辑：' + (opts && opts.name ? opts.name : ''),
+      body: opts => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">指标名称</label><input class="form-input" value="${opts && opts.name ? opts.name : ''}"></div>
+        <div class="form-group"><label class="form-label">指标分类</label><select class="form-select"><option selected>经营管理</option><option>安全环保</option><option>运营效率</option><option>创新发展</option><option>团队建设</option></select></div>
+        <div class="form-group"><label class="form-label">计算方式</label><select class="form-select"><option>定量</option><option>定性</option></select></div>
+        <div class="form-group"><label class="form-label">指标编码</label><input class="form-input" value="IND_PROD_001" disabled style="background:var(--bg);font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">建议权重</label><input class="form-input" value="20%"></div>
+        <div class="form-group"><label class="form-label">数据来源</label><select class="form-select"><option selected>生产管理系统</option><option>财务系统</option></select></div>
+        <div class="form-group col-2"><label class="form-label">计算公式</label><textarea class="form-textarea">实际产量 / 计划产量 x 100%</textarea></div>
+        <div class="form-group col-2"><label class="form-label">评分标准</label><textarea class="form-textarea">>=95% 得满分，每降低1%扣2分，低于80%得0分</textarea></div>
+        <div class="form-group"><label class="form-label">状态</label><select class="form-select"><option selected>启用</option><option>停用</option></select></div>
+      </div>`
+    },
+    'assign-new': {
+      title: '新增指标下达',
+      sub: '向指定部门下达考核指标',
+      body: () => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">目标部门<span class="req">*</span></label><select class="form-select"><option>请选择部门</option><option>生产运行部</option><option>安全环保部</option><option>设备工程部</option><option>人力资源部</option><option>营销中心</option></select></div>
+        <div class="form-group"><label class="form-label">考核周期</label><input class="form-input" value="2026年5月考核" disabled style="background:var(--bg)"></div>
+        <div class="form-group col-2"><label class="form-label">选择指标<span class="req">*</span></label><select class="form-select" size="5" multiple style="min-height:120px"><option>月度产量完成率 (经营管理)</option><option>利润总额完成率 (经营管理)</option><option>成本控制达标率 (经营管理)</option><option>安全生产事故零发生率 (安全环保)</option><option>设备完好率 (运营效率)</option></select></div>
+        <div class="form-group"><label class="form-label">权重设置</label><input class="form-input" placeholder="自动平均分配或手动输入"></div>
+        <div class="form-group"><label class="form-label">目标值</label><input class="form-input" placeholder="如：95%"></div>
+        <div class="form-group col-2"><label class="form-label">备注</label><textarea class="form-textarea" placeholder="下达说明…"></textarea></div>
+      </div>`
+    },
+    'assign-batch': {
+      title: '批量下达指标',
+      sub: '将当前指标配置批量应用到多个部门',
+      width: 'lg',
+      body: () => `<div>
+        <div style="background:var(--accent-light);padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">
+          <div style="font-weight:600;margin-bottom:4px">批量下达说明</div>
+          <div style="color:var(--muted)">将选择的指标及权重配置批量应用到所有已勾选的部门，已有指标的部门将被覆盖</div>
+        </div>
+        <div class="form-group"><label class="form-label">目标部门<span class="req">*</span></label>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px;background:var(--bg);border-radius:6px">
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>生产运行部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>安全环保部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>设备工程部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>人力资源部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>营销中心</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>研究发展部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>运营管理部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>信息技术部</label>
+            <label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>化工二车间</label>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">指标模板</label><select class="form-select"><option>使用通用指标模板（按部门自动匹配）</option><option>自定义指标组合</option></select></div>
+        <div class="form-group"><label class="form-label">权重策略</label><select class="form-select"><option>使用指标默认权重</option><option>平均分配</option><option>自定义</option></select></div>
+        <div class="form-group"><label class="form-label"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span> &nbsp; 覆盖已有指标配置</label></div>
+      </div>`
+    },
+    'assign-edit': {
+      title: '编辑下达指标',
+      sub: opts => '编辑：' + (opts && opts.name ? opts.name : '') + ' - 生产运行部',
+      body: opts => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">指标名称</label><input class="form-input" value="${opts && opts.name ? opts.name : ''}" disabled style="background:var(--bg)"></div>
+        <div class="form-group"><label class="form-label">权重<span class="req">*</span></label><input class="form-input" value="20%"></div>
+        <div class="form-group"><label class="form-label">目标值<span class="req">*</span></label><input class="form-input" value="95%"></div>
+        <div class="form-group"><label class="form-label">挑战值</label><input class="form-input" value="100%"></div>
+        <div class="form-group col-2"><label class="form-label">备注</label><textarea class="form-textarea">本月生产任务较重，目标值适当调低</textarea></div>
+      </div>`
+    },
+    'progress-detail': {
+      title: '评分进度详情',
+      sub: opts => (opts && opts.name ? opts.name : '') + ' - 2026年5月',
+      width: 'lg',
+      body: opts => `<div>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+          <div class="stat-card"><div class="stat-label">自评完成率</div><div class="stat-num" style="color:var(--success)">100%</div></div>
+          <div class="stat-card"><div class="stat-label">互评完成率</div><div class="stat-num" style="color:var(--accent)">87.5%</div></div>
+          <div class="stat-card"><div class="stat-label">最后更新</div><div style="font-family:var(--font-mono);font-size:13px;margin-top:8px">05-22 15:18</div></div>
+        </div>
+        <table style="width:100%;border:1px solid var(--border);border-radius:8px;overflow:hidden;border-collapse:collapse">
+          <thead><tr><th style="padding:10px 14px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;color:var(--muted)">指标</th><th style="padding:10px 14px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;color:var(--muted)">自评分</th><th style="padding:10px 14px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;color:var(--muted)">互评分</th><th style="padding:10px 14px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;color:var(--muted)">状态</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">月度产量完成率</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">95</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">82</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill green">已完成</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">利润总额完成率</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">88</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">85</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill green">已完成</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">成本控制达标率</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">92</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">80</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill green">已完成</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">安全生产事故零发生率</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">100</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">90</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill green">已完成</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">设备完好率</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">96</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">90</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill green">已完成</span></td></tr>
+          </tbody>
+        </table>
+      </div>`
+    },
+    'review-adjust': {
+      title: '调整评分',
+      sub: opts => (opts && opts.dept ? opts.dept : '') + ' - ' + (opts && opts.name ? opts.name : ''),
+      body: opts => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">部门</label><input class="form-input" value="${opts && opts.dept ? opts.dept : ''}" disabled style="background:var(--bg)"></div>
+        <div class="form-group"><label class="form-label">指标</label><input class="form-input" value="${opts && opts.name ? opts.name : ''}" disabled style="background:var(--bg)"></div>
+        <div class="form-group"><label class="form-label">自评分</label><input class="form-input" value="${opts && opts.self ? opts.self : ''}" disabled style="background:var(--bg);font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">互评分</label><input class="form-input" value="${opts && opts.peer ? opts.peer : ''}" disabled style="background:var(--bg);font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">系统建议分</label><input class="form-input" value="${opts && opts.suggest ? opts.suggest : ''}" disabled style="background:var(--bg);font-family:var(--font-mono);font-weight:600"></div>
+        <div class="form-group"><label class="form-label">调整后分值<span class="req">*</span></label><input class="form-input" value="${opts && opts.suggest ? opts.suggest : ''}" style="font-family:var(--font-mono);font-weight:600"></div>
+        <div class="form-group col-2"><label class="form-label">调整原因<span class="req">*</span></label><textarea class="form-textarea" placeholder="请详细说明调整原因…"></textarea></div>
+        <div class="form-group"><label class="form-label">处理方式</label><select class="form-select"><option>采纳系统建议分</option><option>手动调整</option><option>维持原分</option></select></div>
+      </div>`
+    },
+    'appeal-handle': {
+      title: '处理申诉',
+      sub: opts => (opts && opts.id ? opts.id : '') + ' - ' + (opts && opts.dept ? opts.dept : ''),
+      width: 'lg',
+      body: opts => `<div>
+        <div style="background:var(--bg);padding:14px 16px;border-radius:8px;margin-bottom:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
+            <div><span style="color:var(--muted)">申诉编号：</span><strong>${opts && opts.id ? opts.id : ''}</strong></div>
+            <div><span style="color:var(--muted)">申诉部门：</span><strong>${opts && opts.dept ? opts.dept : ''}</strong></div>
+            <div><span style="color:var(--muted)">提交时间：</span>2026-05-22 11:20</div>
+            <div><span style="color:var(--muted)">当前状态：</span><span class="pill red">待受理</span></div>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">申诉内容</label><div style="padding:12px;background:var(--bg);border-radius:6px;font-size:13px;line-height:1.7">互评评分明显偏低，与其他部门同类指标评分标准不一致，请求重新评定。具体表现为互评方对客户满意度的理解和打分标准与公司统一标准存在较大差异，导致评分结果不能真实反映部门实际工作成效。</div></div>
+        <div class="form-group"><label class="form-label">相关证据</label><div style="padding:10px 14px;background:var(--bg);border-radius:6px;font-size:13px;display:flex;gap:8px"><span class="pill blue">客户反馈汇总.pdf</span><span class="pill blue">评分对比表.xlsx</span></div></div>
+        <div class="form-group"><label class="form-label">审核意见<span class="req">*</span></label><textarea class="form-textarea" placeholder="请输入审核意见…"></textarea></div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">处理结果<span class="req">*</span></label><select class="form-select"><option>采纳申诉</option><option>驳回申诉</option><option>部分采纳</option><option>需进一步调查</option></select></div>
+          <div class="form-group"><label class="form-label">调整分值</label><input class="form-input" placeholder="如需调整请输入新分值" style="font-family:var(--font-mono)"></div>
+        </div>
+      </div>`
+    },
+    'pre-release-confirm': {
+      title: '确认正式发布',
+      sub: '发布后所有部门可查看考核结果',
+      width: 'sm',
+      body: () => `<div>
+        <div style="background:var(--warning-bg);color:var(--warning);padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">
+          <strong>请注意：</strong>正式发布后结果不可撤回，所有部门将收到通知。
+        </div>
+        <div class="form-group"><label class="form-label">发布周期</label><div style="padding:8px 12px;background:var(--bg);border-radius:6px;font-weight:600">2026年5月考核</div></div>
+        <div class="form-group"><label class="form-label">发布部门数</label><div style="padding:8px 12px;background:var(--bg);border-radius:6px">18 个部门</div></div>
+        <div class="form-group"><label class="form-label">发布通知</label><div style="display:flex;flex-direction:column;gap:6px;padding:6px 0"><label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span> 发送系统通知给各部门管理员</label><label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span> 发送邮件通知</label><label class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span> 发送短信通知</label></div></div>
+        <div class="form-group"><label class="form-label">确认发布<span class="req">*</span></label><div style="padding:6px 0"><label class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span> 我已核实所有评分结果无误，确认正式发布</label></div></div>
+      </div>`
+    },
+    'release-detail': {
+      title: '考核结果详情',
+      sub: opts => (opts && opts.name ? opts.name : '') + ' - 正式发布结果',
+      width: 'lg',
+      body: () => `<div>
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+          <div class="stat-card"><div class="stat-label">参与部门</div><div class="stat-num">18</div></div>
+          <div class="stat-card"><div class="stat-label">平均分</div><div class="stat-num">84.4</div></div>
+          <div class="stat-card"><div class="stat-label">最高分</div><div class="stat-num" style="color:var(--success)">91.8</div></div>
+          <div class="stat-card"><div class="stat-label">最低分</div><div class="stat-num" style="color:var(--warning)">72.5</div></div>
+        </div>
+        <table style="width:100%;border:1px solid var(--border);border-radius:8px;overflow:hidden;border-collapse:collapse">
+          <thead><tr><th style="padding:10px 14px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;color:var(--muted)">排名</th><th style="padding:10px 14px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;color:var(--muted)">部门</th><th style="padding:10px 14px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;color:var(--muted)">总分</th><th style="padding:10px 14px;font-size:12px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;color:var(--muted)">等级</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">1</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">生产运行部</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">91.8</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill green">A</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">2</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">设备工程部</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">89.5</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill green">B+</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">3</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">安全环保部</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">87.2</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill blue">B</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">4</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">信息技术部</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">85.6</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill blue">B</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">5</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">运营管理部</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">83.1</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill blue">B</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">6</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">人力资源部</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">81.9</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill blue">B</span></td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono)">7</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">营销中心</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700">76.3</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span class="pill amber">C</span></td></tr>
+            <tr><td style="padding:10px 14px;font-family:var(--font-mono)">8</td><td style="padding:10px 14px">研究发展部</td><td style="padding:10px 14px;font-family:var(--font-mono);font-weight:700">72.5</td><td style="padding:10px 14px"><span class="pill amber">C</span></td></tr>
+          </tbody>
+        </table>
+      </div>`
+    }
+  };
+
+  function openModal(key, opts) {
+    const tpl = MODAL_TPL[key];
+    if (!tpl) { console.warn('No modal template for', key); return; }
+    const modal = document.getElementById('modal');
+    const mask = document.getElementById('modalMask');
+    modal.classList.remove('lg', 'sm');
+    if (tpl.width) modal.classList.add(tpl.width);
+    document.getElementById('modalTitle').textContent = typeof tpl.title === 'function' ? tpl.title(opts) : tpl.title;
+    const subEl = document.getElementById('modalSub');
+    if (tpl.sub) {
+      subEl.textContent = typeof tpl.sub === 'function' ? tpl.sub(opts && opts.name ? opts.name : opts) : tpl.sub;
+      subEl.style.display = 'block';
+    } else {
+      subEl.style.display = 'none';
+    }
+    document.getElementById('modalBody').innerHTML = typeof tpl.body === 'function' ? tpl.body(opts) : tpl.body;
+    mask.classList.add('show');
+  }
+  function closeModal() {
+    document.getElementById('modalMask').classList.remove('show');
+  }
+  function submitModal() {
+    closeModal();
+  }
+  document.getElementById('modalMask').addEventListener('click', e => {
+    if (e.target.id === 'modalMask') closeModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+</script>
+</body>
+</html>

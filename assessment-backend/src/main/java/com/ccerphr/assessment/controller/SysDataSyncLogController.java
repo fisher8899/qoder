@@ -3,6 +3,7 @@ package com.ccerphr.assessment.controller;
 import com.ccerphr.assessment.common.PageResult;
 import com.ccerphr.assessment.common.Result;
 import com.ccerphr.assessment.entity.SysDataSyncLog;
+import com.ccerphr.assessment.security.RequireRole;
 import com.ccerphr.assessment.service.SysDataSyncLogService;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,7 @@ public class SysDataSyncLogController {
     }
 
     @PostMapping("/manual")
+    @RequireRole("ADMIN")
     public Result<SysDataSyncLog> manualSync() {
         return Result.success(sysDataSyncLogService.manualSync());
     }

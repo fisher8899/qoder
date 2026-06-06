@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>部门绩效管理员 — 月度业绩考核</title>
+<style>
+  :root {
+    --bg: oklch(97% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --fg: oklch(20% 0.015 250);
+    --muted: oklch(52% 0.015 250);
+    --border: oklch(90% 0.008 250);
+    --border-strong: oklch(82% 0.012 250);
+    --accent: oklch(52% 0.18 250);
+    --accent-hover: oklch(46% 0.2 250);
+    --accent-light: oklch(94% 0.04 250);
+    --success: oklch(55% 0.16 155);
+    --success-bg: oklch(94% 0.04 155);
+    --warning: oklch(62% 0.18 75);
+    --warning-bg: oklch(94% 0.04 75);
+    --danger: oklch(55% 0.2 25);
+    --danger-bg: oklch(94% 0.04 25);
+    --sidebar: oklch(22% 0.02 250);
+    --sidebar-hover: oklch(28% 0.025 250);
+    --sidebar-active: oklch(52% 0.18 250);
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', system-ui, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--fg); min-height: 100vh; display: flex; font-variant-numeric: tabular-nums; }
+
+  .sidebar { width: 240px; background: var(--sidebar); color: oklch(85% 0.01 250); min-height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .sidebar-brand { padding: 20px 24px; border-bottom: 1px solid oklch(28% 0.025 250); display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 32px; height: 32px; background: var(--success); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); font-weight: 700; }
+  .brand-name { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: white; }
+  .brand-name .role-tag { font-size: 11px; color: oklch(70% 0.02 250); font-weight: 400; display: block; margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-group { padding: 12px 24px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: oklch(55% 0.02 250); font-family: var(--font-mono); }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 24px; font-size: 13.5px; color: oklch(80% 0.01 250); cursor: pointer; transition: background 0.1s; text-decoration: none; position: relative; }
+  .nav-item:hover { background: var(--sidebar-hover); color: white; }
+  .nav-item.active { background: var(--sidebar-active); color: white; }
+  .nav-item .icon { width: 16px; height: 16px; opacity: 0.9; }
+  .nav-item .badge { margin-left: auto; background: var(--warning); color: white; font-size: 10.5px; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
+  .sidebar-foot { padding: 12px 24px; border-top: 1px solid oklch(28% 0.025 250); display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--success); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 600; }
+  .avatar-info { flex: 1; }
+  .avatar-info .name { font-size: 13px; color: white; }
+  .avatar-info .role { font-size: 11px; color: oklch(65% 0.02 250); }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .crumb .sep { color: var(--border-strong); }
+  .crumb .current { color: var(--fg); font-weight: 500; }
+  .top-actions { display: flex; align-items: center; gap: 12px; }
+  .nav-link { font-size: 13px; color: var(--accent); text-decoration: none; padding: 6px 10px; border-radius: 6px; }
+  .nav-link:hover { background: var(--accent-light); }
+  .icon-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); position: relative; }
+  .icon-btn:hover { background: var(--bg); color: var(--fg); }
+  .dot-red { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; background: var(--danger); border-radius: 50%; }
+
+  .page { padding: 24px 32px; max-width: 1280px; margin: 0 auto; width: 100%; }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 24px; }
+  .page-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .page-sub { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+  .quick-actions { display: flex; gap: 8px; }
+  .btn { padding: 8px 16px; border-radius: 6px; font-size: 13.5px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--fg); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+  .btn:hover { background: var(--bg); border-color: var(--border-strong); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-success { background: var(--success); color: white; border-color: var(--success); }
+
+  /* Stage notice */
+  .stage-notice { background: linear-gradient(to right, var(--accent-light), oklch(96% 0.02 250)); border: 1px solid oklch(85% 0.06 250); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 14px; }
+  .stage-notice-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .stage-notice-body { flex: 1; }
+  .stage-notice-title { font-weight: 600; font-size: 14.5px; margin-bottom: 2px; }
+  .stage-notice-sub { font-size: 12.5px; color: var(--muted); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 10px 18px; font-size: 13.5px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 8px; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab:hover:not(.active) { color: var(--fg); }
+  .tab .tab-count { background: var(--bg); color: var(--muted); padding: 1px 8px; border-radius: 10px; font-size: 11.5px; font-family: var(--font-mono); }
+  .tab.active .tab-count { background: var(--accent-light); color: var(--accent); }
+
+  /* Summary bar */
+  .summary-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; margin-bottom: 20px; }
+  .summary-item { border-right: 1px solid var(--border); padding-right: 24px; }
+  .summary-item:last-child { border-right: none; padding-right: 0; }
+  .summary-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-mono); }
+  .summary-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .summary-value .unit { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 2px; }
+  .summary-progress { margin-top: 6px; height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden; }
+  .summary-progress-fill { height: 100%; background: var(--success); }
+
+  /* Indicator panel */
+  .ind-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+  .ind-head { padding: 16px 20px; background: linear-gradient(to right, var(--bg), var(--surface)); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; }
+  .ind-num { width: 28px; height: 28px; background: var(--accent-light); color: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; font-family: var(--font-mono); flex-shrink: 0; }
+  .ind-info { flex: 1; }
+  .ind-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .ind-meta { font-size: 12.5px; color: var(--muted); display: flex; gap: 16px; }
+  .ind-meta .dot { width: 3px; height: 3px; background: var(--border-strong); border-radius: 50%; align-self: center; }
+  .ind-status { display: flex; align-items: center; gap: 12px; }
+  .ind-score { font-family: var(--font-mono); font-weight: 600; font-size: 18px; padding: 4px 12px; border-radius: 6px; }
+  .ind-score.pending { color: var(--muted); background: var(--bg); }
+  .ind-score.done { color: var(--success); background: var(--success-bg); }
+  .pill { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+  .pill.green { background: var(--success-bg); color: var(--success); }
+  .pill.amber { background: var(--warning-bg); color: var(--warning); }
+  .pill.gray { background: var(--bg); color: var(--muted); }
+  .pill.blue { background: var(--accent-light); color: var(--accent); }
+
+  .ind-body { padding: 20px 24px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 32px; }
+  .ind-section { }
+  .ind-section-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-mono); margin-bottom: 10px; }
+
+  /* Form */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; }
+  .form-input, .form-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px; font-family: var(--font-body); color: var(--fg); background: var(--surface); }
+  .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px oklch(52% 0.18 250 / 0.1); }
+  .form-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+  /* Score input */
+  .score-input-row { display: flex; align-items: center; gap: 16px; padding: 14px; background: var(--bg); border-radius: 8px; margin-top: 8px; }
+  .score-slider { flex: 1; position: relative; }
+  .score-slider input[type=range] { width: 100%; accent-color: var(--accent); }
+  .score-display { background: var(--surface); border: 2px solid var(--accent); border-radius: 8px; padding: 6px 14px; min-width: 80px; text-align: center; }
+  .score-display .val { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; }
+  .score-display .max { font-size: 13px; color: var(--muted); }
+
+  /* Criteria */
+  .criteria-list { font-size: 12.5px; line-height: 1.7; color: var(--muted); padding-left: 18px; }
+  .criteria-list li { margin-bottom: 3px; }
+  .criteria-block { background: var(--bg); padding: 12px 14px; border-radius: 8px; }
+  .criteria-block strong { color: var(--fg); }
+
+  /* Attachments */
+  .file-drop { border: 2px dashed var(--border); border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+  .file-drop:hover { border-color: var(--accent); background: var(--accent-light); }
+  .file-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .file-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg); border-radius: 6px; font-size: 12.5px; }
+  .file-item .icon { color: var(--accent); }
+  .file-item .name { flex: 1; }
+  .file-item .size { color: var(--muted); font-family: var(--font-mono); }
+  .file-item .remove { color: var(--danger); cursor: pointer; }
+
+  /* Sticky footer */
+  .save-bar { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; margin: 24px -32px 0; }
+  .save-bar-info { font-size: 13px; color: var(--muted); }
+  .save-bar-actions { display: flex; gap: 8px; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark">考</div>
+    <div class="brand-name">月度业绩考核<span class="role-tag">部门绩效管理员</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">本月任务</div>
+    <a class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>工作台</a>
+    <a class="nav-item active"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>实绩填报与自评<span class="badge">3</span></a>
+    <a class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>部门互评<span class="badge">5</span></a>
+    <a class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>申诉提交</a>
+    <div class="nav-group">查询</div>
+    <a class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>历史得分</a>
+    <a class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><polyline points="18 9 13 14 9 10 3 16"/></svg>排名趋势</a>
+    <a class="nav-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>指标查询</a>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="avatar">张</div>
+    <div class="avatar-info">
+      <div class="name">张晓燕</div>
+      <div class="role">生产运行部 · 绩效管理员</div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="crumb"><span>本月任务</span><span class="sep">/</span><span class="current">实绩填报与自评</span></div>
+    <div class="top-actions">
+      <a class="nav-link" href="index.html">返回导航</a>
+      <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span class="dot-red"></span></div>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">生产运行部 · 2026 年 4 月度考核</h1>
+        <div class="page-sub">已填报 5 项 / 共 8 项 · 自评截止 <strong style="color:var(--warning)">04-12 17:00</strong> · 距离截止 2 天 18 小时</div>
+      </div>
+      <div class="quick-actions">
+        <button class="btn">暂存草稿</button>
+        <button class="btn btn-primary">提交本月自评 →</button>
+      </div>
+    </div>
+
+    <div class="stage-notice">
+      <div class="stage-notice-icon">3</div>
+      <div class="stage-notice-body">
+        <div class="stage-notice-title">当前处于「部门自评」阶段</div>
+        <div class="stage-notice-sub">请根据本月实际完成情况填报实绩数据，并对每项指标进行自评打分。提交后将进入互评阶段，不可修改。</div>
+      </div>
+      <button class="btn">查看评分标准 →</button>
+    </div>
+
+    <div class="summary-bar">
+      <div class="summary-item">
+        <div class="summary-label">指标项</div>
+        <div class="summary-value">8</div>
+        <div class="summary-progress"><div class="summary-progress-fill" style="width:62.5%"></div></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">已填报</div>
+        <div class="summary-value" style="color:var(--success)">5</div>
+        <div class="summary-progress"><div class="summary-progress-fill" style="width:62.5%"></div></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">待填报</div>
+        <div class="summary-value" style="color:var(--warning)">3</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">权重已覆盖</div>
+        <div class="summary-value">68<span class="unit">%</span></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">自评累计得分</div>
+        <div class="summary-value" style="color:var(--accent)">62.4<span class="unit">/100</span></div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active">自评填报 <span class="tab-count">8</span></div>
+      <div class="tab">部门互评 <span class="tab-count">5</span></div>
+      <div class="tab">历史得分</div>
+      <div class="tab">申诉</div>
+    </div>
+
+    <!-- Indicator 1 -->
+    <div class="ind-card">
+      <div class="ind-head">
+        <div class="ind-num">01</div>
+        <div class="ind-info">
+          <div class="ind-name">月度产量完成率</div>
+          <div class="ind-meta">
+            <span>权重 <strong style="color:var(--fg)">15%</strong></span>
+            <span class="dot"></span>
+            <span>经营管理类</span>
+            <span class="dot"></span>
+            <span>定量指标</span>
+            <span class="dot"></span>
+            <span>目标值：≥ 95%</span>
+          </div>
+        </div>
+        <div class="ind-status">
+          <span class="pill green">已自评</span>
+          <div class="ind-score done">92</div>
+        </div>
+      </div>
+      <div class="ind-body">
+        <div>
+          <div class="ind-section-title">实绩填报</div>
+          <div class="form-group">
+            <label class="form-label">本月实际产量（吨）</label>
+            <input class="form-input" value="186,420">
+          </div>
+          <div class="form-group">
+            <label class="form-label">计划产量（吨）</label>
+            <input class="form-input" value="190,000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">完成情况说明</label>
+            <textarea class="form-textarea">本月实际完成产量 186,420 吨，完成率 98.1%。主要原因：4 月 8 日检修计划影响日产量约 3,600 吨；其余日常生产平稳运行，单日产量稳定在 6,200-6,500 吨区间。</textarea>
+          </div>
+        </div>
+        <div>
+          <div class="ind-section-title">评分标准</div>
+          <div class="criteria-block">
+            <div style="font-size:13px;line-height:1.7">
+              <strong>≥100%</strong>：得 95-100 分<br>
+              <strong>95-99%</strong>：得 85-94 分<br>
+              <strong>90-94%</strong>：得 70-84 分<br>
+              <strong>&lt;90%</strong>：70 分以下
+            </div>
+          </div>
+          <div class="ind-section-title" style="margin-top:16px">自评打分</div>
+          <div class="score-input-row">
+            <div class="score-slider"><input type="range" min="0" max="100" value="92"></div>
+            <div class="score-display"><span class="val">92</span><span class="max">/100</span></div>
+          </div>
+          <div class="ind-section-title" style="margin-top:14px">佐证附件</div>
+          <div class="file-list">
+            <div class="file-item">
+              <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+              <span class="name">2026-04 产量月报.xlsx</span>
+              <span class="size">128 KB</span>
+              <span class="remove">×</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicator 2 -->
+    <div class="ind-card">
+      <div class="ind-head">
+        <div class="ind-num">02</div>
+        <div class="ind-info">
+          <div class="ind-name">安全事故零发生率</div>
+          <div class="ind-meta">
+            <span>权重 <strong style="color:var(--fg)">20%</strong></span>
+            <span class="dot"></span>
+            <span>安全环保类</span>
+            <span class="dot"></span>
+            <span style="color:var(--danger);font-weight:500">一票否决</span>
+          </div>
+        </div>
+        <div class="ind-status">
+          <span class="pill green">已自评</span>
+          <div class="ind-score done">100</div>
+        </div>
+      </div>
+      <div class="ind-body">
+        <div>
+          <div class="ind-section-title">实绩填报</div>
+          <div class="form-group">
+            <label class="form-label">本月安全事故起数</label>
+            <input class="form-input" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">隐患排查情况</label>
+            <textarea class="form-textarea">本月共开展安全检查 26 次，排查隐患 18 项，整改完成 18 项，整改率 100%。无安全事故、无未遂事故、无伤亡。</textarea>
+          </div>
+        </div>
+        <div>
+          <div class="ind-section-title">评分标准</div>
+          <div class="criteria-block">
+            <div style="font-size:13px;line-height:1.7">
+              <strong>0 起事故</strong>：100 分<br>
+              <strong>发生轻微事故</strong>：扣 30-50 分<br>
+              <strong>发生一般事故</strong>：当月一票否决<br>
+              <strong>发生重大事故</strong>：年度一票否决
+            </div>
+          </div>
+          <div class="ind-section-title" style="margin-top:16px">自评打分</div>
+          <div class="score-input-row">
+            <div class="score-slider"><input type="range" min="0" max="100" value="100"></div>
+            <div class="score-display"><span class="val">100</span><span class="max">/100</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicator 3 -->
+    <div class="ind-card">
+      <div class="ind-head">
+        <div class="ind-num">03</div>
+        <div class="ind-info">
+          <div class="ind-name">设备完好率</div>
+          <div class="ind-meta">
+            <span>权重 <strong style="color:var(--fg)">10%</strong></span>
+            <span class="dot"></span>
+            <span>运营效率类</span>
+            <span class="dot"></span>
+            <span>目标值：≥ 96%</span>
+          </div>
+        </div>
+        <div class="ind-status">
+          <span class="pill amber">待自评</span>
+          <div class="ind-score pending">— —</div>
+        </div>
+      </div>
+      <div class="ind-body">
+        <div>
+          <div class="ind-section-title">实绩填报</div>
+          <div class="form-group">
+            <label class="form-label">设备完好率（%）</label>
+            <input class="form-input" placeholder="请填写本月数据" style="border-color:var(--warning)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">设备故障/停机说明</label>
+            <textarea class="form-textarea" placeholder="说明本月设备运行情况、故障次数、影响范围、处理时长等"></textarea>
+          </div>
+          <div class="file-drop" style="margin-top:10px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted);margin-bottom:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div style="font-size:13px">点击或拖拽上传佐证附件</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px">支持 PDF/Excel/Word/图片 · 单个 ≤ 10MB</div>
+          </div>
+        </div>
+        <div>
+          <div class="ind-section-title">评分标准</div>
+          <div class="criteria-block">
+            <div style="font-size:13px;line-height:1.7">
+              <strong>≥98%</strong>：90-100 分<br>
+              <strong>96-97%</strong>：80-89 分<br>
+              <strong>94-95%</strong>：70-79 分<br>
+              <strong>&lt;94%</strong>：扣分项
+            </div>
+          </div>
+          <div class="ind-section-title" style="margin-top:16px">自评打分</div>
+          <div class="score-input-row" style="opacity:0.5">
+            <div class="score-slider"><input type="range" min="0" max="100" value="0" disabled></div>
+            <div class="score-display" style="border-color:var(--border)"><span class="val" style="color:var(--muted)">—</span><span class="max">/100</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsed remaining indicators -->
+    <div class="ind-card" style="cursor:pointer">
+      <div class="ind-head" style="border-bottom:none">
+        <div class="ind-num" style="background:var(--success-bg);color:var(--success)">04</div>
+        <div class="ind-info">
+          <div class="ind-name">单位能耗下降率</div>
+          <div class="ind-meta"><span>权重 <strong style="color:var(--fg)">8%</strong></span><span class="dot"></span><span>运营效率类</span></div>
+        </div>
+        <div class="ind-status"><span class="pill green">已自评</span><div class="ind-score done">88</div></div>
+      </div>
+    </div>
+    <div class="ind-card" style="cursor:pointer">
+      <div class="ind-head" style="border-bottom:none">
+        <div class="ind-num" style="background:var(--success-bg);color:var(--success)">05</div>
+        <div class="ind-info">
+          <div class="ind-name">质量合格率</div>
+          <div class="ind-meta"><span>权重 <strong style="color:var(--fg)">10%</strong></span><span class="dot"></span><span>经营管理类</span></div>
+        </div>
+        <div class="ind-status"><span class="pill green">已自评</span><div class="ind-score done">95</div></div>
+      </div>
+    </div>
+    <div class="ind-card" style="cursor:pointer">
+      <div class="ind-head" style="border-bottom:none">
+        <div class="ind-num" style="background:var(--warning-bg);color:var(--warning)">06</div>
+        <div class="ind-info">
+          <div class="ind-name">员工培训完成率</div>
+          <div class="ind-meta"><span>权重 <strong style="color:var(--fg)">5%</strong></span><span class="dot"></span><span>团队建设类</span></div>
+        </div>
+        <div class="ind-status"><span class="pill amber">待自评</span><div class="ind-score pending">— —</div></div>
+      </div>
+    </div>
+    <div class="ind-card" style="cursor:pointer">
+      <div class="ind-head" style="border-bottom:none">
+        <div class="ind-num" style="background:var(--success-bg);color:var(--success)">07</div>
+        <div class="ind-info">
+          <div class="ind-name">月度成本控制达成</div>
+          <div class="ind-meta"><span>权重 <strong style="color:var(--fg)">12%</strong></span><span class="dot"></span><span>经营管理类</span></div>
+        </div>
+        <div class="ind-status"><span class="pill green">已自评</span><div class="ind-score done">86</div></div>
+      </div>
+    </div>
+    <div class="ind-card" style="cursor:pointer">
+      <div class="ind-head" style="border-bottom:none">
+        <div class="ind-num" style="background:var(--warning-bg);color:var(--warning)">08</div>
+        <div class="ind-info">
+          <div class="ind-name">工艺改进与创新</div>
+          <div class="ind-meta"><span>权重 <strong style="color:var(--fg)">3%</strong></span><span class="dot"></span><span>创新发展类 · 加分项</span></div>
+        </div>
+        <div class="ind-status"><span class="pill amber">待自评</span><div class="ind-score pending">— —</div></div>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <div class="save-bar-info">
+        <strong style="color:var(--fg)">最近暂存</strong> · 2026-04-10 14:32 · 当前累计自评得分 <strong style="color:var(--accent)">62.4</strong> 分（已覆盖 68% 权重）
+      </div>
+      <div class="save-bar-actions">
+        <button class="btn">暂存草稿</button>
+        <button class="btn">导出 PDF</button>
+        <button class="btn btn-primary">提交本月自评 →</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+</body>
+</html>

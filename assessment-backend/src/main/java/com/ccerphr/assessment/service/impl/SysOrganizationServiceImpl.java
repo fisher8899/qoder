@@ -7,20 +7,24 @@ import com.ccerphr.assessment.common.BusinessException;
 import com.ccerphr.assessment.common.PageResult;
 import com.ccerphr.assessment.dto.OrganizationQueryDTO;
 import com.ccerphr.assessment.entity.SysEmployee;
+import com.ccerphr.assessment.entity.SysLeader;
 import com.ccerphr.assessment.entity.SysOrganization;
+import com.ccerphr.assessment.entity.SysUnit;
 import com.ccerphr.assessment.entity.SysUser;
 import com.ccerphr.assessment.entity.SysUserPermission;
-import com.ccerphr.assessment.entity.SysLeader;
 import com.ccerphr.assessment.mapper.SysEmployeeMapper;
 import com.ccerphr.assessment.mapper.SysLeaderMapper;
 import com.ccerphr.assessment.mapper.SysOrganizationMapper;
+import com.ccerphr.assessment.mapper.SysUnitMapper;
 import com.ccerphr.assessment.mapper.SysUserMapper;
 import com.ccerphr.assessment.mapper.SysUserPermissionMapper;
+import com.ccerphr.assessment.security.PasswordUtil;
 import com.ccerphr.assessment.service.SysOrganizationService;
 import com.ccerphr.assessment.util.DataScopeFilter;
 import com.ccerphr.assessment.util.PinyinUtil;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
@@ -35,16 +39,19 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
     private final SysLeaderMapper sysLeaderMapper;
     private final SysUserMapper sysUserMapper;
     private final SysUserPermissionMapper sysUserPermissionMapper;
+    private final SysUnitMapper sysUnitMapper;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public SysOrganizationServiceImpl(SysEmployeeMapper sysEmployeeMapper,
                                       SysLeaderMapper sysLeaderMapper,
                                       SysUserMapper sysUserMapper,
-                                      SysUserPermissionMapper sysUserPermissionMapper) {
+                                      SysUserPermissionMapper sysUserPermissionMapper,
+                                      SysUnitMapper sysUnitMapper) {
         this.sysEmployeeMapper = sysEmployeeMapper;
         this.sysLeaderMapper = sysLeaderMapper;
         this.sysUserMapper = sysUserMapper;
         this.sysUserPermissionMapper = sysUserPermissionMapper;
+        this.sysUnitMapper = sysUnitMapper;
     }
 
     @Override
@@ -59,7 +66,6 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
         if (query.getUnitId() != null) {
             wrapper.eq(SysOrganization::getUnitId, query.getUnitId());
         }
-        // 数据范围过滤 - 按 unit_id 过滤
         DataScopeFilter.applyUnitFilter(wrapper, SysOrganization::getUnitId);
         wrapper.orderByAsc(SysOrganization::getSortCode);
         Page<SysOrganization> page = page(new Page<>(query.getCurrent(), query.getSize()), wrapper);
@@ -81,42 +87,45 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
     }
 
     @Override
-    public List<SysOrganization> getAll() {
+    public List<SysOrganization> getAll(Long unitId) {
         LambdaQueryWrapper<SysOrganization> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysOrganization::getIsEnabled, 1);
-        // 数据范围过滤
-        DataScopeFilter.applyUnitFilter(wrapper, SysOrganization::getUnitId);
+        if (unitId != null) {
+            wrapper.eq(SysOrganization::getUnitId, unitId);
+        } else {
+            DataScopeFilter.applyUnitFilter(wrapper, SysOrganization::getUnitId);
+        }
         wrapper.orderByAsc(SysOrganization::getSortCode);
         return this.list(wrapper);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addOrganization(SysOrganization organization) {
-        // 自动填入 unitId
         Long unitId = DataScopeFilter.getAutoFillUnitId();
         if (unitId != null && organization.getUnitId() == null) {
             organization.setUnitId(unitId);
         }
+        validateOrganizationName(organization);
         fillEmployeeNames(organization);
         LocalDateTime now = LocalDateTime.now();
         organization.setCreatedTime(now);
         organization.setUpdatedTime(now);
         this.save(organization);
-        // 新增时oldOrg为null，直接为新人员创建用户+分配权限
         syncUserAndPermission(organization, null);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateOrganization(SysOrganization organization) {
         if (organization.getId() == null) {
             throw new BusinessException("考核组织ID不能为空");
         }
-        // 先查出旧数据，用于比较人员变更
         SysOrganization oldOrg = this.getById(organization.getId());
+        validateOrganizationName(organization);
         fillEmployeeNames(organization);
         organization.setUpdatedTime(LocalDateTime.now());
         this.updateById(organization);
-        // 比较新旧值处理角色变更
         syncUserAndPermission(organization, oldOrg);
     }
 
@@ -127,13 +136,6 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
         }
     }
 
-    // ==================== 自动创建用户+分配权限 核心逻辑 ====================
-
-    /**
-     * 保存组织时同步用户和权限
-     * @param org 当前组织
-     * @param oldOrg 修改前的组织（新增时为null）
-     */
     private void syncUserAndPermission(SysOrganization org, SysOrganization oldOrg) {
         processRoleAssignment(org, org.getDeptAdminId(),
                 oldOrg != null ? oldOrg.getDeptAdminId() : null,
@@ -148,41 +150,31 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
                 "SUPERVISOR", "分管领导");
     }
 
-    /**
-     * 处理单个角色的分配：比较新旧人员，旧人员删除权限，新人员创建用户+分配权限
-     */
     private void processRoleAssignment(SysOrganization org,
                                        Long newEmployeeId, Long oldEmployeeId,
                                        String roleCode, String roleName) {
-        // 没有变化则跳过
         if (Objects.equals(newEmployeeId, oldEmployeeId)) {
             return;
         }
 
-        // 旧人员：删除该角色+该部门的权限
         if (oldEmployeeId != null) {
             removePermissionForEmployee(oldEmployeeId, roleCode, org.getId());
         }
 
-        // 新人员：创建用户+分配权限
         if (newEmployeeId != null) {
             ensureUserAndPermission(newEmployeeId, org, roleCode, roleName);
         }
     }
 
-    /**
-     * 确保员工有用户账号并分配权限
-     */
     private void ensureUserAndPermission(Long employeeId, SysOrganization org,
                                          String roleCode, String roleName) {
-        // 1. 查员工信息
         SysEmployee employee = sysEmployeeMapper.selectById(employeeId);
-        if (employee == null) return;
+        if (employee == null) {
+            return;
+        }
 
-        // 2. 查或创建用户
         SysUser user = findOrCreateUser(employee, org, roleCode, roleName);
 
-        // 3. 检查权限是否已存在（避免重复创建）
         LambdaQueryWrapper<SysUserPermission> permWrapper = new LambdaQueryWrapper<>();
         permWrapper.eq(SysUserPermission::getUserId, user.getId())
                 .eq(SysUserPermission::getRoleCode, roleCode)
@@ -192,7 +184,6 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
         long count = sysUserPermissionMapper.selectCount(permWrapper);
 
         if (count == 0) {
-            // 4. 创建权限记录
             SysUserPermission permission = new SysUserPermission();
             permission.setUserId(user.getId());
             permission.setUserName(employee.getEmployeeName());
@@ -208,12 +199,8 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
         }
     }
 
-    /**
-     * 查找已有用户或创建新用户
-     */
     private SysUser findOrCreateUser(SysEmployee employee, SysOrganization org,
                                      String roleCode, String roleName) {
-        // 查找已有用户
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysUser::getEmployeeId, employee.getId())
                 .eq(SysUser::getDeleted, 0);
@@ -223,13 +210,12 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
             return existingUser;
         }
 
-        // 创建新用户
         SysUser newUser = new SysUser();
         String baseUsername = PinyinUtil.generateUsername(employee.getEmployeeName());
         String username = generateUniqueUsername(baseUsername);
 
         newUser.setUsername(username);
-        newUser.setPassword(passwordEncoder.encode("123456"));
+        newUser.setPassword(passwordEncoder.encode(PasswordUtil.generateTemporaryPassword()));
         newUser.setRealName(employee.getEmployeeName());
         newUser.setEmployeeId(employee.getId());
         newUser.setOrgId(org.getId());
@@ -246,21 +232,17 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
         return newUser;
     }
 
-    /**
-     * 生成不重复的用户名，重复时加数字后缀 01, 02...
-     */
     private String generateUniqueUsername(String baseUsername) {
         if (baseUsername == null || baseUsername.isEmpty()) {
             baseUsername = "user";
         }
-        // 检查基础用户名是否可用
+
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysUser::getUsername, baseUsername).eq(SysUser::getDeleted, 0);
         if (sysUserMapper.selectCount(wrapper) == 0) {
             return baseUsername;
         }
 
-        // 加数字后缀
         for (int i = 1; i <= 99; i++) {
             String candidate = baseUsername + String.format("%02d", i);
             wrapper = new LambdaQueryWrapper<>();
@@ -270,21 +252,17 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
             }
         }
 
-        // fallback：使用时间戳
         return baseUsername + System.currentTimeMillis();
     }
 
-    /**
-     * 删除旧人员在该组织的该角色权限记录
-     */
     private void removePermissionForEmployee(Long employeeId, String roleCode, Long orgId) {
-        // 找到该员工对应的用户
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysUser::getEmployeeId, employeeId).eq(SysUser::getDeleted, 0);
         SysUser user = sysUserMapper.selectOne(wrapper);
-        if (user == null) return;
+        if (user == null) {
+            return;
+        }
 
-        // 删除该用户在该部门的该角色权限（@TableLogic 自动变逻辑删除）
         LambdaQueryWrapper<SysUserPermission> permWrapper = new LambdaQueryWrapper<>();
         permWrapper.eq(SysUserPermission::getUserId, user.getId())
                 .eq(SysUserPermission::getRoleCode, roleCode)
@@ -293,12 +271,6 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
         sysUserPermissionMapper.delete(permWrapper);
     }
 
-    // ==================== 辅助方法 ====================
-
-    /**
-     * 当deptAdminId/deptLeaderId/supervisorId/assessorId传入时，
-     * 从sys_employee表获取对应的人员姓名自动填充
-     */
     private void fillEmployeeNames(SysOrganization org) {
         if (org.getDeptAdminId() != null) {
             SysEmployee emp = sysEmployeeMapper.selectById(org.getDeptAdminId());
@@ -323,6 +295,31 @@ public class SysOrganizationServiceImpl extends ServiceImpl<SysOrganizationMappe
             if (emp != null) {
                 org.setAssessorName(emp.getEmployeeName());
             }
+        }
+    }
+
+    private void validateOrganizationName(SysOrganization organization) {
+        if (!StringUtils.hasText(organization.getOrgName())) {
+            return;
+        }
+
+        String orgName = organization.getOrgName().trim();
+
+        LambdaQueryWrapper<SysUnit> unitWrapper = new LambdaQueryWrapper<>();
+        unitWrapper.eq(SysUnit::getUnitName, orgName)
+                .eq(SysUnit::getDeleted, 0);
+        if (sysUnitMapper.selectCount(unitWrapper) > 0) {
+            throw new BusinessException("考核组织名称不能与单位名称重复，请录入该单位下的具体部门名称");
+        }
+
+        LambdaQueryWrapper<SysOrganization> orgWrapper = new LambdaQueryWrapper<>();
+        orgWrapper.eq(SysOrganization::getOrgName, orgName)
+                .eq(SysOrganization::getDeleted, 0);
+        if (organization.getId() != null) {
+            orgWrapper.ne(SysOrganization::getId, organization.getId());
+        }
+        if (this.baseMapper.selectCount(orgWrapper) > 0) {
+            throw new BusinessException("考核组织名称已存在");
         }
     }
 }

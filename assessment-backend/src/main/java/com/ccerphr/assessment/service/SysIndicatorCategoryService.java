@@ -11,7 +11,7 @@ public interface SysIndicatorCategoryService extends IService<SysIndicatorCatego
 
     PageResult<SysIndicatorCategory> queryPage(IndicatorCategoryQueryDTO query);
 
-    List<SysIndicatorCategory> getAll(String applicableScope);
+    List<SysIndicatorCategory> getAll(String applicableScope, Long unitId);
 
     SysIndicatorCategory getDetail(Long id);
 

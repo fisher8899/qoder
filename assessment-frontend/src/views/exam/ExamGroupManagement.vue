@@ -64,6 +64,22 @@
         <el-form-item label="考核组名称" prop="groupName">
           <el-input v-model="formData.groupName" placeholder="请输入考核组名称" />
         </el-form-item>
+        <el-form-item label="关联业绩指标组">
+          <el-select
+            v-model="formData.linkedIndicatorGroupId"
+            placeholder="请选择已配置的业绩指标考核组"
+            clearable
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="group in indicatorGroupOptions"
+              :key="group.id"
+              :label="group.groupName"
+              :value="group.id"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="考核类别" prop="examCategory">
           <el-select v-model="formData.examCategory" placeholder="请选择考核类别" style="width: 100%" @change="handleCategoryChange">
             <el-option label="业绩指标设定" value="INDICATOR_SET" />
@@ -155,20 +171,22 @@ import {
   startExamGroup,
   restartExamGroup,
   publishExamGroupIndicator,
-  startExamGroupExam,
   startPeerEval,
   prePublishExamGroup,
   publishExamGroup,
-  cancelPrePublishExamGroup,
   getExamGroupMembers,
   addExamGroupMembers,
-  removeExamGroupMember,
-  getExamGroupProgress
+  removeExamGroupMember
 } from '@/api/examGroup'
 import type { ExamGroupCreateData } from '@/api/examGroup'
+import type { ExamGroup } from '@/api/types'
 import { getOrganizationList } from '@/api/organization'
 
 const router = useRouter()
+
+type ExamGroupFormData = ExamGroupCreateData & {
+  linkedIndicatorGroupId?: number
+}
 
 const examCategoryMap: Record<string, string> = {
   'INDICATOR_SET': '业绩指标设定',
@@ -178,6 +196,7 @@ const examCategoryMap: Record<string, string> = {
 const loading = ref(false)
 const tableData = ref<any[]>([])
 const total = ref(0)
+const indicatorGroupOptions = ref<ExamGroup[]>([])
 
 const queryParams = reactive({
   current: 1,
@@ -246,6 +265,13 @@ function loadData() {
     })
 }
 
+function loadIndicatorGroupOptions() {
+  getExamGroupList({ current: 1, size: 1000, examCategory: 'INDICATOR_SET' })
+    .then((res: any) => {
+      indicatorGroupOptions.value = res.data?.records || []
+    })
+}
+
 function handleSearch(data: Record<string, any>) {
   queryParams.current = 1
   queryParams.groupName = data.groupName || ''
@@ -272,12 +298,13 @@ function handlePageChange(page: number, size: number) {
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const formRef = ref<any>(null)
-const formData = reactive<ExamGroupCreateData>({
+const formData = reactive<ExamGroupFormData>({
   groupName: '',
   examCategory: '',
   examType: '',
   startDate: '',
-  endDate: ''
+  endDate: '',
+  linkedIndicatorGroupId: undefined
 })
 
 const formRules = {
@@ -295,7 +322,9 @@ function handleAdd() {
   formData.examType = ''
   formData.startDate = ''
   formData.endDate = ''
+  formData.linkedIndicatorGroupId = undefined
   dialogVisible.value = true
+  loadIndicatorGroupOptions()
 }
 
 function handleEdit(row: any) {
@@ -306,7 +335,9 @@ function handleEdit(row: any) {
   formData.examType = row.examType
   formData.startDate = row.startDate
   formData.endDate = row.endDate
+  formData.linkedIndicatorGroupId = undefined
   dialogVisible.value = true
+  loadIndicatorGroupOptions()
 }
 
 function handleCategoryChange(val: string) {
@@ -318,7 +349,7 @@ function handleCategoryChange(val: string) {
 function handleSubmit() {
   formRef.value?.validate((valid: boolean) => {
     if (!valid) return
-    const submitData = { ...formData }
+    const { linkedIndicatorGroupId, ...submitData } = formData
     if (submitData.examCategory === 'INDICATOR_SET') {
       submitData.examType = ''
     }
@@ -349,6 +380,43 @@ function getBizButtons(row: any) {
     btns.push({ key, label, type, disabled, handler })
   }
 
+  if (row.examCategory === 'PERFORMANCE') {
+    const isSelfEvalStarted = row.status !== 'NOT_STARTED'
+    const canRestart = row.status === 'IN_PROGRESS' || row.status === 'PUBLISHED'
+
+    addBtn('member', '1.成员维护', isSelfEvalStarted ? 'info' : 'primary', false, () => openMemberDialog(row))
+    addBtn('startSelfEval', '2.启动自评', isSelfEvalStarted ? 'info' : 'primary', isSelfEvalStarted, () => {
+      ElMessageBox.confirm('确认启动自评？将给部门绩效管理员发送通知。', '提示').then(() => {
+        startExamGroup(row.id).then(() => { ElMessage.success('启动自评成功，已发送通知'); loadData() })
+      })
+    })
+    addBtn('restart', '3.重新启动', 'warning', !canRestart, () => {
+      ElMessageBox.confirm('确认重新启动？将补发未发送的通知。', '提示').then(() => {
+        restartExamGroup(row.id).then(() => { ElMessage.success('重新启动成功，已补发未发送的通知'); loadData() })
+      })
+    })
+    addBtn('startPeer', '4.启动他评', step === '已启动' ? 'primary' : 'info', step !== '已启动', () => {
+      ElMessageBox.confirm('确认启动他评？将给部门绩效管理员发送通知。', '提示').then(() => {
+        startPeerEval(row.id).then(() => { ElMessage.success('启动他评成功，已发送通知'); loadData() })
+      })
+    })
+    addBtn('prePublish', '5.业绩预发布', step === '他评中' ? 'primary' : 'info', step !== '他评中', () => {
+      ElMessageBox.confirm('确认业绩预发布？将给部门绩效管理员发送通知。', '提示').then(() => {
+        prePublishExamGroup(row.id).then(() => { ElMessage.success('业绩预发布成功，已发送通知'); loadData() })
+      })
+    })
+    addBtn('publish', '6.业绩发布', row.status === 'PRE_PUBLISHED' ? 'success' : 'info', row.status !== 'PRE_PUBLISHED', () => {
+      ElMessageBox.confirm('确认正式发布业绩？发布后不可撤回。', '提示').then(() => {
+        publishExamGroup(row.id).then(() => { ElMessage.success('业绩发布成功'); loadData() })
+      })
+    })
+    addBtn('progress', '7.查看进度', 'primary', false, () => {
+      router.push({ path: '/exam/progress', query: { examGroupId: String(row.id) } })
+    })
+
+    return btns
+  }
+
   // 1.成员维护
   const isMemberMaintained = step !== '成员维护'
   addBtn('member', '1.成员维护', isMemberMaintained ? 'info' : 'primary', false, () => openMemberDialog(row))
@@ -370,42 +438,38 @@ function getBizButtons(row: any) {
     })
   }
 
-  // 3.发布考核指标
-  if (isStarted) {
+  // 3.发布考核指标（业绩考核启动后不显示）
+  if (isStarted && row.examCategory === 'INDICATOR_SET') {
     const isIndicatorPublished = step !== '已启动'
     addBtn('publishIndicator', '发布考核指标', isIndicatorPublished ? 'info' : 'primary', step !== '已启动', () => {
       publishExamGroupIndicator(row.id).then(() => { ElMessage.success('发布考核指标成功'); loadData() })
     })
   }
 
-  // 4.启动考核（业绩指标设定类别不展示）
-  if (row.examCategory !== 'INDICATOR_SET' && (step === '指标已发布' || step === '考核中' || step === '他评中' || step === '预发布' || step === '已发布')) {
-    const isExamStarted = step !== '指标已发布'
-    addBtn('startExam', '3.启动考核', isExamStarted ? 'info' : 'primary', step !== '指标已发布', () => {
-      startExamGroupExam(row.id).then(() => { ElMessage.success('启动考核成功'); loadData() })
-    })
-  }
-
-  // 5.启动他评
-  if (isStarted && step !== '成员维护' && step !== '已启动' && step !== '指标已发布') {
+  // 5.启动他评（业绩考核才显示）
+  if (row.examCategory !== 'INDICATOR_SET' && step !== '成员维护' && step !== '已启动' && step !== '指标已发布') {
     const isPeerStarted = step !== '考核中'
-    addBtn('startPeer', '4.启动他评', isPeerStarted ? 'info' : 'primary', step !== '考核中', () => {
-      startPeerEval(row.id).then(() => { ElMessage.success('启动他评成功'); loadData() })
+    addBtn('startPeer', '启动他评', isPeerStarted ? 'info' : 'primary', step !== '考核中', () => {
+      ElMessageBox.confirm('确认启动他评？将给部门绩效管理员发送通知。', '提示').then(() => {
+        startPeerEval(row.id).then(() => { ElMessage.success('启动他评成功，已发送通知'); loadData() })
+      })
     })
   }
 
-  // 6.绩效预发布
-  if (step === '他评中' || step === '预发布' || step === '已发布') {
+  // 6.绩效预发布（业绩考核才显示）
+  if (row.examCategory !== 'INDICATOR_SET' && (step === '他评中' || step === '预发布' || step === '已发布')) {
     const isPrePublished = step === '预发布' || step === '已发布'
-    addBtn('prePublish', '5.绩效预发布', isPrePublished ? 'warning' : 'primary', step !== '他评中', () => {
-      prePublishExamGroup(row.id).then(() => { ElMessage.success('预发布成功'); loadData() })
+    addBtn('prePublish', '绩效预发布', isPrePublished ? 'warning' : 'primary', step !== '他评中', () => {
+      ElMessageBox.confirm('确认预发布？将给部门绩效管理员发送通知。', '提示').then(() => {
+        prePublishExamGroup(row.id).then(() => { ElMessage.success('预发布成功，已发送通知'); loadData() })
+      })
     })
   }
 
-  // 7.绩效发布
-  if (step === '预发布' || step === '已发布') {
+  // 7.绩效发布（业绩考核才显示）
+  if (row.examCategory !== 'INDICATOR_SET' && (step === '预发布' || step === '已发布')) {
     const isPublished = step === '已发布'
-    addBtn('publish', '6.绩效发布', isPublished ? 'success' : 'success', step !== '预发布', () => {
+    addBtn('publish', '绩效发布', isPublished ? 'success' : 'success', step !== '预发布', () => {
       ElMessageBox.confirm('确认正式发布？发布后不可撤回。', '提示').then(() => {
         publishExamGroup(row.id).then(() => { ElMessage.success('发布成功'); loadData() })
       })
@@ -483,6 +547,7 @@ function removeSelectedMember(row: any) {
 
 onMounted(() => {
   loadData()
+  loadIndicatorGroupOptions()
 })
 </script>
 

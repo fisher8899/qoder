@@ -1,6 +1,7 @@
 package com.ccerphr.assessment.controller;
 
 import com.ccerphr.assessment.common.Result;
+import com.ccerphr.assessment.dto.ExamProgressDetailVO;
 import com.ccerphr.assessment.dto.ExamProgressVO;
 import com.ccerphr.assessment.dto.ProgressQueryDTO;
 import com.ccerphr.assessment.dto.UnfilledItemVO;
@@ -22,6 +23,11 @@ public class ExamProgressController {
     @GetMapping("/query")
     public Result<List<ExamProgressVO>> query(ProgressQueryDTO queryDTO) {
         return Result.success(examProgressService.queryProgress(queryDTO));
+    }
+
+    @GetMapping("/detail")
+    public Result<List<ExamProgressDetailVO>> detail(@RequestParam Long examGroupId, @RequestParam Long orgId) {
+        return Result.success(examProgressService.queryProgressDetail(examGroupId, orgId));
     }
 
     @GetMapping("/unfilled")

@@ -107,8 +107,13 @@ function scoreClass(score: number) {
 
 async function loadExamGroups() {
   try {
-    const res = await getExamGroupList({ current: 1, size: 999 })
+    const res = await getExamGroupList({ current: 1, size: 999, examCategory: 'PERFORMANCE' })
     examGroupOptions.value = (res.data?.records || []) as ExamGroup[]
+    // 默认选中最新月份的考核组（第一个）
+    if (examGroupOptions.value.length > 0 && queryForm.examGroupId === undefined) {
+      queryForm.examGroupId = examGroupOptions.value[0].id
+      handleSearch()
+    }
   } catch (e) {}
 }
 

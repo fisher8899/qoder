@@ -15,7 +15,9 @@ export interface SelfEvalTask {
 
 export interface SelfEvalIndicator {
   indicatorId: number
+  categoryId?: number | null
   categoryName: string
+  sortCode?: number | null
   subCategory: string
   content: string
   targetDesc: string
@@ -28,6 +30,7 @@ export interface SelfEvalIndicator {
   selfResult: number | null
   attachmentUrl: string
   attachmentName: string
+  attachmentDownloadUrl?: string
   status: string
 }
 
@@ -38,6 +41,7 @@ export interface SelfEvalSaveData {
   indicatorId: number
   actualCompletion?: string
   selfScore?: number
+  selfResult?: number
   attachmentUrl?: string
   attachmentName?: string
 }
@@ -57,21 +61,25 @@ export function getSelfEvalIndicators(examGroupId: number, orgId: number) {
 }
 
 export function saveSelfEval(data: SelfEvalSaveData) {
-  return http.post('/evaluation/self/save', data)
+  return http.post<number>('/evaluation/self/save', data)
 }
 
 export function submitSelfEval(examGroupId: number, orgId: number) {
   return http.post('/evaluation/self/submit', null, { params: { examGroupId, orgId } })
 }
 
+export function withdrawSelfEval(examGroupId: number, orgId: number) {
+  return http.post('/evaluation/self/withdraw', null, { params: { examGroupId, orgId } })
+}
+
 export function uploadSelfEvalAttachment(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return http.post<{ url: string; name: string }>('/evaluation/self/upload', formData, {
+  return http.post<{ url: string; name: string; downloadUrl: string }>('/evaluation/self/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }
 
-export function downloadSelfEvalFile(fileName: string) {
-  return http.get(`/evaluation/self/download/${fileName}`)
+export function deleteSelfEvalAttachment(id: number) {
+  return http.delete(`/evaluation/self/${id}/attachment`)
 }

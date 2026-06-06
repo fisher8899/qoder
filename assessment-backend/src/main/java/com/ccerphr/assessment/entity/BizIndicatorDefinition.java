@@ -26,6 +26,7 @@ public class BizIndicatorDefinition {
     private String orgName;
     private Long categoryId;
     private String categoryName;
+    private Long subCategoryId;
     private String subCategory;
     private String content;
     private String targetDesc;

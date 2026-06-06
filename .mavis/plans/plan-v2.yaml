@@ -1,0 +1,83 @@
+﻿version: 1
+plan:
+  name: "前后端代码二轮审核（犀利版）"
+  max_concurrency: 10
+  max_consecutive_failures: 2
+  max_cycles: 8
+  verifier_config:
+    default_verifiers: [verifier]
+tasks:
+  - id: backend-review-v2
+    title: "后端代码二轮犀利审核"
+    role: verify-as-task
+    prompt: |
+      你是一位极其资深、眼光毒辣的Java/Spring Boot代码审查专家，对烂代码零容忍。
+      你的任务是对 D:\qoder\assessment-backend 下的代码进行第二轮深度代码审查，**只输出报告，不修改源码**。
+
+      ## 审查范围
+      全量 Java 源码，重点：
+      1. Controller / Service / Security / Entity / Util
+      2. 配置文件 application*.yml
+      3. 单元测试
+
+      ## 风格要求
+      - **言辞犀利、直接、不留情面**。该骂就骂。
+      - 必须给出"犀利点评"和"建设性修复方案"两个独立段落。
+      - 问题必须按 🔴致命 / 🟠严重 / 🟡一般 三级分类。
+      - 每个问题必须含：文件:行号、问题描述、风险等级、修复建议（可执行的代码片段）。
+      - 重点排查：SQL注入、越权、密码明文、JWT密钥、并发、文件上传、状态流转、错误处理、Entity贫血、N+1查询、缺审计日志、缺索引。
+
+      ## 输出
+      报告保存到：D:\qoder\report\代码全面审核报告_后端_2026-06-01_v2.md
+      同时复制一份到：D:\qoder\CODE_REVIEW_BACKEND_V2_2026-06-01.md
+
+      报告结构（务必包含）：
+      1. 总体评分（分维度+总分，0-100）
+      2. 🔴 致命问题列表（每个含犀利点评+修复方案+代码片段）
+      3. 🟠 严重问题列表
+      4. 🟡 一般问题列表
+      5. 优化建议（性能/可维护性）
+      6. 详细问题清单表格（序号/严重度/文件:行号/类型/描述/优先级）
+      7. 修复路线图（P0/P1/P2）
+
+      最后用 1-2 段"总评"给这个代码库下一个毒舌但中肯的判断。
+    assigned_to: general
+    timeout_ms: 1800000
+
+  - id: frontend-review-v2
+    title: "前端代码二轮犀利审核"
+    role: verify-as-task
+    prompt: |
+      你是一位极其资深、眼光毒辣的Vue 3/TypeScript前端代码审查专家，对烂代码零容忍。
+      你的任务是对 D:\qoder\assessment-frontend 下的代码进行第二轮深度代码审查，**只输出报告，不修改源码**。
+
+      ## 审查范围
+      全量 Vue/TS 源码，重点：
+      1. Vue 组件 (God组件优先：IndicatorSet.vue / SelfEvaluation.vue / UserManagement.vue / IndicatorProgress.vue / IndicatorApproval.vue)
+      2. API 层 / 路由 / Pinia stores
+      3. 配置文件 vite.config.ts / tsconfig*.json
+      4. package.json 依赖
+
+      ## 风格要求
+      - **言辞犀利、直接、不留情面**。该骂就骂。
+      - 必须给出"犀利点评"和"建设性修复方案"两个独立段落。
+      - 问题必须按 🔴致命 / 🟠严重 / 🟡一般 三级分类。
+      - 每个问题必须含：文件:行号、问题描述、风险等级、修复建议（可执行的代码片段）。
+      - 重点排查：XSS、Token存储、localStorage鉴权、Tabnabbing、any滥用、重复代码、God组件、any/Map响应、缺虚拟滚动、console.log泄漏、缺ESLint、缺错误边界。
+
+      ## 输出
+      报告保存到：D:\qoder\report\代码全面审核报告_前端_2026-06-01_v2.md
+      同时复制一份到：D:\qoder\CODE_REVIEW_FRONTEND_V2_2026-06-01.md
+
+      报告结构（务必包含）：
+      1. 总体评分（分维度+总分，0-100）
+      2. 🔴 致命问题列表
+      3. 🟠 严重问题列表
+      4. 🟡 一般问题列表
+      5. 优化建议
+      6. 详细问题清单表格
+      7. 修复路线图（P0/P1/P2）
+
+      最后用 1-2 段"总评"给这个代码库下一个毒舌但中肯的判断。
+    assigned_to: general
+    timeout_ms: 1800000

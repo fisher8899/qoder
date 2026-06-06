@@ -66,6 +66,11 @@ public class SysEmployeeServiceImpl extends ServiceImpl<SysEmployeeMapper, SysEm
 
     @Override
     public void add(SysEmployee employee) {
+        LambdaQueryWrapper<SysEmployee> checkWrapper = new LambdaQueryWrapper<>();
+        checkWrapper.eq(SysEmployee::getEmployeeNo, employee.getEmployeeNo());
+        if (this.count(checkWrapper) > 0) {
+            throw new BusinessException("员工编号已存在");
+        }
         LocalDateTime now = LocalDateTime.now();
         employee.setCreatedTime(now);
         employee.setUpdatedTime(now);

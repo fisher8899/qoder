@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>项目管理看板 V5 - 月度业绩考核管理系统</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --panel: rgba(255, 252, 247, 0.94);
+      --panel-strong: #fffdfa;
+      --ink: #1d2a30;
+      --muted: #66757c;
+      --line: rgba(39, 62, 70, 0.12);
+      --brand: #0f6467;
+      --brand-soft: #dcefed;
+      --accent-soft: #f9e7d9;
+      --danger: #a23535;
+      --danger-soft: #f8dddd;
+      --ok: #24724f;
+      --ok-soft: #ddf0e7;
+      --warn: #8a6402;
+      --warn-soft: #f8efcd;
+      --shadow: 0 22px 46px rgba(29, 42, 48, 0.08);
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at left top, rgba(15, 100, 103, 0.12), transparent 24%),
+        radial-gradient(circle at right top, rgba(191, 107, 46, 0.12), transparent 20%),
+        linear-gradient(180deg, #f7f2e8 0%, #f0ece3 100%);
+    }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 308px 1fr; }
+    .sidebar {
+      position: sticky; top: 0; height: 100vh; padding: 28px 22px;
+      background: rgba(17, 32, 38, 0.96); color: #edf4f5;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .eyebrow {
+      display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px;
+      background: rgba(255, 255, 255, 0.08); color: #bfe0df; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .brand { padding-bottom: 22px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 18px; }
+    .brand h1 { margin: 14px 0 10px; font-size: 30px; line-height: 1.08; }
+    .brand p, .sidebar p { margin: 0; color: rgba(237, 244, 245, 0.74); line-height: 1.7; font-size: 14px; }
+    .nav-title { margin: 18px 0 10px; font-size: 12px; color: rgba(237, 244, 245, 0.56); letter-spacing: 0.08em; text-transform: uppercase; }
+    .nav-btn {
+      width: 100%; margin: 8px 0; padding: 14px 16px; border: 0; border-radius: 14px; background: transparent;
+      color: #edf4f5; text-align: left; cursor: pointer; font-size: 15px; transition: 0.18s ease;
+    }
+    .nav-btn:hover, .nav-btn.active { background: rgba(255, 255, 255, 0.1); transform: translateX(3px); }
+    .sidebar-footer {
+      position: absolute; left: 22px; right: 22px; bottom: 24px; padding: 16px; border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06); font-size: 13px; line-height: 1.7; color: rgba(237, 244, 245, 0.8);
+    }
+    .main { padding: 28px; }
+    .panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      box-shadow: var(--shadow); backdrop-filter: blur(10px);
+    }
+    .hero, .grid.two, .grid.three, .split, .action-grid, .cockpit-grid, .metric, .hero-stats, .kpi-strip {
+      display: grid; gap: 22px;
+    }
+    .hero { grid-template-columns: 1.35fr 1fr; margin-bottom: 22px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .split { grid-template-columns: 1.05fr 1fr; }
+    .action-grid { grid-template-columns: 1.1fr 1fr; }
+    .cockpit-grid { grid-template-columns: 1.2fr 0.8fr; }
+    .metric { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
+    .kpi-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
+    .hero-card, .card { padding: 24px; }
+    .hero-card h2 { margin: 0 0 10px; font-size: 34px; line-height: 1.12; }
+    .subtle, .hero-card p { color: var(--muted); line-height: 1.78; margin: 0; }
+    .stat, .metric-card, .kpi, .mini-card, .cockpit-stage {
+      padding: 16px; background: var(--panel-strong); border: 1px solid var(--line); border-radius: 16px;
+    }
+    .stat-label, .metric-card span, .kpi span { color: var(--muted); font-size: 13px; }
+    .stat-value, .metric-card strong, .kpi strong { display: block; margin-top: 8px; font-weight: 700; }
+    .stat-value { font-size: 28px; }
+    .metric-card strong { font-size: 22px; }
+    .kpi strong { font-size: 24px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+    }
+    .brand-badge { background: var(--brand-soft); color: var(--brand); }
+    .ok-badge { background: var(--ok-soft); color: var(--ok); }
+    .warn-badge { background: var(--warn-soft); color: var(--warn); }
+    .danger-badge { background: var(--danger-soft); color: var(--danger); }
+    .progress-row { display: flex; justify-content: space-between; gap: 10px; margin: 14px 0 8px; color: var(--muted); font-size: 14px; }
+    .progress-track { height: 12px; background: #e9e2d7; border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--brand), #2c8b90); }
+    .summary-list, .rule-list { margin: 14px 0 0; padding-left: 18px; color: var(--muted); line-height: 1.8; }
+    .callout {
+      margin-top: 14px; padding: 16px 18px; border-radius: 16px; border: 1px solid rgba(191, 107, 46, 0.18);
+      background: linear-gradient(180deg, #fff3e7, #fff8f1); color: #734526; line-height: 1.72;
+    }
+    .section { display: none; }
+    .section.active { display: block; animation: fadeIn 0.22s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    h3 { margin: 0 0 14px; font-size: 21px; }
+    .cockpit-stage.current { border-color: rgba(15, 100, 103, 0.35); background: linear-gradient(180deg, #f3fbfa, #ffffff); }
+    .cockpit-stage.next { border-color: rgba(138, 100, 2, 0.28); background: linear-gradient(180deg, #fffaf0, #ffffff); }
+    .cockpit-stage.locked { opacity: 0.88; }
+    .cockpit-stage strong, .mini-card strong { display: block; font-size: 18px; margin: 8px 0 6px; }
+    .cockpit-stage p, .mini-card p { margin: 0; color: var(--muted); line-height: 1.65; font-size: 14px; }
+    .cockpit-arrow { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 28px; }
+    .mini-stack, .status-board, .node-list, .link-list, .doc-list { display: grid; gap: 14px; }
+    .action-panel { padding: 0; overflow: hidden; }
+    .toolbar {
+      padding: 18px 22px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between;
+      gap: 14px; align-items: center; flex-wrap: wrap; background: rgba(255, 255, 255, 0.55);
+    }
+    .toolbar-left strong { display: block; margin-bottom: 4px; font-size: 18px; }
+    .toolbar-left span { color: var(--muted); font-size: 14px; }
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+    select {
+      min-width: 130px; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--line);
+      background: white; color: var(--ink); font-size: 14px;
+    }
+    .task-list { padding: 18px 22px 22px; display: grid; gap: 14px; }
+    .task-card, .status-card, .node, .link-card {
+      padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel-strong);
+    }
+    .task-card { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start; }
+    .task-card h4 { margin: 0 0 8px; font-size: 17px; }
+    .task-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .tag { padding: 5px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .tag.p0 { background: var(--danger-soft); color: var(--danger); }
+    .tag.p1 { background: var(--warn-soft); color: var(--warn); }
+    .tag.p2 { background: var(--brand-soft); color: var(--brand); }
+    .tag.done { background: var(--ok-soft); color: var(--ok); }
+    .tag.doing { background: var(--accent-soft); color: #925326; }
+    .tag.todo { background: #eceff1; color: #4f5d63; }
+    .task-side { text-align: right; color: var(--muted); font-size: 13px; line-height: 1.7; min-width: 120px; }
+    .empty-state { padding: 26px; text-align: center; color: var(--muted); }
+    .status-card strong { display: block; margin-bottom: 6px; font-size: 16px; }
+    .node { cursor: pointer; transition: 0.18s ease; }
+    .node:hover, .node.active { transform: translateY(-1px); box-shadow: 0 12px 22px rgba(29, 42, 48, 0.08); }
+    .node.node-ok.active, .node.node-ok:hover { border-color: rgba(36, 114, 79, 0.35); }
+    .node.node-warn.active, .node.node-warn:hover { border-color: rgba(138, 100, 2, 0.35); }
+    .node.node-danger.active, .node.node-danger:hover { border-color: rgba(162, 53, 53, 0.35); }
+    .node.node-brand.active, .node.node-brand:hover { border-color: rgba(15, 100, 103, 0.35); }
+    .node-title { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 8px; font-weight: 700; }
+    .node small, .link-card span { color: var(--muted); line-height: 1.65; display: block; font-size: 14px; }
+    .detail-box {
+      min-height: 100%; padding: 22px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,251,250,0.92));
+      border: 1px solid var(--line);
+    }
+    .detail-box h4 { margin: 0 0 12px; font-size: 22px; }
+    .detail-box ul { margin: 14px 0 0; padding-left: 18px; color: var(--muted); line-height: 1.78; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 14px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 700; }
+    .link-card { display: block; text-decoration: none; color: var(--ink); transition: 0.18s ease; }
+    .link-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(29, 42, 48, 0.08); border-color: rgba(15, 100, 103, 0.28); }
+    .link-card strong { display: block; margin-bottom: 6px; font-size: 16px; }
+    .doc-group-title { margin: 0 0 10px; font-size: 15px; color: var(--muted); }
+    .auto-note {
+      margin-top: 10px; color: var(--muted); font-size: 13px;
+    }
+    @media (max-width: 1220px) {
+      .shell, .hero, .metric, .grid.two, .grid.three, .split, .action-grid, .cockpit-grid, .kpi-strip { grid-template-columns: 1fr; }
+      .sidebar { position: relative; height: auto; }
+      .sidebar-footer { position: static; margin-top: 18px; }
+      .task-card { grid-template-columns: 1fr; }
+      .task-side { text-align: left; }
+      .cockpit-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="eyebrow">PM Dashboard V5</span>
+        <h1>项目负责人看板</h1>
+        <p>从“静态展示”升级为“优先读取真实治理文档”的项目负责人门户。</p>
+      </div>
+      <div class="nav-title">看板导航</div>
+      <button class="nav-btn active" data-section="overview">项目总览</button>
+      <button class="nav-btn" data-section="execution">执行驾驶舱</button>
+      <button class="nav-btn" data-section="flow">流程与节点</button>
+      <button class="nav-btn" data-section="tasks">任务与风险</button>
+      <button class="nav-btn" data-section="docs">文档中心</button>
+      <button class="nav-btn" data-section="standards">规范与交付</button>
+      <button class="nav-btn" data-section="feature-entry">功能入口</button>
+      <div class="sidebar-footer">
+        <div id="sideStage">当前阶段：D1 业务实现后段</div>
+        <div id="sideNode">当前节点：联调收口前</div>
+        <div id="sideNext">下一节点：D2 质量整改</div>
+        <div id="sideBlock">核心阻断：权限、数据范围、状态机、测试基线</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="hero">
+        <section class="panel hero-card">
+          <span class="badge brand-badge">项目负责人主视角</span>
+          <h2>现在最关键的不是“再做更多功能”，而是“让项目可测试、可上线、可交付”</h2>
+          <p>第五版看板开始优先自动读取本地治理文档数据，优先同步真实任务、风险和项目总览信息；浏览器无法读取本地文件时，仍然保留静态兜底。</p>
+          <div class="hero-stats">
+            <div class="stat"><div class="stat-label">项目总体进度</div><div class="stat-value" id="heroOverall">75%</div></div>
+            <div class="stat"><div class="stat-label">核心业务完成度</div><div class="stat-value" id="heroCore">85%</div></div>
+            <div class="stat"><div class="stat-label">上线准备度</div><div class="stat-value" id="heroRelease">35%</div></div>
+            <div class="stat"><div class="stat-label">高风险项</div><div class="stat-value" id="heroRiskCount">4</div></div>
+          </div>
+          <div class="auto-note" id="autoModeNote">当前模式：静态兜底数据。</div>
+        </section>
+
+        <section class="panel hero-card">
+          <span class="badge warn-badge">当前判断</span>
+          <div class="progress-row"><span>阶段成熟度</span><strong id="heroSummary">功能已成型，交付尚未闭环</strong></div>
+          <div class="progress-track"><div class="progress-fill" id="heroProgressBar" style="width:75%;"></div></div>
+          <ul class="summary-list" id="heroSummaryList">
+            <li>主流程已经有基础实现，项目不在“从零开发”阶段。</li>
+            <li>当前真正缺的是权限边界、状态机、评分闭环、测试与发布准备。</li>
+            <li>项目负责人此时应以阶段控制和风险收口来推动，而不是继续泛化堆需求。</li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="section active" id="overview">
+        <div class="panel card">
+          <h3>项目驾驶舱总览</h3>
+          <div class="cockpit-grid">
+            <div>
+              <div style="display:grid;grid-template-columns:1fr 70px 1fr 70px 1fr 70px 1fr;gap:10px;align-items:center;">
+                <div class="cockpit-stage current">
+                  <span class="badge warn-badge">当前阶段</span>
+                  <strong id="currentStageTitle">D1 业务实现</strong>
+                  <p id="currentStageDesc">核心业务流程已基本成型，当前处于联调收口前夜。</p>
+                </div>
+                <div class="cockpit-arrow">→</div>
+                <div class="cockpit-stage next">
+                  <span class="badge danger-badge">下一阶段</span>
+                  <strong id="nextStageTitle">D2 质量整改</strong>
+                  <p id="nextStageDesc">必须优先修复阻断上线的高风险问题。</p>
+                </div>
+                <div class="cockpit-arrow">→</div>
+                <div class="cockpit-stage locked">
+                  <span class="badge brand-badge">后续阶段</span>
+                  <strong>D3 测试收口</strong>
+                  <p>建立可信测试结果与验收记录。</p>
+                </div>
+                <div class="cockpit-arrow">→</div>
+                <div class="cockpit-stage locked">
+                  <span class="badge brand-badge">交付阶段</span>
+                  <strong>D4 交付准备</strong>
+                  <p>部署、回滚、验收、交接形成完整闭环。</p>
+                </div>
+              </div>
+              <div class="callout" id="overviewCallout">当前项目正在 <strong>D1 业务实现阶段</strong>，但严格说已经进入“<strong>联调收口前</strong>”。如果接下来不切入 D2 质量整改准备，后续测试和上线会被红线问题直接拦住。</div>
+            </div>
+            <div class="mini-stack">
+              <div class="mini-card"><strong>当前所在节点</strong><p id="miniCurrentNode">业务功能开发后期 / 联调收口前</p></div>
+              <div class="mini-card"><strong>当前主任务</strong><p id="miniCurrentTask">继续完成当前业务需求实现，同时按冲刺清单推进测试上线收口。</p></div>
+              <div class="mini-card"><strong>下一关键节点</strong><p id="miniNextNode">进入 D2 质量整改，清理权限、数据范围、状态机、申诉回写等交付红线。</p></div>
+              <div class="mini-card"><strong>当前最大阻断</strong><p id="miniCurrentBlock">服务端权限边界不可信，测试矩阵未形成，发布条件尚未收紧。</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric" style="margin-top:22px;">
+          <div class="metric-card"><span>项目阶段</span><strong id="metricStage">D1 后段</strong></div>
+          <div class="metric-card"><span>当前节点</span><strong id="metricNode">联调收口前</strong></div>
+          <div class="metric-card"><span>下一节点</span><strong id="metricNext">D2 质量整改</strong></div>
+          <div class="metric-card"><span>当前主线</span><strong id="metricTask">T-001</strong></div>
+        </div>
+
+        <div class="kpi-strip">
+          <div class="kpi"><span>进行中任务</span><strong id="kpiDoing">3</strong></div>
+          <div class="kpi"><span>待开发任务</span><strong id="kpiTodo">3</strong></div>
+          <div class="kpi"><span>P0 任务</span><strong id="kpiP0">5</strong></div>
+          <div class="kpi"><span>R1 风险</span><strong id="kpiR1">4</strong></div>
+          <div class="kpi"><span>最近完成</span><strong id="kpiDone">T-011</strong></div>
+        </div>
+      </section>
+
+      <section class="section" id="execution">
+        <div class="action-grid">
+          <div class="panel action-panel">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <strong>执行任务驾驶舱</strong>
+                <span>按状态、优先级、类型筛选任务，用于每日检查。</span>
+              </div>
+              <div class="filters">
+                <select id="filterStatus">
+                  <option value="all">全部状态</option>
+                  <option value="开发中">开发中</option>
+                  <option value="待开发">待开发</option>
+                  <option value="待分析">待分析</option>
+                  <option value="已完成">已完成</option>
+                </select>
+                <select id="filterPriority">
+                  <option value="all">全部优先级</option>
+                  <option value="P0">P0</option>
+                  <option value="P1">P1</option>
+                  <option value="P2">P2</option>
+                </select>
+                <select id="filterType">
+                  <option value="all">全部类型</option>
+                  <option value="Feature">功能</option>
+                  <option value="Process">流程</option>
+                  <option value="Security">安全</option>
+                  <option value="Delivery">交付</option>
+                  <option value="Quality">质量</option>
+                  <option value="Tech Debt">技术债</option>
+                </select>
+              </div>
+            </div>
+            <div class="task-list" id="taskList"></div>
+          </div>
+
+          <div class="panel card">
+            <h3>今日 / 本周 / 阻断</h3>
+            <div class="status-board">
+              <div class="status-card"><strong>今日负责人重点</strong><div class="subtle">明确本轮上线范围和不进入本轮的需求边界，防止测试阶段持续漂移。</div></div>
+              <div class="status-card"><strong>本周必须推进</strong><div class="subtle" id="weeklyFocus">按业务剧本跑一轮完整联调，覆盖发布、自评、他评、复核、申诉、发布、结果查询和导出。</div></div>
+              <div class="status-card"><strong>当前阻断测试</strong><div class="subtle" id="blockTest">测试矩阵不完整，权限边界和状态机未形成可信前提，导致测试结果本身不稳定。</div></div>
+              <div class="status-card"><strong>当前阻断上线</strong><div class="subtle" id="blockRelease">服务端 RBAC、数据范围信任前端、申诉回写缺失、可跳步骤发布，这四类问题未关闭前不能放行。</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="flow">
+        <div class="split">
+          <div class="panel card">
+            <h3>项目阶段流程</h3>
+            <div class="node-list" id="phaseNodes">
+              <div class="node node-warn active" data-node="d1"><div class="node-title"><span>D1 业务实现阶段</span><span class="badge warn-badge">进行中</span></div><small>业务功能继续推进，但已进入交付视角下的收口前夜。</small></div>
+              <div class="node node-danger" data-node="d2"><div class="node-title"><span>D2 质量整改阶段</span><span class="badge danger-badge">待进入</span></div><small>修复真正阻断交付的高风险问题，是上线前硬门槛。</small></div>
+              <div class="node node-brand" data-node="d3"><div class="node-title"><span>D3 测试收口阶段</span><span class="badge brand-badge">待进入</span></div><small>建立可信测试与验收结果，给上线一个客观依据。</small></div>
+              <div class="node node-brand" data-node="d4"><div class="node-title"><span>D4 交付准备阶段</span><span class="badge brand-badge">待进入</span></div><small>部署、回滚、说明、交付包形成完整闭环。</small></div>
+            </div>
+          </div>
+          <div class="panel"><div class="detail-box" id="phaseDetail"></div></div>
+        </div>
+
+        <div class="split" style="margin-top:22px;">
+          <div class="panel card">
+            <h3>业务流程节点</h3>
+            <div class="node-list" id="businessNodes">
+              <div class="node node-ok active" data-biz="publish"><div class="node-title"><span>1. 指标发布</span><span class="badge ok-badge">基础实现</span></div><small>管理员发布指标，业务起点基本具备。</small></div>
+              <div class="node node-ok" data-biz="self"><div class="node-title"><span>2. 自评</span><span class="badge ok-badge">基础实现</span></div><small>部门自评基础能力已具备。</small></div>
+              <div class="node node-ok" data-biz="peer"><div class="node-title"><span>3. 他评</span><span class="badge ok-badge">基础实现</span></div><small>互评角色页面和流程具备基础实现。</small></div>
+              <div class="node node-warn" data-biz="review"><div class="node-title"><span>4. 复核</span><span class="badge warn-badge">需核对口径</span></div><small>结果口径和补齐逻辑仍需重点核查。</small></div>
+              <div class="node node-danger" data-biz="appeal"><div class="node-title"><span>5. 申诉</span><span class="badge danger-badge">闭环不足</span></div><small>申诉回写评分链路当前不可信。</small></div>
+              <div class="node node-danger" data-biz="publish-final"><div class="node-title"><span>6. 正式发布</span><span class="badge danger-badge">不可放行</span></div><small>状态机未收紧前不能判定为可发布。</small></div>
+            </div>
+          </div>
+          <div class="panel"><div class="detail-box" id="bizDetail"></div></div>
+        </div>
+      </section>
+
+      <section class="section" id="tasks">
+        <div class="grid two">
+          <div class="panel card">
+            <h3>当前关键任务</h3>
+            <table>
+              <thead><tr><th>编号</th><th>任务</th><th>优先级</th><th>状态</th></tr></thead>
+              <tbody id="taskTableBody">
+                <tr><td>T-001</td><td>继续完成当前业务需求实现</td><td>P0</td><td>开发中</td></tr>
+                <tr><td>T-002</td><td>建立并执行文档同步机制</td><td>P0</td><td>开发中</td></tr>
+                <tr><td>T-005</td><td>完成权限与数据范围专项整改</td><td>P0</td><td>待开发</td></tr>
+                <tr><td>T-006</td><td>建立系统化测试与发布收口流程</td><td>P1</td><td>待开发</td></tr>
+                <tr><td>T-011</td><td>升级文档查看器为自动读取 Markdown 模式</td><td>P0</td><td>已完成</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="panel card">
+            <h3>当前最高风险</h3>
+            <table>
+              <thead><tr><th>编号</th><th>风险</th><th>等级</th><th>影响</th></tr></thead>
+              <tbody id="riskTableBody">
+                <tr><td>R-001</td><td>服务端权限模型不完整</td><td>R1</td><td>越权风险，阻断上线</td></tr>
+                <tr><td>R-002</td><td>数据范围信任前端上下文</td><td>R1</td><td>存在跨组织数据风险</td></tr>
+                <tr><td>R-006</td><td>缺少系统化测试与验收矩阵</td><td>R1</td><td>无法证明交付质量</td></tr>
+                <tr><td>R-007</td><td>发布准备不足</td><td>R1</td><td>上线失败或无法回滚</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="docs">
+        <div class="grid two">
+          <div class="panel card">
+            <h3>项目控制文档</h3>
+            <div class="doc-list">
+              <a class="link-card" href="./project-doc-viewer.html?doc=handoff" target="_blank"><strong>启动交接说明</strong><span>机器重启后第一入口，快速接手当前状态、任务、命令和风险。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=dashboard" target="_blank"><strong>项目总览看板文档</strong><span>项目状态、当前任务、风险、入口和整体节奏。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=progress" target="_blank"><strong>项目进度记录</strong><span>记录刚完成什么、下一步做什么、当前阻塞点。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=bug" target="_blank"><strong>缺陷修复台账</strong><span>查看修复过哪些问题、原因是什么、如何验证。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=requirement" target="_blank"><strong>需求变更台账</strong><span>新增了哪些需求、调整了哪些需求、如何实现。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=task" target="_blank"><strong>任务看板文档</strong><span>任务池、优先级、负责人、本周重点和归档记录。</span></a>
+            </div>
+          </div>
+
+          <div class="panel card">
+            <h3>测试与交付文档</h3>
+            <div class="doc-list">
+              <a class="link-card" href="./project-doc-viewer.html?doc=delivery" target="_blank"><strong>项目交付计划</strong><span>阶段划分、进入条件、退出条件和交付物要求。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=risk" target="_blank"><strong>项目风险台账</strong><span>高风险项、缓解动作和风险关闭规则。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=test" target="_blank"><strong>测试策略</strong><span>测试目标、测试层级、执行方式和收口要求。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=release" target="_blank"><strong>发布准备清单</strong><span>上线前检查、验收、环境、脚本和交付包。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=sprint" target="_blank"><strong>测试上线冲刺清单</strong><span>项目负责人当前最重要的执行基线。</span></a>
+              <a class="link-card" href="./project-doc-viewer.html?doc=review" target="_blank"><strong>代码审查报告</strong><span>交付阻断问题、修复建议和整改优先级。</span></a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="standards">
+        <div class="grid two">
+          <div class="panel card">
+            <h3>项目规范</h3>
+            <ul class="rule-list">
+              <li>每次完成任务后必须更新项目总览和项目进度记录。</li>
+              <li>包含缺陷修复时必须更新缺陷修复台账。</li>
+              <li>包含新增需求或需求调整时必须更新需求变更台账。</li>
+              <li>项目不能以“功能做完”判定交付完成，必须按阶段退出条件判断。</li>
+              <li>未满足权限、状态机、测试和发布红线项，不得宣布可上线。</li>
+            </ul>
+            <div class="callout">这套规则的目的，是让项目在任何时刻都能回答：做到哪了、刚完成什么、下一步做什么、当前风险是什么、为什么现在还不能上线。</div>
+          </div>
+
+          <div class="panel card">
+            <h3>交付节奏</h3>
+            <table>
+              <thead><tr><th>阶段</th><th>目标</th><th>当前状态</th></tr></thead>
+              <tbody>
+                <tr><td>D1</td><td>完成核心业务需求</td><td>进行中</td></tr>
+                <tr><td>D2</td><td>高风险质量整改</td><td>待开始</td></tr>
+                <tr><td>D3</td><td>建立可信回归结果</td><td>待开始</td></tr>
+                <tr><td>D4</td><td>完成交付与发布准备</td><td>待开始</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="feature-entry">
+        <div class="grid two">
+          <div class="panel card">
+            <h3>原型与流程入口</h3>
+            <div class="link-list">
+              <a class="link-card" href="./月度业绩考核原型设计初稿/6-时序图-v1.html" target="_blank"><strong>月度业绩考核时序图</strong><span>项目负责人拆 UAT 和盯节点状态的核心流程基线。</span></a>
+              <a class="link-card" href="./月度业绩考核原型设计初稿/2-计划财务处业绩考核管理员原型-v1.html" target="_blank"><strong>财务 / 考核管理员原型</strong><span>查看发布指标、复核、申诉、结果查询和导出相关页面。</span></a>
+              <a class="link-card" href="./月度业绩考核原型设计初稿/4-部门负责人原型-v1.html" target="_blank"><strong>部门负责人原型</strong><span>查看审批和管理端视角。</span></a>
+              <a class="link-card" href="./月度业绩考核原型设计初稿/5-考核员分管领导原型-v1.html" target="_blank"><strong>考核员 / 分管领导原型</strong><span>查看他评、申诉重评和结果查看相关页面。</span></a>
+            </div>
+          </div>
+          <div class="panel card">
+            <h3>代码与系统入口</h3>
+            <div class="link-list">
+              <a class="link-card" href="./assessment-frontend/" target="_blank"><strong>前端工程目录</strong><span>Vue 3 前端代码入口，查看页面实现和路由模块。</span></a>
+              <a class="link-card" href="./assessment-backend/" target="_blank"><strong>后端工程目录</strong><span>Spring Boot 后端代码入口，查看控制器、服务和权限实现。</span></a>
+              <a class="link-card" href="./CCERPHR_RD050_绩效考核解决方案-月度考核管理-4-22.pdf" target="_blank"><strong>需求方案文档</strong><span>回看需求定义、角色、流程和业务背景。</span></a>
+              <a class="link-card" href="./docs/project-management.md" target="_blank"><strong>项目管理规则文档</strong><span>文档维护规则和协作要求。</span></a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const fallbackState = {
+      progress: { overall: 75, core: 85, release: 35, stage: "D1 后段", node: "联调收口前", next: "D2 质量整改", task: "T-001", summary: "功能已成型，交付尚未闭环" },
+      tasks: [
+        { id: "T-001", title: "继续完成当前业务需求实现", type: "Feature", typeName: "功能", priority: "P0", status: "开发中", owner: "Codex/用户协作", due: "待定", note: "当前主线任务，功能完成并完成联调。" },
+        { id: "T-002", title: "建立并执行文档同步机制", type: "Process", typeName: "流程", priority: "P0", status: "开发中", owner: "Codex", due: "持续执行", note: "每次任务完成后同步更新治理文档。" },
+        { id: "T-003", title: "整理代码审核后的质量整改任务池", type: "Tech Debt", typeName: "技术债", priority: "P1", status: "待开发", owner: "Codex", due: "待定", note: "业务主线阶段性完成后，形成 P0/P1 整改项。" },
+        { id: "T-004", title: "清理中文乱码并统一编码策略", type: "Quality", typeName: "质量", priority: "P1", status: "待分析", owner: "待定", due: "待定", note: "建议单列专项，防止维护成本继续上升。" },
+        { id: "T-005", title: "完成权限与数据范围专项整改", type: "Security", typeName: "安全", priority: "P0", status: "待开发", owner: "待定", due: "待定", note: "上线红线项，服务端不再信任前端权限上下文。" },
+        { id: "T-006", title: "建立系统化测试与发布收口流程", type: "Delivery", typeName: "交付", priority: "P1", status: "待开发", owner: "待定", due: "待定", note: "测试策略、验收、发布清单必须转化为实际执行。" },
+        { id: "T-011", title: "升级文档查看器为自动读取 Markdown 模式", type: "Process", typeName: "流程", priority: "P0", status: "已完成", owner: "Codex", due: "2026-05-14", note: "增加 Markdown 自动读取、渲染和降级回退。" }
+      ],
+      risks: [
+        { id: "R-001", title: "服务端权限模型不完整", level: "R1", impact: "越权风险，阻断上线" },
+        { id: "R-002", title: "数据范围信任前端上下文", level: "R1", impact: "存在跨组织数据风险" },
+        { id: "R-006", title: "缺少系统化测试与验收矩阵", level: "R1", impact: "无法证明交付质量" },
+        { id: "R-007", title: "发布准备不足", level: "R1", impact: "上线失败或无法回滚" }
+      ]
+    };
+
+    let runtimeState = JSON.parse(JSON.stringify(fallbackState));
+
+    const phaseData = {
+      d1: { title: "D1 业务实现阶段", badgeText: "进行中", badgeClass: "warn-badge", summary: "当前仍处于业务需求实现阶段，但已经进入交付视角下的收口前夜。", points: ["当前重点：继续完成业务需求，同时开始按冲刺清单推进测试收口。", "退出条件：核心业务功能全部完成并联调通过。", "风险：如果继续只堆功能，不提前控风险，D2 和 D3 压力会在后期集中爆发。"] },
+      d2: { title: "D2 质量整改阶段", badgeText: "待进入", badgeClass: "danger-badge", summary: "这是本项目能不能上线的硬门槛阶段，不是可选项。", points: ["重点关注：RBAC、数据范围、审批角色来源、状态机、申诉回写、结果口径。", "必须清理 P0 级问题，至少对 P1 给出明确结论。", "没有完成该阶段，后续测试结论将不可信。"] },
+      d3: { title: "D3 测试收口阶段", badgeText: "待进入", badgeClass: "brand-badge", summary: "目标不是多测几个页面，而是产出可信的质量证明。", points: ["必须建立主流程冒烟、权限回归、结果口径核对、部署验证。", "测试要按场景和角色走，不要只按页面点点点。", "没有客观记录，项目负责人不能宣布通过测试。"] },
+      d4: { title: "D4 交付准备阶段", badgeText: "待进入", badgeClass: "brand-badge", summary: "这是最终交付包闭环阶段，决定项目能否稳定上线与可回滚。", points: ["必须准备启动说明、部署说明、初始化脚本、配置说明、回滚方案、验收记录。", "发布动作必须经过检查清单验证，不允许临场拼接。", "残余风险必须有书面接受结论。"] }
+    };
+
+    const bizData = {
+      publish: { title: "1. 指标发布", badgeText: "基础实现", badgeClass: "ok-badge", summary: "业务起点已经具备实现基础，适合纳入主流程冒烟。", points: ["需确认指标审批通过后才允许进入发布环节。", "发布动作必须与角色权限真实绑定。", "发布后要能正确驱动自评阶段。"] },
+      self: { title: "2. 自评", badgeText: "基础实现", badgeClass: "ok-badge", summary: "自评页面和主链路已有实现，但仍需场景联调验证提交边界。", points: ["需要验证完成进度 100% 才允许提交。", "需要验证归属组织、当前步骤、截止时间的服务端约束。", "自评提交必须与后续他评启动条件对齐。"] },
+      peer: { title: "3. 他评", badgeText: "基础实现", badgeClass: "ok-badge", summary: "他评已具备页面与流程基础，但必须核对评分资格和数据归属。", points: ["不能只依赖前端传入的组织和角色参数。", "需要验证谁有资格给谁打分。", "评分结果必须能正确进入复核与汇总链路。"] },
+      review: { title: "4. 复核", badgeText: "需核对口径", badgeClass: "warn-badge", summary: "复核是结果可信度的核心节点，目前最需要做口径和补全验证。", points: ["需验证最终得分规则是否与原型一致。", "需验证未人工编辑项是否正确补齐。", "结果页、复核页、导出页必须使用统一聚合逻辑。"] },
+      appeal: { title: "5. 申诉", badgeText: "闭环不足", badgeClass: "danger-badge", summary: "这是当前最不可信的业务节点之一，状态处理和分数回写还没有形成稳定闭环。", points: ["申诉成功后必须真正触发重新评分和重新复核。", "需要明确申诉作用于哪一层分数。", "没有闭环前，申诉模块不能算可交付。"] },
+      "publish-final": { title: "6. 正式发布", badgeText: "不可放行", badgeClass: "danger-badge", summary: "在状态机和前置校验未补齐前，正式发布动作不应被视为可信。", points: ["必须校验自评、他评、复核、申诉处理是否闭环。", "必须禁止跳步骤推进到预发布或正式发布。", "发布后结果应冻结，查询与导出必须口径一致。"] }
+    };
+
+    function renderDetail(targetId, item) {
+      document.getElementById(targetId).innerHTML = `<span class="badge ${item.badgeClass}">${item.badgeText}</span><h4>${item.title}</h4><p class="subtle">${item.summary}</p><ul>${item.points.map(point => `<li>${point}</li>`).join("")}</ul>`;
+    }
+    function statusTagClass(status) { if (status === "已完成") return "done"; if (status === "开发中") return "doing"; return "todo"; }
+    function priorityClass(priority) { return priority.toLowerCase(); }
+
+    function renderOverview() {
+      const p = runtimeState.progress;
+      document.getElementById("heroOverall").textContent = `${p.overall}%`;
+      document.getElementById("heroCore").textContent = `${p.core}%`;
+      document.getElementById("heroRelease").textContent = `${p.release}%`;
+      document.getElementById("heroRiskCount").textContent = String(runtimeState.risks.length);
+      document.getElementById("heroSummary").textContent = p.summary;
+      document.getElementById("heroProgressBar").style.width = `${p.overall}%`;
+      document.getElementById("currentStageTitle").textContent = p.stage;
+      document.getElementById("currentStageDesc").textContent = `当前节点：${p.node}。当前主任务：${p.task}。`;
+      document.getElementById("nextStageTitle").textContent = p.next;
+      document.getElementById("nextStageDesc").textContent = "下一步要从功能推进切入质量整改与测试收口。";
+      document.getElementById("overviewCallout").innerHTML = `当前项目正在 <strong>${p.stage}</strong>，当前节点是“<strong>${p.node}</strong>”。如果下一步不转入 <strong>${p.next}</strong> 相关准备，后续测试和上线会被风险项直接拦住。`;
+      document.getElementById("miniCurrentNode").textContent = `${p.stage} / ${p.node}`;
+      document.getElementById("miniCurrentTask").textContent = `当前主任务：${p.task}`;
+      document.getElementById("miniNextNode").textContent = `下一关键节点：${p.next}`;
+      document.getElementById("miniCurrentBlock").textContent = runtimeState.risks.slice(0, 3).map(r => r.title).join(" / ");
+      document.getElementById("metricStage").textContent = p.stage;
+      document.getElementById("metricNode").textContent = p.node;
+      document.getElementById("metricNext").textContent = p.next;
+      document.getElementById("metricTask").textContent = p.task;
+      document.getElementById("sideStage").textContent = `当前阶段：${p.stage}`;
+      document.getElementById("sideNode").textContent = `当前节点：${p.node}`;
+      document.getElementById("sideNext").textContent = `下一节点：${p.next}`;
+      document.getElementById("sideBlock").textContent = `核心阻断：${runtimeState.risks.slice(0, 3).map(r => r.title).join("、")}`;
+
+      const doing = runtimeState.tasks.filter(t => t.status === "开发中").length;
+      const todo = runtimeState.tasks.filter(t => t.status === "待开发" || t.status === "待分析").length;
+      const p0 = runtimeState.tasks.filter(t => t.priority === "P0").length;
+      const r1 = runtimeState.risks.filter(r => r.level === "R1").length;
+      const doneLatest = [...runtimeState.tasks].reverse().find(t => t.status === "已完成");
+      document.getElementById("kpiDoing").textContent = String(doing);
+      document.getElementById("kpiTodo").textContent = String(todo);
+      document.getElementById("kpiP0").textContent = String(p0);
+      document.getElementById("kpiR1").textContent = String(r1);
+      document.getElementById("kpiDone").textContent = doneLatest ? doneLatest.id : "-";
+
+      const topRisks = runtimeState.risks.slice(0, 3).map(r => `<li>${r.title}</li>`).join("");
+      document.getElementById("heroSummaryList").innerHTML = `
+        <li>项目总体进度与节点信息优先从项目总览文档自动读取。</li>
+        <li>任务区优先从任务看板文档自动读取。</li>
+        <li>当前最值得盯住的风险：<ul>${topRisks}</ul></li>
+      `;
+    }
+
+    function renderTaskList() {
+      const status = document.getElementById("filterStatus").value;
+      const priority = document.getElementById("filterPriority").value;
+      const type = document.getElementById("filterType").value;
+      const filtered = runtimeState.tasks.filter(task =>
+        (status === "all" || task.status === status) &&
+        (priority === "all" || task.priority === priority) &&
+        (type === "all" || task.type === type)
+      );
+      const list = document.getElementById("taskList");
+      if (!filtered.length) {
+        list.innerHTML = `<div class="empty-state">当前筛选条件下没有匹配任务。</div>`;
+      } else {
+        list.innerHTML = filtered.map(task => `
+          <div class="task-card">
+            <div>
+              <div class="task-meta">
+                <span class="tag ${priorityClass(task.priority)}">${task.priority}</span>
+                <span class="tag ${statusTagClass(task.status)}">${task.status}</span>
+                <span class="tag todo">${task.typeName}</span>
+              </div>
+              <h4>${task.id} ${task.title}</h4>
+              <div class="subtle">${task.note || ""}</div>
+            </div>
+            <div class="task-side">
+              <div>负责人：${task.owner || "待定"}</div>
+              <div>目标日期：${task.due || "待定"}</div>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      document.getElementById("taskTableBody").innerHTML = runtimeState.tasks.slice(0, 5).map(task =>
+        `<tr><td>${task.id}</td><td>${task.title}</td><td>${task.priority}</td><td>${task.status}</td></tr>`
+      ).join("");
+    }
+
+    function renderRisks() {
+      document.getElementById("riskTableBody").innerHTML = runtimeState.risks.slice(0, 4).map(risk =>
+        `<tr><td>${risk.id}</td><td>${risk.title}</td><td>${risk.level}</td><td>${risk.impact}</td></tr>`
+      ).join("");
+      const topRiskText = runtimeState.risks.slice(0, 3).map(r => r.title).join("；");
+      document.getElementById("weeklyFocus").textContent = `本周除了业务剧本联调，还要重点看：${topRiskText}`;
+      document.getElementById("blockTest").textContent = runtimeState.risks.find(r => r.id === "R-006")?.impact || "测试矩阵不完整。";
+      document.getElementById("blockRelease").textContent = runtimeState.risks.filter(r => r.level === "R1").map(r => r.title).join("；");
+    }
+
+    function parseProgressMarkdown(text) {
+      const rows = [...text.matchAll(/\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*(\d+)%\s*\|\s*([^|]+)\|/g)];
+      let core = 85, release = 35;
+      rows.forEach(match => {
+        const moduleName = match[1].trim();
+        const percent = Number(match[3]);
+        if (moduleName.includes("核心")) core = percent;
+        if (moduleName.includes("测试") || moduleName.includes("发布")) release = percent;
+      });
+      const currentTaskMatch = text.match(/当前看板入口|当前主任务|下一个主任务/);
+      return {
+        overall: Math.round((core + release) / 2),
+        core,
+        release,
+        stage: "D1 后段",
+        node: "联调收口前",
+        next: "D2 质量整改",
+        task: "T-001",
+        summary: "已自动从项目总览文档提取关键进度信息"
+      };
+    }
+
+    function parseTaskMarkdown(text) {
+      const lines = text.split(/\r?\n/);
+      const taskRows = [];
+      for (const line of lines) {
+        if (!line.startsWith("| T-")) continue;
+        const parts = line.split("|").map(s => s.trim()).filter(Boolean);
+        if (parts.length < 6) continue;
+        const [id, title, type, priority, status, owner, , due, , , note] = parts;
+        const typeMap = { Feature: "功能", Process: "流程", Security: "安全", Delivery: "交付", Quality: "质量", "Tech Debt": "技术债" };
+        taskRows.push({
+          id, title, type, typeName: typeMap[type] || type, priority, status, owner, due, note: note || ""
+        });
+      }
+      return taskRows.length ? taskRows : fallbackState.tasks;
+    }
+
+    function parseRiskMarkdown(text) {
+      const lines = text.split(/\r?\n/);
+      const rows = [];
+      for (const line of lines) {
+        if (!line.startsWith("| R-")) continue;
+        const parts = line.split("|").map(s => s.trim()).filter(Boolean);
+        if (parts.length < 5) continue;
+        const [id, title, level, , impact] = parts;
+        rows.push({ id, title, level, impact });
+      }
+      return rows.length ? rows : fallbackState.risks;
+    }
+
+    async function autoLoadData() {
+      try {
+        const [progressRes, taskRes, riskRes] = await Promise.all([
+          fetch("./PROJECT_PROGRESS.md"),
+          fetch("./TASK_BOARD.md"),
+          fetch("./RISK_REGISTER.md")
+        ]);
+        if (!progressRes.ok || !taskRes.ok || !riskRes.ok) throw new Error("fetch failed");
+        const [progressText, taskText, riskText] = await Promise.all([
+          progressRes.text(), taskRes.text(), riskRes.text()
+        ]);
+        runtimeState.progress = parseProgressMarkdown(progressText);
+        runtimeState.tasks = parseTaskMarkdown(taskText);
+        runtimeState.risks = parseRiskMarkdown(riskText);
+        document.getElementById("autoModeNote").textContent = "当前模式：已自动读取 PROJECT_PROGRESS.md / TASK_BOARD.md / RISK_REGISTER.md。";
+      } catch (e) {
+        document.getElementById("autoModeNote").textContent = "当前模式：无法直接读取本地治理文档，已回退为静态兜底数据。";
+      }
+      renderOverview();
+      renderTaskList();
+      renderRisks();
+    }
+
+    document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click", () => {
+      document.querySelectorAll(".nav-btn").forEach(item => item.classList.remove("active"));
+      document.querySelectorAll(".section").forEach(item => item.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.section).classList.add("active");
+    }));
+    document.querySelectorAll("#phaseNodes .node").forEach(node => node.addEventListener("click", () => {
+      document.querySelectorAll("#phaseNodes .node").forEach(item => item.classList.remove("active"));
+      node.classList.add("active");
+      renderDetail("phaseDetail", phaseData[node.dataset.node]);
+    }));
+    document.querySelectorAll("#businessNodes .node").forEach(node => node.addEventListener("click", () => {
+      document.querySelectorAll("#businessNodes .node").forEach(item => item.classList.remove("active"));
+      node.classList.add("active");
+      renderDetail("bizDetail", bizData[node.dataset.biz]);
+    }));
+    ["filterStatus", "filterPriority", "filterType"].forEach(id => document.getElementById(id).addEventListener("change", renderTaskList));
+
+    renderDetail("phaseDetail", phaseData.d1);
+    renderDetail("bizDetail", bizData.publish);
+    autoLoadData();
+  </script>
+</body>
+</html>

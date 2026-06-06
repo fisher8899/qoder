@@ -16,3 +16,14 @@ export function getUserInfo() {
 export function logout() {
   return http.post('/auth/logout')
 }
+
+export function switchRole(roleCode: string, scopeId: number) {
+  return http.post<{
+    token: string
+    roleCode: string
+    roleName: string
+    dataScope: string
+    scopeId: number
+    scopeName: string
+  }>('/auth/switch-role', { roleCode, scopeId })
+}

@@ -17,7 +17,7 @@ public interface SysUserService extends IService<SysUser> {
 
     void toggleEnabled(Long id);
 
-    void resetPassword(Long id);
+    String resetPassword(Long id);
 
     void delete(Long id);
 }

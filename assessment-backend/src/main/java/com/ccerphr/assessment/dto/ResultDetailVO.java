@@ -17,7 +17,9 @@ public class ResultDetailVO {
     private String evaluationStandard;
     private BigDecimal selfScore;
     private BigDecimal peerScore;
+    private String peerScoreComment;
     private BigDecimal adminScore;
+    private String adminScoreComment;
     private BigDecimal finalScore;
     private BigDecimal weightedScore;
 }

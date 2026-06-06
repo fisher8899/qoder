@@ -16,6 +16,7 @@ export interface IndicatorData {
   orgId: number
   categoryId?: number
   categoryName: string
+  subCategoryId?: number
   subCategory: string
   content: string
   targetDesc: string
@@ -32,6 +33,18 @@ export interface IndicatorData {
   orgNames?: string[]
   leaderIds?: number[]
   leaderNames?: string[]
+}
+
+export interface IndicatorSubCategoryData {
+  id?: number
+  examGroupId: number
+  orgId: number
+  orgName?: string
+  categoryId?: number
+  categoryName: string
+  subCategoryName: string
+  evaluationStandard?: string
+  sortCode?: number
 }
 
 export interface IndicatorTreeNode {
@@ -66,6 +79,27 @@ export function getIndicatorDetail(id: number) {
 
 export function getIndicatorTree(examGroupId: number, orgId: number) {
   return http.get<IndicatorTreeNode[]>(`/indicator/tree/${examGroupId}/${orgId}`)
+}
+
+export function getIndicatorSubCategories(params: {
+  examGroupId: number
+  orgId: number
+  categoryId?: number
+  categoryName?: string
+}) {
+  return http.get<any[]>('/indicator/sub-category/list', params)
+}
+
+export function createIndicatorSubCategory(data: IndicatorSubCategoryData) {
+  return http.post<number>('/indicator/sub-category', data)
+}
+
+export function updateIndicatorSubCategory(data: IndicatorSubCategoryData) {
+  return http.put('/indicator/sub-category', data)
+}
+
+export function deleteIndicatorSubCategory(id: number) {
+  return http.delete(`/indicator/sub-category/${id}`)
 }
 
 export function createIndicator(data: IndicatorData) {
@@ -108,6 +142,9 @@ export interface IndicatorProgressItem {
   orgName: string
   examGroupId: number
   approvalStatus: string
+  groupName: string
+  totalCount: number
+  approvedCount: number
 }
 
 export function getIndicatorProgress(params: IndicatorProgressQuery) {

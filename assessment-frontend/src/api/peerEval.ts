@@ -22,7 +22,9 @@ export interface PeerEvalTargetDept {
 
 export interface PeerEvalIndicator {
   indicatorId: number
+  categoryId?: number | null
   categoryName: string
+  sortCode?: number | null
   subCategory: string
   content: string
   targetDesc: string
@@ -37,7 +39,9 @@ export interface PeerEvalIndicator {
 
 export interface PeerEvalByIndicator {
   indicatorId: number
+  categoryId?: number | null
   categoryName: string
+  sortCode?: number | null
   subCategory: string
   content: string
   totalDepts: number

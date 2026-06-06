@@ -171,11 +171,11 @@
           <span>{{ viewData.appealReason }}</span>
         </el-form-item>
         <el-form-item label="附件">
-          <div v-if="viewData.attachments && viewData.attachments.length > 0">
-            <div v-for="att in viewData.attachments" :key="att.id" class="attachment-item">
-              <span>{{ att.fileName }}</span>
+            <div v-if="viewData.attachments && viewData.attachments.length > 0">
+              <div v-for="att in viewData.attachments" :key="att.id" class="attachment-item">
+                <a :href="att.fileUrl" target="_blank" rel="noopener noreferrer">{{ att.fileName }}</a>
+              </div>
             </div>
-          </div>
           <span v-else>—</span>
         </el-form-item>
       </el-form>

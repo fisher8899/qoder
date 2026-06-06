@@ -4,9 +4,10 @@ import com.ccerphr.assessment.common.Result;
 import com.ccerphr.assessment.dto.ReviewQueryDTO;
 import com.ccerphr.assessment.dto.ReviewScoreBatchDTO;
 import com.ccerphr.assessment.dto.ReviewScoreSaveDTO;
+import com.ccerphr.assessment.security.RequireRole;
+import com.ccerphr.assessment.security.SecurityUtil;
 import com.ccerphr.assessment.service.BizReviewScoreService;
 import com.ccerphr.assessment.util.DataScopeFilter;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,6 +34,7 @@ public class BizReviewScoreController {
     }
 
     @PostMapping("/save")
+    @RequireRole({"SUPERVISOR", "FIN_ADMIN", "ADMIN"})
     public Result<Void> save(@RequestBody ReviewScoreSaveDTO dto) {
         if (DataScopeFilter.isReadOnly()) {
             return Result.error("当前数据范围下不可修改业务数据");
@@ -42,6 +44,7 @@ public class BizReviewScoreController {
     }
 
     @PostMapping("/batch-save")
+    @RequireRole({"SUPERVISOR", "FIN_ADMIN", "ADMIN"})
     public Result<Void> batchSave(@RequestBody ReviewScoreBatchDTO dto) {
         if (DataScopeFilter.isReadOnly()) {
             return Result.error("当前数据范围下不可修改业务数据");
@@ -51,20 +54,13 @@ public class BizReviewScoreController {
     }
 
     @PostMapping("/submit")
-    public Result<Void> submit(@RequestParam Long examGroupId, HttpServletRequest request) {
+    @RequireRole({"SUPERVISOR", "FIN_ADMIN", "ADMIN"})
+    public Result<Void> submit(@RequestParam Long examGroupId) {
         if (DataScopeFilter.isReadOnly()) {
             return Result.error("当前数据范围下不可修改业务数据");
         }
-        String reviewer = getCurrentUser(request);
+        String reviewer = SecurityUtil.getCurrentUserName();
         reviewScoreService.submitReview(examGroupId, reviewer);
         return Result.success();
-    }
-
-    private String getCurrentUser(HttpServletRequest request) {
-        String user = request.getHeader("X-Current-User");
-        if (user == null || user.isEmpty()) {
-            user = "system";
-        }
-        return user;
     }
 }

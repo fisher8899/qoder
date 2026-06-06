@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>业绩考核管理员工作台 — 月度业绩考核</title>
+<style>
+  :root {
+    --bg: oklch(97% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --fg: oklch(20% 0.015 250);
+    --muted: oklch(52% 0.015 250);
+    --border: oklch(90% 0.008 250);
+    --accent: oklch(52% 0.18 250);
+    --accent-light: oklch(94% 0.04 250);
+    --accent-dark: oklch(42% 0.18 250);
+    --success: oklch(55% 0.16 155);
+    --success-bg: oklch(94% 0.04 155);
+    --warning: oklch(62% 0.18 75);
+    --warning-bg: oklch(94% 0.04 75);
+    --danger: oklch(55% 0.2 25);
+    --danger-bg: oklch(94% 0.04 25);
+    --purple: oklch(55% 0.18 300);
+    --purple-bg: oklch(94% 0.04 300);
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--fg); font-size: 14px; }
+
+  .topbar { height: 56px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 24px; position: sticky; top: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+  .logo-icon { width: 30px; height: 30px; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: white; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; }
+  .top-nav { display: flex; gap: 2px; flex: 1; }
+  .top-nav a { padding: 8px 14px; font-size: 13px; color: var(--muted); text-decoration: none; border-radius: 6px; cursor: pointer; }
+  .top-nav a:hover { background: var(--bg); color: var(--fg); }
+  .top-nav a.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .period-chip { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--accent-light); border-radius: 6px; color: var(--accent); font-size: 13px; font-family: var(--font-mono); }
+  .period-chip strong { color: var(--accent-dark); }
+  .top-right { display: flex; align-items: center; gap: 12px; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); position: relative; }
+  .icon-btn:hover { background: var(--bg); color: var(--fg); }
+  .badge-num { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; background: var(--danger); color: white; border-radius: 8px; font-size: 10px; font-family: var(--font-mono); display: flex; align-items: center; justify-content: center; font-weight: 600; }
+  .user-chip { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 20px; cursor: pointer; }
+  .user-chip:hover { background: var(--bg); }
+  .user-avatar { width: 28px; height: 28px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+  .user-name { font-size: 13px; }
+  .user-role { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+  .layout { display: grid; grid-template-columns: 232px 1fr; min-height: calc(100vh - 56px); }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 16px 12px; overflow-y: auto; }
+  .menu-group { margin-bottom: 16px; }
+  .menu-group-title { font-size: 11px; font-family: var(--font-mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 12px 4px; }
+  .menu-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; color: var(--fg); margin-bottom: 1px; }
+  .menu-item:hover { background: var(--bg); }
+  .menu-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .menu-icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--muted); }
+  .menu-item.active .menu-icon { color: var(--accent); }
+  .menu-badge { margin-left: auto; font-size: 10px; padding: 1px 6px; background: var(--danger); color: white; border-radius: 8px; font-family: var(--font-mono); font-weight: 600; }
+  .menu-badge.warn { background: var(--warning); }
+  .menu-badge.gray { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+  .main { padding: 24px 32px; overflow-y: auto; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+  .page-head h1 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .breadcrumb { font-size: 12px; color: var(--muted); font-family: var(--font-mono); margin-bottom: 4px; }
+  .actions { display: flex; gap: 8px; }
+  .btn { padding: 8px 14px; font-size: 13px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); cursor: pointer; font-family: var(--font-body); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn.primary:hover { background: var(--accent-dark); }
+  .btn.success { background: var(--success); color: white; border-color: var(--success); }
+  .btn.warning { background: var(--warning); color: white; border-color: var(--warning); }
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
+
+  /* Phase Timeline / process indicator */
+  .timeline { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
+  .timeline-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .timeline-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+  .timeline-current { font-family: var(--font-mono); font-size: 12px; color: var(--accent); padding: 4px 10px; background: var(--accent-light); border-radius: 12px; }
+  .timeline-bar { display: flex; align-items: center; gap: 0; }
+  .timeline-step { flex: 1; display: flex; align-items: center; gap: 8px; position: relative; padding-right: 8px; }
+  .timeline-dot { width: 24px; height: 24px; border-radius: 50%; background: var(--bg); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-family: var(--font-mono); font-weight: 700; color: var(--muted); flex-shrink: 0; }
+  .timeline-step.done .timeline-dot { background: var(--success); border-color: var(--success); color: white; }
+  .timeline-step.current .timeline-dot { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 0 0 4px var(--accent-light); }
+  .timeline-step.todo .timeline-dot { background: var(--surface); }
+  .timeline-step-info { flex: 1; min-width: 0; }
+  .timeline-step-name { font-size: 12px; font-weight: 500; }
+  .timeline-step.current .timeline-step-name { color: var(--accent); }
+  .timeline-step.todo .timeline-step-name { color: var(--muted); }
+  .timeline-step-date { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .timeline-step:not(:last-child)::after { content: ''; position: absolute; top: 12px; left: 28px; right: 0; height: 2px; background: var(--border); z-index: -1; margin-right: -8px; }
+  .timeline-step.done:not(:last-child)::after { background: var(--success); }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+  .stat-card.featured { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: white; border-color: var(--accent); }
+  .stat-card.featured .stat-label { color: oklch(95% 0.04 250); }
+  .stat-card.featured .stat-meta { color: oklch(90% 0.06 250); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .stat-value { font-family: var(--font-display); font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .stat-meta { font-size: 12px; color: var(--muted); margin-top: 4px; font-family: var(--font-mono); }
+  .stat-icon-bg { position: absolute; right: -16px; top: -16px; font-size: 80px; opacity: 0.06; line-height: 1; }
+  .stat-card.featured .stat-icon-bg { opacity: 0.15; color: white; }
+  .progress { height: 4px; background: oklch(95% 0.005 250); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .stat-card.featured .progress { background: oklch(75% 0.12 250); }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+  .stat-card.featured .progress-fill { background: white; }
+
+  /* Dashboard layout */
+  .dash-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .panel-head { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .panel-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+  .panel-head a { font-size: 12px; color: var(--accent); text-decoration: none; }
+  .panel-body { padding: 16px 20px; }
+
+  /* Progress list */
+  .progress-list { display: flex; flex-direction: column; gap: 14px; }
+  .progress-row { display: grid; grid-template-columns: 1fr 80px 100px 60px; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+  .progress-row:last-child { border-bottom: none; }
+  .progress-dept { display: flex; align-items: center; gap: 10px; }
+  .progress-avatar { width: 32px; height: 32px; border-radius: 8px; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+  .progress-avatar.green { background: var(--success-bg); color: var(--success); }
+  .progress-avatar.orange { background: var(--warning-bg); color: oklch(45% 0.16 75); }
+  .progress-avatar.purple { background: var(--purple-bg); color: var(--purple); }
+  .progress-name { font-size: 13px; font-weight: 500; }
+  .progress-sub { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .pbar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .pbar-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+  .pbar-fill.success { background: var(--success); }
+  .pbar-fill.warning { background: var(--warning); }
+  .pbar-fill.danger { background: var(--danger); }
+  .pct-text { font-family: var(--font-mono); font-size: 13px; font-weight: 600; text-align: right; }
+  .status-mini { padding: 2px 6px; font-size: 11px; border-radius: 4px; font-family: var(--font-mono); font-weight: 500; text-align: center; }
+  .status-mini.done { background: var(--success-bg); color: var(--success); }
+  .status-mini.ing { background: var(--accent-light); color: var(--accent); }
+  .status-mini.todo { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .status-mini.over { background: var(--danger-bg); color: var(--danger); }
+
+  /* TODO list */
+  .todo-list { display: flex; flex-direction: column; gap: 10px; }
+  .todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--accent); cursor: pointer; transition: all 0.15s; }
+  .todo-item:hover { background: var(--accent-light); }
+  .todo-item.urgent { border-left-color: var(--danger); }
+  .todo-item.warn { border-left-color: var(--warning); }
+  .todo-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .todo-item.urgent .todo-icon { background: var(--danger-bg); color: var(--danger); }
+  .todo-item.warn .todo-icon { background: var(--warning-bg); color: oklch(45% 0.16 75); }
+  .todo-text { flex: 1; min-width: 0; }
+  .todo-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .todo-meta { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* Chart placeholder */
+  .chart-area { padding: 20px; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding: 0 8px; border-bottom: 1px solid var(--border); }
+  .chart-bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .chart-bar-stack { display: flex; flex-direction: column-reverse; gap: 1px; width: 100%; height: 180px; align-items: center; }
+  .chart-bar { width: 28px; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 4px; transition: all 0.2s; }
+  .chart-bar:hover { filter: brightness(1.1); }
+  .chart-bar.alt { background: var(--success); }
+  .chart-bar.alt2 { background: var(--warning); }
+  .chart-bar.alt3 { background: oklch(70% 0.04 250); }
+  .chart-x-label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .chart-legend { display: flex; gap: 16px; justify-content: center; padding: 12px 0; }
+  .chart-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .chart-legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Activity */
+  .activity-list { list-style: none; }
+  .activity-list li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+  .activity-list li:last-child { border-bottom: none; }
+  .activity-time { font-size: 11px; color: var(--muted); font-family: var(--font-mono); white-space: nowrap; min-width: 60px; }
+  .activity-text { font-size: 13px; flex: 1; line-height: 1.5; }
+  .activity-text strong { font-weight: 600; }
+
+  /* Table */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th { background: var(--bg); padding: 11px 16px; text-align: left; font-weight: 600; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.04em; }
+  .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg); }
+  .ind-score { font-family: var(--font-mono); font-weight: 600; }
+
+  .back-link { position: fixed; bottom: 16px; left: 16px; background: var(--surface); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; font-size: 12px; color: var(--muted); text-decoration: none; z-index: 50; }
+  .back-link:hover { color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-icon">P</div>
+    月度业绩考核系统
+  </div>
+  <nav class="top-nav">
+    <a class="active">工作台</a>
+    <a>指标管理</a>
+    <a>考核流程</a>
+    <a>申诉处理</a>
+    <a>报表分析</a>
+  </nav>
+  <div class="period-chip">
+    <span>当前考核期</span>
+    <strong>2025-05 · 自评中 D3/D5</strong>
+  </div>
+  <div class="top-right">
+    <div class="icon-btn" title="通知">🔔<span class="badge-num">5</span></div>
+    <div class="icon-btn">⚙</div>
+    <div class="user-chip">
+      <div class="user-avatar">王</div>
+      <div>
+        <div class="user-name">王立军</div>
+        <div class="user-role">业绩考核管理员</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="menu-group">
+      <div class="menu-group-title">考核管理</div>
+      <div class="menu-item active"><div class="menu-icon">⊞</div>工作台</div>
+      <div class="menu-item"><div class="menu-icon">⊟</div>考核期管理</div>
+      <div class="menu-item"><div class="menu-icon">▤</div>本期进度</div>
+    </div>
+    <div class="menu-group">
+      <div class="menu-group-title">指标管理</div>
+      <div class="menu-item"><div class="menu-icon">◎</div>年度目标设定</div>
+      <div class="menu-item"><div class="menu-icon">►</div>月度指标发布</div>
+      <div class="menu-item"><div class="menu-icon">≣</div>指标库</div>
+      <div class="menu-item"><div class="menu-icon">▥</div>考核模板</div>
+    </div>
+    <div class="menu-group">
+      <div class="menu-group-title">流程管控</div>
+      <div class="menu-item"><div class="menu-icon">⌖</div>自评跟进<span class="menu-badge gray">8/42</span></div>
+      <div class="menu-item"><div class="menu-icon">★</div>互评组织</div>
+      <div class="menu-item"><div class="menu-icon">✓</div>评分复核<span class="menu-badge warn">12</span></div>
+    </div>
+    <div class="menu-group">
+      <div class="menu-group-title">发布与申诉</div>
+      <div class="menu-item"><div class="menu-icon">⇧</div>结果预发布</div>
+      <div class="menu-item"><div class="menu-icon">⚠</div>申诉受理<span class="menu-badge">3</span></div>
+      <div class="menu-item"><div class="menu-icon">⇒</div>正式发布</div>
+    </div>
+    <div class="menu-group">
+      <div class="menu-group-title">报表</div>
+      <div class="menu-item"><div class="menu-icon">▦</div>月度报表</div>
+      <div class="menu-item"><div class="menu-icon">⇡</div>部门排名</div>
+      <div class="menu-item"><div class="menu-icon">∿</div>趋势分析</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <div class="breadcrumb">考核管理 / 工作台</div>
+        <h1>2025年5月 月度考核工作台</h1>
+        <div class="page-sub">条件财务处 · 王立军 · 全流程管理视图</div>
+      </div>
+      <div class="actions">
+        <button class="btn">导出本期数据</button>
+        <button class="btn primary">⊞ 新建考核期</button>
+      </div>
+    </div>
+
+    <!-- Phase Timeline -->
+    <div class="timeline">
+      <div class="timeline-head">
+        <div class="timeline-title">本期考核流程进度</div>
+        <div class="timeline-current">当前阶段：自评中 · 距离截止 2 天 3 小时</div>
+      </div>
+      <div class="timeline-bar">
+        <div class="timeline-step done">
+          <div class="timeline-dot">✓</div>
+          <div class="timeline-step-info"><div class="timeline-step-name">指标发布</div><div class="timeline-step-date">04-28</div></div>
+        </div>
+        <div class="timeline-step current">
+          <div class="timeline-dot">2</div>
+          <div class="timeline-step-info"><div class="timeline-step-name">部门自评</div><div class="timeline-step-date">05-04 至 05-08</div></div>
+        </div>
+        <div class="timeline-step todo">
+          <div class="timeline-dot">3</div>
+          <div class="timeline-step-info"><div class="timeline-step-name">互评打分</div><div class="timeline-step-date">05-09 至 05-11</div></div>
+        </div>
+        <div class="timeline-step todo">
+          <div class="timeline-dot">4</div>
+          <div class="timeline-step-info"><div class="timeline-step-name">评分复核</div><div class="timeline-step-date">05-12 至 05-13</div></div>
+        </div>
+        <div class="timeline-step todo">
+          <div class="timeline-dot">5</div>
+          <div class="timeline-step-info"><div class="timeline-step-name">预发布</div><div class="timeline-step-date">05-14</div></div>
+        </div>
+        <div class="timeline-step todo">
+          <div class="timeline-dot">6</div>
+          <div class="timeline-step-info"><div class="timeline-step-name">申诉处理</div><div class="timeline-step-date">05-15 至 05-17</div></div>
+        </div>
+        <div class="timeline-step todo">
+          <div class="timeline-dot">7</div>
+          <div class="timeline-step-info"><div class="timeline-step-name">正式发布</div><div class="timeline-step-date">05-18</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card featured">
+        <div class="stat-icon-bg">⌖</div>
+        <div class="stat-label">本期参评部门</div>
+        <div class="stat-value">42</div>
+        <div class="stat-meta">业务部门 28 · 职能 14</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-bg">✓</div>
+        <div class="stat-label">已完成自评</div>
+        <div class="stat-value" style="color: var(--success);">34<span style="font-size: 16px; color: var(--muted);"> / 42</span></div>
+        <div class="progress"><div class="progress-fill" style="width: 81%; background: var(--success);"></div></div>
+        <div class="stat-meta">完成率 81.0% · 待提交 8</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-bg">★</div>
+        <div class="stat-label">本月考核指标</div>
+        <div class="stat-value">156</div>
+        <div class="stat-meta">财务 38 · 业务 84 · 管理 34</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-bg">⚠</div>
+        <div class="stat-label">待处理事项</div>
+        <div class="stat-value" style="color: var(--danger);">12</div>
+        <div class="stat-meta">复核 9 · 申诉 3</div>
+      </div>
+    </div>
+
+    <!-- Dashboard rows -->
+    <div class="dash-row">
+      <!-- Self-eval progress -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">各部门自评进度</div>
+          <a href="#">查看全部 42 个部门 →</a>
+        </div>
+        <div class="panel-body">
+          <div class="progress-list">
+            <div class="progress-row">
+              <div class="progress-dept">
+                <div class="progress-avatar">生</div>
+                <div>
+                  <div class="progress-name">生产运行处</div>
+                  <div class="progress-sub">李明华 · 8/8 指标</div>
+                </div>
+              </div>
+              <div class="pbar"><div class="pbar-fill success" style="width: 100%;"></div></div>
+              <div class="pct-text" style="color: var(--success);">100%</div>
+              <div class="status-mini done">已提交</div>
+            </div>
+            <div class="progress-row">
+              <div class="progress-dept">
+                <div class="progress-avatar green">化</div>
+                <div>
+                  <div class="progress-name">化工生产部</div>
+                  <div class="progress-sub">张伟 · 6/6 指标</div>
+                </div>
+              </div>
+              <div class="pbar"><div class="pbar-fill success" style="width: 100%;"></div></div>
+              <div class="pct-text" style="color: var(--success);">100%</div>
+              <div class="status-mini done">已提交</div>
+            </div>
+            <div class="progress-row">
+              <div class="progress-dept">
+                <div class="progress-avatar orange">技</div>
+                <div>
+                  <div class="progress-name">技术管理处</div>
+                  <div class="progress-sub">钱军 · 5/7 指标</div>
+                </div>
+              </div>
+              <div class="pbar"><div class="pbar-fill" style="width: 71%;"></div></div>
+              <div class="pct-text" style="color: var(--accent);">71%</div>
+              <div class="status-mini ing">进行中</div>
+            </div>
+            <div class="progress-row">
+              <div class="progress-dept">
+                <div class="progress-avatar purple">设</div>
+                <div>
+                  <div class="progress-name">设备管理处</div>
+                  <div class="progress-sub">孙涛 · 3/6 指标</div>
+                </div>
+              </div>
+              <div class="pbar"><div class="pbar-fill warning" style="width: 50%;"></div></div>
+              <div class="pct-text" style="color: var(--warning);">50%</div>
+              <div class="status-mini ing">进行中</div>
+            </div>
+            <div class="progress-row">
+              <div class="progress-dept">
+                <div class="progress-avatar">安</div>
+                <div>
+                  <div class="progress-name">安全环保处</div>
+                  <div class="progress-sub">孙红梅 · 5/5 指标</div>
+                </div>
+              </div>
+              <div class="pbar"><div class="pbar-fill success" style="width: 100%;"></div></div>
+              <div class="pct-text" style="color: var(--success);">100%</div>
+              <div class="status-mini done">已提交</div>
+            </div>
+            <div class="progress-row">
+              <div class="progress-dept">
+                <div class="progress-avatar green">煤</div>
+                <div>
+                  <div class="progress-name">煤矿生产部</div>
+                  <div class="progress-sub">郭志刚 · 1/9 指标</div>
+                </div>
+              </div>
+              <div class="pbar"><div class="pbar-fill danger" style="width: 11%;"></div></div>
+              <div class="pct-text" style="color: var(--danger);">11%</div>
+              <div class="status-mini over">需催办</div>
+            </div>
+            <div class="progress-row">
+              <div class="progress-dept">
+                <div class="progress-avatar orange">物</div>
+                <div>
+                  <div class="progress-name">物资采购处</div>
+                  <div class="progress-sub">何丽 · 4/4 指标</div>
+                </div>
+              </div>
+              <div class="pbar"><div class="pbar-fill success" style="width: 100%;"></div></div>
+              <div class="pct-text" style="color: var(--success);">100%</div>
+              <div class="status-mini done">已提交</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TODO -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">待处理事项 <span style="background: var(--danger); color: white; font-size: 11px; padding: 1px 7px; border-radius: 10px; margin-left: 6px; font-family: var(--font-mono);">12</span></div>
+          <a href="#">全部 →</a>
+        </div>
+        <div class="panel-body">
+          <div class="todo-list">
+            <div class="todo-item urgent">
+              <div class="todo-icon">!</div>
+              <div class="todo-text">
+                <div class="todo-title">煤矿生产部自评进度仅 11%</div>
+                <div class="todo-meta">距截止 2 天 · 需催办</div>
+              </div>
+            </div>
+            <div class="todo-item urgent">
+              <div class="todo-icon">⚠</div>
+              <div class="todo-text">
+                <div class="todo-title">技术管理处提交申诉（4月）</div>
+                <div class="todo-meta">指标 IT-04 · 待复审</div>
+              </div>
+            </div>
+            <div class="todo-item warn">
+              <div class="todo-icon">⏱</div>
+              <div class="todo-text">
+                <div class="todo-title">8 个部门尚未提交自评</div>
+                <div class="todo-meta">查看清单 · 一键提醒</div>
+              </div>
+            </div>
+            <div class="todo-item">
+              <div class="todo-icon">★</div>
+              <div class="todo-text">
+                <div class="todo-title">下阶段：开启互评（D6）</div>
+                <div class="todo-meta">预计 05-09 09:00 自动开启</div>
+              </div>
+            </div>
+            <div class="todo-item">
+              <div class="todo-icon">▾</div>
+              <div class="todo-text">
+                <div class="todo-title">3 名分管领导评分逾期（4月）</div>
+                <div class="todo-meta">已自动延期，需关注</div>
+              </div>
+            </div>
+            <div class="todo-item">
+              <div class="todo-icon">▥</div>
+              <div class="todo-text">
+                <div class="todo-title">2 项指标计算口径需调整</div>
+                <div class="todo-meta">来自部门反馈</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lower row -->
+    <div class="dash-row">
+      <!-- Chart -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">本年度各月部门平均得分</div>
+          <a href="#">查看明细 →</a>
+        </div>
+        <div class="chart-area">
+          <div class="chart-bars">
+            <div class="chart-bar-group">
+              <div class="chart-bar-stack"><div class="chart-bar" style="height: 85%;"></div></div>
+              <div class="chart-x-label">1月</div>
+              <div class="row-sub">87.2</div>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar-stack"><div class="chart-bar alt" style="height: 88%;"></div></div>
+              <div class="chart-x-label">2月</div>
+              <div class="row-sub">89.4</div>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar-stack"><div class="chart-bar alt" style="height: 90%;"></div></div>
+              <div class="chart-x-label">3月</div>
+              <div class="row-sub">91.0</div>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar-stack"><div class="chart-bar alt2" style="height: 82%;"></div></div>
+              <div class="chart-x-label">4月</div>
+              <div class="row-sub">85.6</div>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar-stack"><div class="chart-bar" style="height: 60%; opacity: 0.6;"></div></div>
+              <div class="chart-x-label" style="color: var(--accent);">5月*</div>
+              <div class="row-sub" style="color: var(--accent);">进行中</div>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar-stack"><div class="chart-bar alt3" style="height: 0;"></div></div>
+              <div class="chart-x-label">6月</div>
+              <div class="row-sub">—</div>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar-stack"><div class="chart-bar alt3" style="height: 0;"></div></div>
+              <div class="chart-x-label">7月</div>
+              <div class="row-sub">—</div>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar-stack"><div class="chart-bar alt3" style="height: 0;"></div></div>
+              <div class="chart-x-label">8月</div>
+              <div class="row-sub">—</div>
+            </div>
+          </div>
+          <div class="chart-legend">
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background: var(--success);"></div>优秀（≥90）</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background: var(--accent);"></div>良好（85-90）</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background: var(--warning);"></div>合格（75-85）</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background: oklch(70% 0.04 250);"></div>未开始</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">最近操作</div>
+        </div>
+        <div class="panel-body">
+          <ul class="activity-list">
+            <li>
+              <div class="activity-time">10:24</div>
+              <div class="activity-text"><strong>李明华</strong> 提交了 <strong>生产运行处</strong> 5月自评</div>
+            </li>
+            <li>
+              <div class="activity-time">09:58</div>
+              <div class="activity-text">系统自动催办 <strong>8 个部门</strong> 完成自评</div>
+            </li>
+            <li>
+              <div class="activity-time">09:15</div>
+              <div class="activity-text"><strong>钱军</strong>（技术管理处）提交了 <strong>4 月申诉</strong></div>
+            </li>
+            <li>
+              <div class="activity-time">昨日</div>
+              <div class="activity-text">系统下发 5 月指标至 <strong>42 个部门</strong></div>
+            </li>
+            <li>
+              <div class="activity-time">昨日</div>
+              <div class="activity-text"><strong>王立军</strong> 调整了 IT-04 指标计算口径</div>
+            </li>
+            <li>
+              <div class="activity-time">04-28</div>
+              <div class="activity-text">4 月考核结果 <strong>正式发布</strong></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicator table -->
+    <div class="panel" style="margin-top: 16px;">
+      <div class="panel-head">
+        <div class="panel-title">本月重点关注指标</div>
+        <a href="#">查看所有 156 项指标 →</a>
+      </div>
+      <div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>指标编码</th>
+              <th>指标名称</th>
+              <th>权重</th>
+              <th>责任部门</th>
+              <th>目标值</th>
+              <th>当前完成</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="row-sub">FIN-2025-01</span></td>
+              <td><strong>原煤生产成本控制</strong></td>
+              <td><span class="ind-score">12%</span></td>
+              <td>煤矿生产部</td>
+              <td><span class="ind-score">≤ 318 元/吨</span></td>
+              <td><span class="ind-score" style="color: var(--success);">312 元/吨</span></td>
+              <td><span class="status-mini done">达标</span></td>
+            </tr>
+            <tr>
+              <td><span class="row-sub">PRD-2025-08</span></td>
+              <td><strong>合成氨日产量</strong></td>
+              <td><span class="ind-score">15%</span></td>
+              <td>化工生产部</td>
+              <td><span class="ind-score">≥ 1850 吨/日</span></td>
+              <td><span class="ind-score" style="color: var(--success);">1894 吨/日</span></td>
+              <td><span class="status-mini done">达标</span></td>
+            </tr>
+            <tr>
+              <td><span class="row-sub">SAF-2025-03</span></td>
+              <td><strong>安全事故零发生</strong></td>
+              <td><span class="ind-score">10%</span></td>
+              <td>安全环保处</td>
+              <td><span class="ind-score">0 起</span></td>
+              <td><span class="ind-score" style="color: var(--success);">0 起</span></td>
+              <td><span class="status-mini done">达标</span></td>
+            </tr>
+            <tr>
+              <td><span class="row-sub">IT-2025-04</span></td>
+              <td><strong>关键系统可用率</strong></td>
+              <td><span class="ind-score">8%</span></td>
+              <td>技术管理处</td>
+              <td><span class="ind-score">≥ 99.5%</span></td>
+              <td><span class="ind-score" style="color: var(--warning);">99.2%</span></td>
+              <td><span class="status-mini ing">观察</span></td>
+            </tr>
+            <tr>
+              <td><span class="row-sub">EQP-2025-02</span></td>
+              <td><strong>设备完好率</strong></td>
+              <td><span class="ind-score">10%</span></td>
+              <td>设备管理处</td>
+              <td><span class="ind-score">≥ 96%</span></td>
+              <td><span class="ind-score" style="color: var(--danger);">93.8%</span></td>
+              <td><span class="status-mini over">未达标</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<a href="index.html" class="back-link">← 返回概览</a>
+
+</body>
+</html>

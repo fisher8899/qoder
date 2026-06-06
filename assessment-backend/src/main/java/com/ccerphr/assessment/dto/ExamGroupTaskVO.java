@@ -27,6 +27,8 @@ public class ExamGroupTaskVO {
     private Long orgId;
     /** 部门名称 */
     private String orgName;
+    /** 所属单位ID */
+    private Long unitId;
     /** 指标审批状态（从指标数据聚合；无指标时为 DRAFT） */
     private String approvalStatus;
 }

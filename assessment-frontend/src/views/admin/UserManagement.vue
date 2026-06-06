@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-card">
     <h2 class="page-title">系统用户管理 v1</h2>
     <p class="page-subtitle">管理系统用户账号、角色及启用状态</p>
@@ -422,8 +422,11 @@ function handleToggleEnabled(row: any, val: number) {
 
 function handleResetPassword(row: any) {
   ElMessageBox.confirm('确认重置该用户的密码？', '提示', { type: 'warning' }).then(() => {
-    sysUserApi.resetPassword(row.id).then(() => {
-      ElMessage.success('密码已重置为123456')
+    sysUserApi.resetPassword(row.id).then((res: any) => {
+      const temporaryPassword = res.data || res
+      ElMessageBox.alert(`临时密码：${temporaryPassword}`, '密码已重置', {
+        confirmButtonText: '知道了'
+      })
     })
   })
 }
@@ -775,3 +778,4 @@ onMounted(() => {
   }
 }
 </style>
+

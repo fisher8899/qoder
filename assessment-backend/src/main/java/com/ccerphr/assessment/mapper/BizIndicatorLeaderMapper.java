@@ -5,6 +5,7 @@ import com.ccerphr.assessment.entity.BizIndicatorLeader;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -24,8 +25,8 @@ public interface BizIndicatorLeaderMapper extends BaseMapper<BizIndicatorLeader>
     List<Long> selectIndicatorIdsByLeaderId(@Param("leaderId") Long leaderId);
 
     /**
-     * 根据指标ID删除关联数据
+     * 根据指标ID软删除关联数据
      */
-    @Select("UPDATE biz_indicator_leader SET deleted = 1 WHERE indicator_id = #{indicatorId}")
+    @Update("UPDATE biz_indicator_leader SET deleted = 1 WHERE indicator_id = #{indicatorId}")
     void deleteByIndicatorId(@Param("indicatorId") Long indicatorId);
 }

@@ -11,7 +11,11 @@ public interface SysMenuService extends IService<SysMenu> {
 
     List<Map<String, Object>> getMenuTreeByRole(String roleCode);
 
+    List<Map<String, Object>> getMenuTreeByContext(String roleCode, String dataScope, Long scopeId);
+
     List<MenuTreeDTO> getMenuTree();
+
+    List<MenuTreeDTO> getAssignableMenuTree(String roleType);
 
     SysMenu getDetail(Long id);
 

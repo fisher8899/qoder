@@ -3,7 +3,6 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
-// 统一响应类型
 export interface Result<T = any> {
   code: number
   message: string
@@ -22,7 +21,6 @@ const service: AxiosInstance = axios.create({
   timeout: 30000
 })
 
-// 请求拦截器
 service.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
@@ -30,22 +28,13 @@ service.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
 
-    // 添加数据范围相关 Header
+    // 向后端传递当前用户选中的角色和数据范围，后端会验证该权限是否确实属于用户
     const userStore = useUserStore()
-    if (userStore.userInfo?.roleCode) {
-      config.headers['X-Role-Code'] = userStore.userInfo.roleCode
+    if (userStore.activeRoleCode) {
+      config.headers['X-Role-Code'] = userStore.activeRoleCode
     }
-    if (userStore.dataScope) {
-      config.headers['X-Data-Scope'] = userStore.dataScope
-    }
-    if (userStore.scopeId !== undefined && userStore.scopeId !== 0) {
-      config.headers['X-Scope-Id'] = String(userStore.scopeId)
-    }
-    if (userStore.scopeName) {
-      config.headers['X-Scope-Name'] = encodeURIComponent(userStore.scopeName)
-    }
-    if (userStore.userInfo?.id) {
-      config.headers['X-User-Id'] = String(userStore.userInfo.id)
+    if (userStore.activeScopeId) {
+      config.headers['X-Scope-Id'] = String(userStore.activeScopeId)
     }
 
     return config
@@ -53,10 +42,8 @@ service.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// 响应拦截器
 service.interceptors.response.use(
   (response: AxiosResponse<Result>) => {
-    // blob类型直接返回原始响应
     if (response.config.responseType === 'blob') {
       return response.data as any
     }
@@ -70,6 +57,8 @@ service.interceptors.response.use(
   (error) => {
     const status = error.response?.status
     const message = error.response?.data?.message || error.message || '网络错误'
+    const userStore = useUserStore()
+
     if (status === 401) {
       ElMessage.error('登录已过期，请重新登录')
       localStorage.removeItem('token')
@@ -77,6 +66,11 @@ service.interceptors.response.use(
       window.location.href = '/login'
       return Promise.reject(error)
     }
+
+    if (status === 403) {
+      userStore.clearPermissionCache()
+    }
+
     ElMessage.error(message)
     return Promise.reject(error)
   }
@@ -84,7 +78,6 @@ service.interceptors.response.use(
 
 export default service
 
-// 封装常用方法
 export const http = {
   get<T = any>(url: string, params?: any, config?: AxiosRequestConfig): Promise<Result<T>> {
     return service.get(url, { ...config, params })

@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>系统管理员 — 月度业绩考核 v2</title>
+<style>
+  :root {
+    --bg: oklch(97% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --fg: oklch(20% 0.015 250);
+    --muted: oklch(52% 0.015 250);
+    --border: oklch(90% 0.008 250);
+    --border-strong: oklch(82% 0.012 250);
+    --accent: oklch(52% 0.18 250);
+    --accent-hover: oklch(46% 0.2 250);
+    --accent-light: oklch(94% 0.04 250);
+    --success: oklch(55% 0.16 155);
+    --success-bg: oklch(94% 0.04 155);
+    --warning: oklch(62% 0.18 75);
+    --warning-bg: oklch(94% 0.04 75);
+    --danger: oklch(55% 0.2 25);
+    --danger-bg: oklch(94% 0.04 25);
+    --sidebar: oklch(22% 0.02 250);
+    --sidebar-hover: oklch(28% 0.025 250);
+    --sidebar-active: oklch(52% 0.18 250);
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', system-ui, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--fg); min-height: 100vh; display: flex; }
+
+  .sidebar { width: 240px; background: var(--sidebar); color: oklch(85% 0.01 250); min-height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .sidebar-brand { padding: 20px 24px; border-bottom: 1px solid oklch(28% 0.025 250); display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); font-weight: 700; }
+  .brand-name { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: white; }
+  .brand-name .role-tag { font-size: 11px; color: oklch(70% 0.02 250); font-weight: 400; display: block; margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-group { padding: 12px 24px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: oklch(55% 0.02 250); font-family: var(--font-mono); }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 24px; font-size: 13.5px; color: oklch(80% 0.01 250); cursor: pointer; transition: background 0.1s; user-select: none; }
+  .nav-item:hover { background: var(--sidebar-hover); color: white; }
+  .nav-item.active { background: var(--sidebar-active); color: white; }
+  .nav-item .icon { width: 16px; height: 16px; opacity: 0.9; }
+  .sidebar-foot { padding: 12px 24px; border-top: 1px solid oklch(28% 0.025 250); display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: oklch(40% 0.05 280); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 600; }
+  .avatar-info { flex: 1; }
+  .avatar-info .name { font-size: 13px; color: white; }
+  .avatar-info .role { font-size: 11px; color: oklch(65% 0.02 250); }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .crumb .sep { color: var(--border-strong); }
+  .crumb .current { color: var(--fg); font-weight: 500; }
+  .top-actions { display: flex; align-items: center; gap: 12px; }
+  .search-input { padding: 7px 12px 7px 32px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; width: 240px; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2375828b' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 10px center; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); position: relative; }
+  .icon-btn:hover { background: var(--bg); color: var(--fg); }
+  .dot-red { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; background: var(--danger); border-radius: 50%; }
+  .nav-link { font-size: 13px; color: var(--accent); text-decoration: none; padding: 6px 10px; border-radius: 6px; }
+  .nav-link:hover { background: var(--accent-light); }
+
+  .page { padding: 24px 32px; max-width: 1400px; margin: 0 auto; width: 100%; }
+  .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .stat-head { display: flex; align-items: center; justify-content: space-between; }
+  .stat-label { font-size: 12.5px; color: var(--muted); }
+  .stat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .stat-icon.blue { background: var(--accent-light); color: var(--accent); }
+  .stat-icon.green { background: var(--success-bg); color: var(--success); }
+  .stat-icon.amber { background: var(--warning-bg); color: var(--warning); }
+  .stat-icon.red { background: var(--danger-bg); color: var(--danger); }
+  .stat-num { font-family: var(--font-display); font-size: 28px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stat-trend { font-size: 12px; color: var(--success); margin-top: 2px; }
+  .stat-trend.down { color: var(--danger); }
+
+  .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px 10px 0 0; border-bottom: none; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-select { padding: 7px 28px 7px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2375828b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center; appearance: none; cursor: pointer; min-width: 120px; }
+  .filter-input { padding: 7px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; min-width: 200px; }
+  .actions { display: flex; gap: 8px; }
+  .btn { padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--fg); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+  .btn:hover { background: var(--bg); border-color: var(--border-strong); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-danger { color: var(--danger); border-color: var(--danger-bg); }
+  .btn-danger:hover { background: var(--danger-bg); }
+
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--bg); }
+  th { padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--muted); text-align: left; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  td { padding: 14px 20px; font-size: 13.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+  .checkbox { width: 16px; height: 16px; border: 1.5px solid var(--border-strong); border-radius: 4px; cursor: pointer; display: inline-block; vertical-align: middle; }
+  .checkbox.checked { background: var(--accent); border-color: var(--accent); position: relative; }
+  .checkbox.checked::after { content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .user-cell { display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .user-name { font-weight: 500; }
+  .user-mail { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .pill { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+  .pill.green { background: var(--success-bg); color: var(--success); }
+  .pill.amber { background: var(--warning-bg); color: var(--warning); }
+  .pill.gray { background: var(--bg); color: var(--muted); }
+  .pill.blue { background: var(--accent-light); color: var(--accent); }
+  .pill.red { background: var(--danger-bg); color: var(--danger); }
+  .row-actions { display: flex; gap: 4px; }
+  .row-action { padding: 4px 8px; font-size: 12px; color: var(--accent); cursor: pointer; border-radius: 4px; }
+  .row-action:hover { background: var(--accent-light); }
+  .row-action.danger { color: var(--danger); }
+  .row-action.danger:hover { background: var(--danger-bg); }
+
+  .pagination { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
+  .pagination-info { font-size: 13px; color: var(--muted); }
+  .pagination-controls { display: flex; gap: 4px; }
+  .page-btn { min-width: 32px; height: 32px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; font-size: 13px; color: var(--fg); cursor: pointer; padding: 0 10px; }
+  .page-btn:hover { background: var(--bg); }
+  .page-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Permission tree */
+  .perm-grid { display: grid; grid-template-columns: 300px 1fr; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .perm-roles { border-right: 1px solid var(--border); }
+  .perm-role-item { padding: 14px 18px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+  .perm-role-item:hover { background: var(--bg); }
+  .perm-role-item.active { background: var(--accent-light); border-left: 3px solid var(--accent); padding-left: 15px; }
+  .perm-role-item .name { font-weight: 500; font-size: 13.5px; }
+  .perm-role-item .count { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .perm-tree { padding: 20px; }
+  .perm-tree h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+  .tree-node { margin-bottom: 4px; }
+  .tree-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13.5px; }
+  .tree-row .toggle { width: 14px; color: var(--muted); cursor: pointer; user-select: none; }
+  .tree-row .checkbox { margin-right: 4px; }
+  .tree-children { padding-left: 26px; }
+
+  /* Org tree (two-column) */
+  .org-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
+  .org-tree-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .org-tree-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .org-tree-title { font-size: 14px; font-weight: 600; }
+  .org-tree ul { list-style: none; }
+  .org-tree li { padding: 6px 0; font-size: 13.5px; cursor: pointer; border-radius: 4px; }
+  .org-tree li .label { padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; }
+  .org-tree li .label:hover { background: var(--bg); }
+  .org-tree li.active > .label { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .org-tree ul ul { padding-left: 18px; border-left: 1px dashed var(--border); margin-left: 8px; }
+  .org-dept-icon { width: 16px; height: 16px; color: var(--muted); }
+
+  /* Menu tree */
+  .menu-tree-table tbody tr td:first-child { padding-left: var(--indent, 20px); }
+  .menu-indent-1 { --indent: 40px; }
+  .menu-indent-2 { --indent: 60px; }
+
+  /* Log card */
+  .log-row { padding: 14px 20px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 16px 140px 140px 1fr 100px; gap: 14px; align-items: center; font-size: 13px; }
+  .log-row:last-child { border-bottom: none; }
+  .log-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+  .log-row.warn .dot { background: var(--warning); }
+  .log-row.danger .dot { background: var(--danger); }
+  .log-time { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+  .log-action { font-weight: 500; }
+  .log-user { color: var(--muted); }
+  .log-detail { color: var(--fg); }
+
+  /* Monitor cards */
+  .monitor-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .monitor-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .monitor-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .monitor-metric { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .monitor-metric:last-child { border-bottom: none; }
+  .monitor-metric .v { font-family: var(--font-mono); font-weight: 600; }
+  .gauge { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; flex: 1; margin: 0 14px; }
+  .gauge-fill { height: 100%; background: var(--success); border-radius: 4px; }
+  .gauge-fill.warn { background: var(--warning); }
+  .gauge-fill.danger { background: var(--danger); }
+
+  /* Views */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Modal */
+  .modal-mask { position: fixed; inset: 0; background: oklch(20% 0.02 250 / 0.45); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+  .modal-mask.show { display: flex; }
+  .modal { background: var(--surface); border-radius: 12px; box-shadow: 0 25px 50px -12px oklch(20% 0.02 250 / 0.4); width: 100%; max-width: 640px; max-height: 88vh; display: flex; flex-direction: column; animation: modalIn 0.15s ease-out; }
+  .modal.lg { max-width: 880px; }
+  .modal.sm { max-width: 460px; }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .modal-head { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+  .modal-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .modal-close { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); }
+  .modal-close:hover { background: var(--bg); color: var(--fg); }
+  .modal-body { padding: 22px 24px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: var(--bg); border-radius: 0 0 12px 12px; }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .form-group { margin-bottom: 14px; }
+  .form-group.col-2 { grid-column: span 2; }
+  .form-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; font-weight: 500; }
+  .form-label .req { color: var(--danger); margin-left: 2px; }
+  .form-input, .form-select, .form-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px; font-family: var(--font-body); color: var(--fg); background: var(--surface); }
+  .form-select { appearance: none; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2375828b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center; padding-right: 32px; cursor: pointer; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px oklch(52% 0.18 250 / 0.1); }
+  .form-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer; padding: 4px 0; }
+  .checkbox-row .checkbox { margin: 0; }
+  .form-hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 60px 40px; color: var(--muted); }
+  .empty-state svg { color: var(--border-strong); margin-bottom: 12px; }
+  .empty-state .title { font-size: 15px; color: var(--fg); margin-bottom: 4px; font-weight: 500; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .card-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 14.5px; font-weight: 600; }
+  .card-body { padding: 20px; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark">考</div>
+    <div class="brand-name">月度业绩考核<span class="role-tag">系统管理后台</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">系统管理</div>
+    <div class="nav-item active" data-view="users">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      用户管理
+    </div>
+    <div class="nav-item" data-view="roles">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      角色与权限
+    </div>
+    <div class="nav-item" data-view="menus">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      菜单管理
+    </div>
+    <div class="nav-item" data-view="org">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+      组织架构
+    </div>
+    <div class="nav-item" data-view="dict">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      数据字典
+    </div>
+    <div class="nav-group">系统监控</div>
+    <div class="nav-item" data-view="log">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      操作日志
+    </div>
+    <div class="nav-item" data-view="login-log">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      登录日志
+    </div>
+    <div class="nav-item" data-view="monitor">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+      服务监控
+    </div>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="avatar">系</div>
+    <div class="avatar-info">
+      <div class="name">王启明</div>
+      <div class="role">系统管理员</div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="crumb">
+      <span>系统管理</span><span class="sep">/</span><span class="current" id="crumb-current">用户管理</span>
+    </div>
+    <div class="top-actions">
+      <input class="search-input" placeholder="搜索用户、菜单、日志…">
+      <a class="nav-link" href="index.html">返回导航</a>
+      <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot-red"></span></div>
+      <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- ========== VIEW: USERS ========== -->
+    <section class="view active" id="view-users">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">用户管理</h1>
+          <div class="page-sub">维护系统所有用户账号、角色绑定与登录状态</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('user-new')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建用户</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">用户总数</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div>
+          <div class="stat-num">486</div>
+          <div class="stat-trend">↑ 12 本月新增</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">活跃用户</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg></div></div>
+          <div class="stat-num">412</div>
+          <div class="stat-trend">↑ 84.7%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">待审批</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+          <div class="stat-num">3</div>
+          <div class="stat-trend down">需要处理</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><div class="stat-label">已停用</div><div class="stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div></div>
+          <div class="stat-num">71</div>
+          <div class="stat-trend down">↓ 5 本月</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <select class="filter-select"><option>全部部门</option><option>条件财务处</option><option>生产部</option><option>安全环保部</option></select>
+          <select class="filter-select"><option>全部角色</option><option>系统管理员</option><option>考核管理员</option><option>部门管理员</option><option>考核员</option></select>
+          <select class="filter-select"><option>全部状态</option><option>启用</option><option>停用</option><option>锁定</option></select>
+        </div>
+        <div class="actions">
+          <button class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出</button>
+          <button class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>批量导入</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:48px"><span class="checkbox" onclick="this.classList.toggle('checked')"></span></th>
+              <th>用户</th>
+              <th>工号</th>
+              <th>所属部门</th>
+              <th>角色</th>
+              <th>状态</th>
+              <th>最近登录</th>
+              <th style="text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">李</div><div><div class="user-name">李建国</div><div class="user-mail">lijianguo@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10231</td>
+              <td>条件财务处</td>
+              <td><span class="pill blue">考核管理员</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">5 分钟前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('user-edit', {name:'李建国'})">编辑</span><span class="row-action" onclick="openModal('user-reset-pw', {name:'李建国'})">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">张</div><div><div class="user-name">张晓燕</div><div class="user-mail">zhangxiaoyan@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10455</td>
+              <td>生产运行部</td>
+              <td><span class="pill blue">部门管理员</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">28 分钟前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('user-edit', {name:'张晓燕'})">编辑</span><span class="row-action" onclick="openModal('user-reset-pw', {name:'张晓燕'})">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">王</div><div><div class="user-name">王宏伟</div><div class="user-mail">wanghongwei@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10089</td>
+              <td>公司领导</td>
+              <td><span class="pill blue">分管领导</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">2 小时前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('user-edit', {name:'王宏伟'})">编辑</span><span class="row-action" onclick="openModal('user-reset-pw', {name:'王宏伟'})">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">陈</div><div><div class="user-name">陈志强</div><div class="user-mail">chenzhiqiang@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10678</td>
+              <td>安全环保部</td>
+              <td><span class="pill blue">考核员</span></td>
+              <td><span class="pill amber">● 锁定</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">3 天前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('user-edit', {name:'陈志强'})">编辑</span><span class="row-action">解锁</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">刘</div><div><div class="user-name">刘美华</div><div class="user-mail">liumeihua@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10912</td>
+              <td>人力资源部</td>
+              <td><span class="pill blue">部门管理员</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">1 小时前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('user-edit', {name:'刘美华'})">编辑</span><span class="row-action" onclick="openModal('user-reset-pw', {name:'刘美华'})">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">赵</div><div><div class="user-name">赵明亮</div><div class="user-mail">zhaomingliang@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10345</td>
+              <td>设备工程部</td>
+              <td><span class="pill blue">部门管理员</span></td>
+              <td><span class="pill gray">● 停用</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">2 周前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('user-edit', {name:'赵明亮'})">编辑</span><span class="row-action">启用</span><span class="row-action danger">删除</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox" onclick="this.classList.toggle('checked')"></span></td>
+              <td><div class="user-cell"><div class="user-avatar">孙</div><div><div class="user-name">孙立军</div><div class="user-mail">sunlijun@ccerphr.com</div></div></div></td>
+              <td style="font-family:var(--font-mono);font-size:12.5px">EMP10567</td>
+              <td>条件财务处</td>
+              <td><span class="pill blue">考核员</span></td>
+              <td><span class="pill green">● 活跃</span></td>
+              <td style="color:var(--muted);font-size:12.5px;font-family:var(--font-mono)">12 分钟前</td>
+              <td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('user-edit', {name:'孙立军'})">编辑</span><span class="row-action" onclick="openModal('user-reset-pw', {name:'孙立军'})">重置密码</span><span class="row-action danger">停用</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="pagination-info">共 486 条，第 1-7 条</div>
+          <div class="pagination-controls">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">…</button>
+            <button class="page-btn">70</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: ROLES ========== -->
+    <section class="view" id="view-roles">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">角色与权限</h1>
+          <div class="page-sub">维护系统角色及其菜单/操作权限</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('role-new')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建角色</button>
+      </div>
+
+      <div class="perm-grid">
+        <div class="perm-roles">
+          <div class="perm-role-item active">
+            <div><div class="name">系统管理员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">SYSTEM_ADMIN</div></div>
+            <div class="count">12 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">业绩考核管理员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">ASSESSMENT_ADMIN</div></div>
+            <div class="count">8 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">部门绩效管理员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">DEPT_ADMIN</div></div>
+            <div class="count">5 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">部门绩效考核员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">EVALUATOR</div></div>
+            <div class="count">4 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">分管领导</div><div style="font-size:12px;color:var(--muted);margin-top:2px">LEADER</div></div>
+            <div class="count">4 / 12</div>
+          </div>
+          <div class="perm-role-item">
+            <div><div class="name">只读查询员</div><div style="font-size:12px;color:var(--muted);margin-top:2px">READ_ONLY</div></div>
+            <div class="count">3 / 12</div>
+          </div>
+        </div>
+        <div class="perm-tree">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3>系统管理员 · 权限分配</h3>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="openModal('role-edit', {name:'系统管理员'})">编辑角色</button>
+              <button class="btn btn-primary">保存修改</button>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row"><span class="toggle">▼</span><span class="checkbox checked"></span><strong>系统管理</strong></div>
+            <div class="tree-children">
+              <div class="tree-row"><span class="toggle">▼</span><span class="checkbox checked"></span>用户管理</div>
+              <div class="tree-children">
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>查看用户</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>新增用户</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>编辑用户</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>删除用户</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>重置密码</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>批量导入</div>
+              </div>
+              <div class="tree-row"><span class="toggle">▼</span><span class="checkbox checked"></span>角色与权限</div>
+              <div class="tree-children">
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>查看角色</div>
+                <div class="tree-row"><span class="toggle"></span><span class="checkbox checked"></span>分配权限</div>
+              </div>
+              <div class="tree-row"><span class="toggle">▶</span><span class="checkbox checked"></span>菜单管理</div>
+              <div class="tree-row"><span class="toggle">▶</span><span class="checkbox checked"></span>组织架构</div>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row"><span class="toggle">▶</span><span class="checkbox checked"></span><strong>系统监控</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: MENUS ========== -->
+    <section class="view" id="view-menus">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">菜单管理</h1>
+          <div class="page-sub">维护系统全部菜单、按钮与路由权限码（共 3 级树形结构）</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('menu-new')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建菜单</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <input class="filter-input" placeholder="搜索菜单名称、权限码…">
+          <select class="filter-select"><option>全部类型</option><option>目录</option><option>菜单</option><option>按钮</option></select>
+          <select class="filter-select"><option>全部状态</option><option>显示</option><option>隐藏</option></select>
+        </div>
+        <div class="actions">
+          <button class="btn">展开全部</button>
+          <button class="btn">折叠全部</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table class="menu-tree-table">
+          <thead>
+            <tr>
+              <th>菜单名称</th>
+              <th>类型</th>
+              <th>图标</th>
+              <th>路由</th>
+              <th>权限码</th>
+              <th>显示顺序</th>
+              <th>状态</th>
+              <th style="text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>▼ 系统管理</strong></td><td><span class="pill gray">目录</span></td><td>⚙</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/system</td><td style="font-family:var(--font-mono);font-size:12px">system</td><td>1</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'系统管理'})">编辑</span><span class="row-action" onclick="openModal('menu-new', {parent:'系统管理'})">新增子项</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-1"><td>▼ 用户管理</td><td><span class="pill blue">菜单</span></td><td>👤</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/system/user</td><td style="font-family:var(--font-mono);font-size:12px">system:user:list</td><td>1</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'用户管理'})">编辑</span><span class="row-action" onclick="openModal('menu-new', {parent:'用户管理'})">新增按钮</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-2"><td>新增用户</td><td><span class="pill amber">按钮</span></td><td>—</td><td style="color:var(--muted)">—</td><td style="font-family:var(--font-mono);font-size:12px">system:user:add</td><td>1</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'新增用户'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-2"><td>编辑用户</td><td><span class="pill amber">按钮</span></td><td>—</td><td style="color:var(--muted)">—</td><td style="font-family:var(--font-mono);font-size:12px">system:user:edit</td><td>2</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'编辑用户'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-2"><td>重置密码</td><td><span class="pill amber">按钮</span></td><td>—</td><td style="color:var(--muted)">—</td><td style="font-family:var(--font-mono);font-size:12px">system:user:reset</td><td>3</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'重置密码'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-1"><td>▶ 角色与权限</td><td><span class="pill blue">菜单</span></td><td>🛡</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/system/role</td><td style="font-family:var(--font-mono);font-size:12px">system:role:list</td><td>2</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'角色与权限'})">编辑</span><span class="row-action" onclick="openModal('menu-new', {parent:'角色与权限'})">新增按钮</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-1"><td>▶ 菜单管理</td><td><span class="pill blue">菜单</span></td><td>≡</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/system/menu</td><td style="font-family:var(--font-mono);font-size:12px">system:menu:list</td><td>3</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'菜单管理'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-1"><td>▶ 组织架构</td><td><span class="pill blue">菜单</span></td><td>🏢</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/system/org</td><td style="font-family:var(--font-mono);font-size:12px">system:org:list</td><td>4</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'组织架构'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-1"><td>▶ 数据字典</td><td><span class="pill blue">菜单</span></td><td>📖</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/system/dict</td><td style="font-family:var(--font-mono);font-size:12px">system:dict:list</td><td>5</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'数据字典'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr><td><strong>▼ 业务管理</strong></td><td><span class="pill gray">目录</span></td><td>📋</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/biz</td><td style="font-family:var(--font-mono);font-size:12px">biz</td><td>2</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'业务管理'})">编辑</span><span class="row-action" onclick="openModal('menu-new', {parent:'业务管理'})">新增子项</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-1"><td>考核流程</td><td><span class="pill blue">菜单</span></td><td>⚙</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/biz/process</td><td style="font-family:var(--font-mono);font-size:12px">biz:process:list</td><td>1</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'考核流程'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-1"><td>指标库</td><td><span class="pill blue">菜单</span></td><td>📊</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/biz/indicator</td><td style="font-family:var(--font-mono);font-size:12px">biz:indicator:list</td><td>2</td><td><span class="pill green">显示</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'指标库'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+            <tr class="menu-indent-1"><td>申诉处理</td><td><span class="pill blue">菜单</span></td><td>!</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">/biz/appeal</td><td style="font-family:var(--font-mono);font-size:12px">biz:appeal:list</td><td>3</td><td><span class="pill gray">隐藏</span></td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('menu-edit', {name:'申诉处理'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: ORG ========== -->
+    <section class="view" id="view-org">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">组织架构</h1>
+          <div class="page-sub">单位 → 部门 → 岗位 三级维护，支持拖拽调整顺序</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="openModal('org-sync')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>同步HR系统</button>
+          <button class="btn btn-primary" onclick="openModal('org-new')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建部门</button>
+        </div>
+      </div>
+
+      <div class="org-grid">
+        <div class="org-tree-panel">
+          <div class="org-tree-head">
+            <span class="org-tree-title">组织树（30）</span>
+            <span class="row-action" onclick="openModal('org-new', {parent:'根'})">+ 根节点</span>
+          </div>
+          <div class="org-tree">
+            <ul>
+              <li class="active"><span class="label"><svg class="org-dept-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>中煤鄂尔多斯能源化工有限公司</span>
+                <ul>
+                  <li><span class="label">▸ 公司领导</span></li>
+                  <li><span class="label">▾ 条件财务处</span>
+                    <ul>
+                      <li><span class="label">业绩考核科</span></li>
+                      <li><span class="label">财务管理科</span></li>
+                    </ul>
+                  </li>
+                  <li><span class="label">▾ 生产系统</span>
+                    <ul>
+                      <li><span class="label">生产运行部</span></li>
+                      <li><span class="label">化工二车间</span></li>
+                      <li><span class="label">煤气化车间</span></li>
+                      <li><span class="label">合成氨车间</span></li>
+                      <li><span class="label">公用工程车间</span></li>
+                    </ul>
+                  </li>
+                  <li><span class="label">▾ 安全与设备</span>
+                    <ul>
+                      <li><span class="label">安全环保部</span></li>
+                      <li><span class="label">设备工程部</span></li>
+                    </ul>
+                  </li>
+                  <li><span class="label">▾ 职能管理</span>
+                    <ul>
+                      <li><span class="label">人力资源部</span></li>
+                      <li><span class="label">营销中心</span></li>
+                      <li><span class="label">研究发展部</span></li>
+                      <li><span class="label">运营管理部</span></li>
+                      <li><span class="label">信息技术部</span></li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">中煤鄂尔多斯能源化工有限公司 · 部门信息</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn" onclick="openModal('org-edit', {name:'中煤鄂尔多斯能源化工有限公司'})">编辑</button>
+              <button class="btn btn-primary" onclick="openModal('org-new', {parent:'中煤鄂尔多斯'})">新增子部门</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label class="form-label">部门编码</label><div style="padding:8px 12px;background:var(--bg);border-radius:6px;font-family:var(--font-mono);font-size:13px">CMEC_ROOT</div></div>
+              <div class="form-group"><label class="form-label">部门类型</label><div style="padding:8px 12px"><span class="pill blue">公司本级</span></div></div>
+              <div class="form-group"><label class="form-label">负责人</label><div style="padding:8px 12px">张总经理</div></div>
+              <div class="form-group"><label class="form-label">编制人数</label><div style="padding:8px 12px;font-family:var(--font-mono)">486 人</div></div>
+              <div class="form-group col-2"><label class="form-label">所在地</label><div style="padding:8px 12px">内蒙古鄂尔多斯市伊金霍洛旗</div></div>
+            </div>
+            <div style="margin-top:16px;font-size:13px;color:var(--muted)"><strong style="color:var(--fg)">下属部门</strong>：14 个 · <strong style="color:var(--fg)">在编人数</strong>：486 人 · <strong style="color:var(--fg)">参与考核部门</strong>：18 个</div>
+
+            <table style="margin-top:20px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <thead>
+                <tr><th>部门名称</th><th>编码</th><th>负责人</th><th>人数</th><th style="text-align:right">操作</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>条件财务处</td><td style="font-family:var(--font-mono);font-size:12px">CMEC_FIN</td><td>李建国</td><td>18</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('org-edit', {name:'条件财务处'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+                <tr><td>生产运行部</td><td style="font-family:var(--font-mono);font-size:12px">CMEC_PROD</td><td>周建国</td><td>52</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('org-edit', {name:'生产运行部'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+                <tr><td>安全环保部</td><td style="font-family:var(--font-mono);font-size:12px">CMEC_SAFE</td><td>陈志强</td><td>26</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('org-edit', {name:'安全环保部'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+                <tr><td>设备工程部</td><td style="font-family:var(--font-mono);font-size:12px">CMEC_EQUIP</td><td>赵明亮</td><td>34</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('org-edit', {name:'设备工程部'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+                <tr><td>人力资源部</td><td style="font-family:var(--font-mono);font-size:12px">CMEC_HR</td><td>刘美华</td><td>14</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('org-edit', {name:'人力资源部'})">编辑</span><span class="row-action danger">删除</span></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: DICT ========== -->
+    <section class="view" id="view-dict">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">数据字典</h1>
+          <div class="page-sub">枚举值统一维护，避免硬编码，支持业务方动态扩展</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('dict-new')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建字典</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <input class="filter-input" placeholder="搜索字典编码、名称…">
+          <select class="filter-select"><option>全部状态</option><option>启用</option><option>停用</option></select>
+        </div>
+        <div class="actions">
+          <button class="btn">导出</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th>字典名称</th><th>字典编码</th><th>说明</th><th>条目数</th><th>状态</th><th>更新人</th><th>更新时间</th><th style="text-align:right">操作</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>指标分类</strong></td><td style="font-family:var(--font-mono);font-size:12.5px">indicator_category</td><td>经营/安全/运营/创新/团队</td><td style="font-family:var(--font-mono)">5</td><td><span class="pill green">启用</span></td><td>王启明</td><td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">2026-04-02 09:14</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('dict-edit', {name:'指标分类'})">编辑</span><span class="row-action" onclick="openModal('dict-items', {name:'指标分类'})">条目</span><span class="row-action danger">停用</span></div></td></tr>
+            <tr><td><strong>指标类型</strong></td><td style="font-family:var(--font-mono);font-size:12.5px">indicator_type</td><td>定量/定性</td><td style="font-family:var(--font-mono)">2</td><td><span class="pill green">启用</span></td><td>王启明</td><td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">2026-04-02 09:14</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('dict-edit', {name:'指标类型'})">编辑</span><span class="row-action" onclick="openModal('dict-items', {name:'指标类型'})">条目</span><span class="row-action danger">停用</span></div></td></tr>
+            <tr><td><strong>申诉状态</strong></td><td style="font-family:var(--font-mono);font-size:12.5px">appeal_status</td><td>待受理/调查中/已答复/已撤销</td><td style="font-family:var(--font-mono)">4</td><td><span class="pill green">启用</span></td><td>李建国</td><td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">2026-04-15 11:32</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('dict-edit', {name:'申诉状态'})">编辑</span><span class="row-action" onclick="openModal('dict-items', {name:'申诉状态'})">条目</span><span class="row-action danger">停用</span></div></td></tr>
+            <tr><td><strong>用户状态</strong></td><td style="font-family:var(--font-mono);font-size:12.5px">user_status</td><td>活跃/锁定/停用</td><td style="font-family:var(--font-mono)">3</td><td><span class="pill green">启用</span></td><td>王启明</td><td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">2026-01-08 16:44</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('dict-edit', {name:'用户状态'})">编辑</span><span class="row-action" onclick="openModal('dict-items', {name:'用户状态'})">条目</span><span class="row-action danger">停用</span></div></td></tr>
+            <tr><td><strong>菜单类型</strong></td><td style="font-family:var(--font-mono);font-size:12.5px">menu_type</td><td>目录/菜单/按钮</td><td style="font-family:var(--font-mono)">3</td><td><span class="pill green">启用</span></td><td>王启明</td><td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">2026-01-08 16:44</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('dict-edit', {name:'菜单类型'})">编辑</span><span class="row-action" onclick="openModal('dict-items', {name:'菜单类型'})">条目</span><span class="row-action danger">停用</span></div></td></tr>
+            <tr><td><strong>考核流程阶段</strong></td><td style="font-family:var(--font-mono);font-size:12.5px">assessment_stage</td><td>指标发布/实绩填报/自评/互评/复核/预发布/申诉/正式发布</td><td style="font-family:var(--font-mono)">8</td><td><span class="pill green">启用</span></td><td>李建国</td><td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">2026-03-22 14:10</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('dict-edit', {name:'考核流程阶段'})">编辑</span><span class="row-action" onclick="openModal('dict-items', {name:'考核流程阶段'})">条目</span><span class="row-action danger">停用</span></div></td></tr>
+            <tr><td><strong>附件类型</strong></td><td style="font-family:var(--font-mono);font-size:12.5px">attachment_type</td><td>PDF/Excel/Word/图片/视频</td><td style="font-family:var(--font-mono)">5</td><td><span class="pill gray">停用</span></td><td>王启明</td><td style="font-family:var(--font-mono);font-size:12.5px;color:var(--muted)">2026-02-04 10:00</td><td style="text-align:right"><div class="row-actions" style="justify-content:flex-end"><span class="row-action" onclick="openModal('dict-edit', {name:'附件类型'})">编辑</span><span class="row-action" onclick="openModal('dict-items', {name:'附件类型'})">条目</span><span class="row-action">启用</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: LOG (操作日志) ========== -->
+    <section class="view" id="view-log">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">操作日志</h1>
+          <div class="page-sub">系统操作审计留痕 · 保留 12 个月</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn">归档</button>
+          <button class="btn btn-primary">导出 CSV</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <input class="filter-input" placeholder="搜索用户、模块、操作内容…">
+          <select class="filter-select"><option>全部模块</option><option>用户管理</option><option>角色权限</option><option>菜单管理</option><option>考核流程</option><option>申诉</option></select>
+          <select class="filter-select"><option>全部级别</option><option>正常</option><option>警告</option><option>异常</option></select>
+          <input class="filter-input" type="date" value="2026-04-22" style="min-width:140px">
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div style="padding:0">
+          <div class="log-row"><span class="dot"></span><span class="log-time">2026-04-22 15:42:18</span><span class="log-user">李建国 (条件财务处)</span><div class="log-detail"><span class="log-action">推进流程</span> · 将 4 月度考核从「评分复核」推进至「预发布」阶段，影响 18 个部门</div><span class="pill green">正常</span></div>
+          <div class="log-row"><span class="dot"></span><span class="log-time">2026-04-22 15:38:02</span><span class="log-user">李建国 (条件财务处)</span><div class="log-detail"><span class="log-action">复核评分</span> · 采纳系统建议分 83.5 · 生产运行部 · 月度产量完成率</div><span class="pill green">正常</span></div>
+          <div class="log-row warn"><span class="dot"></span><span class="log-time">2026-04-22 15:35:11</span><span class="log-user">王宏伟 (公司领导)</span><div class="log-detail"><span class="log-action">异常评分</span> · 安全环保部 安全事故零发生率 评分 65 · 偏离自评 100 达 35 分</div><span class="pill amber">警告</span></div>
+          <div class="log-row"><span class="dot"></span><span class="log-time">2026-04-22 15:32:47</span><span class="log-user">周建国 (生产运行部)</span><div class="log-detail"><span class="log-action">提交申诉</span> · 营销中心 客户满意度评分异议，涉及分值 7.5</div><span class="pill green">正常</span></div>
+          <div class="log-row"><span class="dot"></span><span class="log-time">2026-04-22 15:18:30</span><span class="log-user">张晓燕 (生产运行部)</span><div class="log-detail"><span class="log-action">提交自评</span> · 8 项指标全部填报完成，累计 92.4 分</div><span class="pill green">正常</span></div>
+          <div class="log-row"><span class="dot"></span><span class="log-time">2026-04-22 14:55:09</span><span class="log-user">王启明 (系统管理员)</span><div class="log-detail"><span class="log-action">新建用户</span> · 创建账号 sunqiang@ccerphr.com · 部门：运营管理部 · 角色：考核员</div><span class="pill green">正常</span></div>
+          <div class="log-row danger"><span class="dot"></span><span class="log-time">2026-04-22 14:32:41</span><span class="log-user">陈志强 (安全环保部)</span><div class="log-detail"><span class="log-action">登录失败</span> · 5 次错误密码尝试，账号已锁定 30 分钟 · IP 10.21.34.55</div><span class="pill red">异常</span></div>
+          <div class="log-row"><span class="dot"></span><span class="log-time">2026-04-22 14:18:22</span><span class="log-user">王启明 (系统管理员)</span><div class="log-detail"><span class="log-action">修改角色权限</span> · 部门绩效管理员 · 新增「编辑指标库」权限</div><span class="pill green">正常</span></div>
+          <div class="log-row"><span class="dot"></span><span class="log-time">2026-04-22 13:52:17</span><span class="log-user">刘美华 (人力资源部)</span><div class="log-detail"><span class="log-action">导出报表</span> · 2026 年 1-3 月部门绩效汇总.xlsx</div><span class="pill green">正常</span></div>
+          <div class="log-row warn"><span class="dot"></span><span class="log-time">2026-04-22 13:08:55</span><span class="log-user">系统</span><div class="log-detail"><span class="log-action">数据同步异常</span> · HR 系统组织架构同步失败 · 重试 2 / 3 次</div><span class="pill amber">警告</span></div>
+          <div class="log-row"><span class="dot"></span><span class="log-time">2026-04-22 12:30:00</span><span class="log-user">系统</span><div class="log-detail"><span class="log-action">定时任务</span> · 每日数据备份完成 · 数据量 1.24 GB · 耗时 38 秒</div><span class="pill green">正常</span></div>
+          <div class="log-row"><span class="dot"></span><span class="log-time">2026-04-22 11:14:33</span><span class="log-user">赵明亮 (设备工程部)</span><div class="log-detail"><span class="log-action">提交互评</span> · 对 8 个生产部门完成产量完成率评分</div><span class="pill green">正常</span></div>
+        </div>
+        <div class="pagination">
+          <div class="pagination-info">本日 3,247 条 · 显示 12 条</div>
+          <div class="pagination-controls">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">…</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: LOGIN LOG ========== -->
+    <section class="view" id="view-login-log">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">登录日志</h1>
+          <div class="page-sub">登录与登出审计 · 含 IP、地理位置、设备指纹</div>
+        </div>
+        <button class="btn btn-primary">导出 CSV</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">今日登录</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/></svg></div></div><div class="stat-num">328</div><div class="stat-trend">↑ 16% 周同比</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">独立用户</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg></div></div><div class="stat-num">256</div><div class="stat-trend">活跃率 62%</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">登录失败</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div></div><div class="stat-num">8</div><div class="stat-trend down">较高</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">异常 IP</div><div class="stat-icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div></div><div class="stat-num">2</div><div class="stat-trend down">已自动拦截</div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <input class="filter-input" placeholder="搜索账号、IP…">
+          <select class="filter-select"><option>全部结果</option><option>成功</option><option>失败</option><option>锁定</option></select>
+          <select class="filter-select"><option>全部地点</option><option>内蒙古鄂尔多斯</option><option>北京</option><option>异地</option></select>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th>账号</th><th>姓名</th><th>IP 地址</th><th>地点</th><th>设备</th><th>结果</th><th>登录时间</th><th>会话时长</th></tr>
+          </thead>
+          <tbody>
+            <tr><td style="font-family:var(--font-mono);font-size:12.5px">lijianguo</td><td>李建国</td><td style="font-family:var(--font-mono);font-size:12.5px">10.21.18.42</td><td>内蒙古鄂尔多斯</td><td style="font-size:12.5px;color:var(--muted)">Chrome 124 / Windows 11</td><td><span class="pill green">● 成功</span></td><td style="font-family:var(--font-mono);font-size:12.5px">15:42:18</td><td>2h 14m</td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12.5px">zhangxiaoyan</td><td>张晓燕</td><td style="font-family:var(--font-mono);font-size:12.5px">10.21.18.86</td><td>内蒙古鄂尔多斯</td><td style="font-size:12.5px;color:var(--muted)">Edge 124 / Windows 11</td><td><span class="pill green">● 成功</span></td><td style="font-family:var(--font-mono);font-size:12.5px">15:18:30</td><td>3h 02m</td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12.5px">wanghongwei</td><td>王宏伟</td><td style="font-family:var(--font-mono);font-size:12.5px">10.21.18.12</td><td>内蒙古鄂尔多斯</td><td style="font-size:12.5px;color:var(--muted)">Chrome 124 / macOS 14</td><td><span class="pill green">● 成功</span></td><td style="font-family:var(--font-mono);font-size:12.5px">14:38:55</td><td>3h 14m</td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12.5px">chenzhiqiang</td><td>陈志强</td><td style="font-family:var(--font-mono);font-size:12.5px">10.21.34.55</td><td>内蒙古鄂尔多斯</td><td style="font-size:12.5px;color:var(--muted)">Chrome 122 / Windows 10</td><td><span class="pill red">● 锁定 5次失败</span></td><td style="font-family:var(--font-mono);font-size:12.5px">14:32:41</td><td>—</td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12.5px">liumeihua</td><td>刘美华</td><td style="font-family:var(--font-mono);font-size:12.5px">10.21.18.92</td><td>内蒙古鄂尔多斯</td><td style="font-size:12.5px;color:var(--muted)">Chrome 124 / Windows 11</td><td><span class="pill green">● 成功</span></td><td style="font-family:var(--font-mono);font-size:12.5px">13:52:17</td><td>4h 12m</td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12.5px">unknown</td><td style="color:var(--danger)">⚠ 未知账号</td><td style="font-family:var(--font-mono);font-size:12.5px;color:var(--danger)">203.119.45.21</td><td style="color:var(--danger)">广东深圳</td><td style="font-size:12.5px;color:var(--muted)">curl / 自动化</td><td><span class="pill red">● 已拦截</span></td><td style="font-family:var(--font-mono);font-size:12.5px">13:02:08</td><td>—</td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12.5px">zhaomingliang</td><td>赵明亮</td><td style="font-family:var(--font-mono);font-size:12.5px">10.21.18.51</td><td>内蒙古鄂尔多斯</td><td style="font-size:12.5px;color:var(--muted)">Safari 17 / iOS 17</td><td><span class="pill green">● 成功</span></td><td style="font-family:var(--font-mono);font-size:12.5px">11:14:33</td><td>22m</td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12.5px">wangqiming</td><td>王启明</td><td style="font-family:var(--font-mono);font-size:12.5px">10.21.18.10</td><td>内蒙古鄂尔多斯</td><td style="font-size:12.5px;color:var(--muted)">Chrome 124 / Windows 11</td><td><span class="pill green">● 成功</span></td><td style="font-family:var(--font-mono);font-size:12.5px">08:32:14</td><td>当前在线</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: MONITOR ========== -->
+    <section class="view" id="view-monitor">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">服务监控</h1>
+          <div class="page-sub">应用、数据库、消息队列、文件存储实时健康状态</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn">刷新</button>
+          <button class="btn">配置告警</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">服务可用率</div><div class="stat-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div><div class="stat-num">99.97<span style="font-size:14px;color:var(--muted)">%</span></div><div class="stat-trend">SLA 达标</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">平均响应</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div><div class="stat-num">142<span style="font-size:14px;color:var(--muted)">ms</span></div><div class="stat-trend">↓ 8ms</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">在线会话</div><div class="stat-icon blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg></div></div><div class="stat-num">187</div><div class="stat-trend">峰值 248</div></div>
+        <div class="stat-card"><div class="stat-head"><div class="stat-label">告警事件</div><div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div></div><div class="stat-num">2</div><div class="stat-trend down">含 1 项警告</div></div>
+      </div>
+
+      <div class="monitor-grid">
+        <div class="monitor-card">
+          <h3>应用服务器 <span class="pill green">● 正常</span></h3>
+          <div class="monitor-metric"><span>CPU 使用率</span><div class="gauge"><div class="gauge-fill" style="width:32%"></div></div><span class="v">32%</span></div>
+          <div class="monitor-metric"><span>内存占用</span><div class="gauge"><div class="gauge-fill" style="width:68%"></div></div><span class="v">68%</span></div>
+          <div class="monitor-metric"><span>磁盘使用</span><div class="gauge"><div class="gauge-fill warn" style="width:74%"></div></div><span class="v">74%</span></div>
+          <div class="monitor-metric"><span>JVM 堆内存</span><div class="gauge"><div class="gauge-fill" style="width:54%"></div></div><span class="v">2.7 / 5 GB</span></div>
+          <div class="monitor-metric"><span>线程数</span><span></span><span class="v">182 / 500</span></div>
+        </div>
+        <div class="monitor-card">
+          <h3>数据库 (MySQL 8.0) <span class="pill green">● 正常</span></h3>
+          <div class="monitor-metric"><span>连接数</span><div class="gauge"><div class="gauge-fill" style="width:28%"></div></div><span class="v">28 / 100</span></div>
+          <div class="monitor-metric"><span>QPS</span><span></span><span class="v">186 q/s</span></div>
+          <div class="monitor-metric"><span>慢查询</span><span></span><span class="v" style="color:var(--success)">0</span></div>
+          <div class="monitor-metric"><span>主从延迟</span><span></span><span class="v">12 ms</span></div>
+          <div class="monitor-metric"><span>表空间</span><div class="gauge"><div class="gauge-fill" style="width:42%"></div></div><span class="v">42%</span></div>
+        </div>
+        <div class="monitor-card">
+          <h3>Redis 缓存 <span class="pill green">● 正常</span></h3>
+          <div class="monitor-metric"><span>命中率</span><div class="gauge"><div class="gauge-fill" style="width:96%"></div></div><span class="v">96.2%</span></div>
+          <div class="monitor-metric"><span>键总数</span><span></span><span class="v">12,486</span></div>
+          <div class="monitor-metric"><span>内存使用</span><div class="gauge"><div class="gauge-fill" style="width:28%"></div></div><span class="v">281 MB</span></div>
+          <div class="monitor-metric"><span>每秒命令</span><span></span><span class="v">2,481 / s</span></div>
+        </div>
+        <div class="monitor-card">
+          <h3>消息队列 (RabbitMQ) <span class="pill amber">● 1 项警告</span></h3>
+          <div class="monitor-metric"><span>队列堆积</span><div class="gauge"><div class="gauge-fill warn" style="width:38%"></div></div><span class="v" style="color:var(--warning)">186 条</span></div>
+          <div class="monitor-metric"><span>消费速率</span><span></span><span class="v">42 /s</span></div>
+          <div class="monitor-metric"><span>失败重试</span><span></span><span class="v">3</span></div>
+          <div class="monitor-metric"><span>死信队列</span><span></span><span class="v" style="color:var(--warning)">2</span></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ============ MODAL ============ -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="modalTitle">标题</div>
+        <div class="modal-sub" id="modalSub" style="display:none"></div>
+      </div>
+      <div class="modal-close" onclick="closeModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitModal()" id="modalSubmit">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // View switching
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const view = item.dataset.view;
+      if (!view) return;
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const target = document.getElementById('view-' + view);
+      if (target) target.classList.add('active');
+      // crumb
+      const titles = { users:'用户管理', roles:'角色与权限', menus:'菜单管理', org:'组织架构', dict:'数据字典', log:'操作日志', 'login-log':'登录日志', monitor:'服务监控' };
+      document.getElementById('crumb-current').textContent = titles[view] || '';
+      window.scrollTo({top:0, behavior:'instant'});
+    });
+  });
+
+  // perm role select
+  document.querySelectorAll('.perm-role-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.perm-role-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  // Modal templates
+  const MODAL_TPL = {
+    'user-new': {
+      title: '新建用户',
+      sub: '创建新的系统账号，密码将通过邮件发送',
+      width: 'lg',
+      body: `<div class="form-grid">
+        <div class="form-group"><label class="form-label">姓名<span class="req">*</span></label><input class="form-input" placeholder="请输入真实姓名"></div>
+        <div class="form-group"><label class="form-label">工号<span class="req">*</span></label><input class="form-input" placeholder="EMP10xxx"></div>
+        <div class="form-group"><label class="form-label">邮箱<span class="req">*</span></label><input class="form-input" placeholder="user@ccerphr.com"></div>
+        <div class="form-group"><label class="form-label">手机号</label><input class="form-input" placeholder="13xxxxxxxxx"></div>
+        <div class="form-group"><label class="form-label">所属部门<span class="req">*</span></label><select class="form-select"><option>请选择部门</option><option>条件财务处</option><option>生产运行部</option><option>安全环保部</option><option>设备工程部</option><option>人力资源部</option></select></div>
+        <div class="form-group"><label class="form-label">岗位</label><input class="form-input" placeholder="如：考核管理员"></div>
+        <div class="form-group col-2"><label class="form-label">角色（可多选）<span class="req">*</span></label>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px;background:var(--bg);border-radius:6px">
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>系统管理员</div>
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>业绩考核管理员</div>
+            <div class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>部门绩效管理员</div>
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>考核员</div>
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>分管领导</div>
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>只读查询员</div>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">初始密码</label><input class="form-input" value="自动生成 (12 位)"><div class="form-hint">将自动发送至用户邮箱，首次登录强制修改</div></div>
+        <div class="form-group"><label class="form-label">状态</label><select class="form-select"><option>启用</option><option>停用</option></select></div>
+      </div>`
+    },
+    'user-edit': {
+      title: '编辑用户',
+      sub: name => '正在编辑：' + (name || ''),
+      width: 'lg',
+      body: name => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">姓名<span class="req">*</span></label><input class="form-input" value="${name||''}"></div>
+        <div class="form-group"><label class="form-label">工号</label><input class="form-input" value="EMP10231" disabled style="background:var(--bg);color:var(--muted)"></div>
+        <div class="form-group"><label class="form-label">邮箱</label><input class="form-input" value="lijianguo@ccerphr.com"></div>
+        <div class="form-group"><label class="form-label">手机号</label><input class="form-input" value="13947812355"></div>
+        <div class="form-group"><label class="form-label">所属部门</label><select class="form-select"><option>条件财务处</option><option>生产运行部</option></select></div>
+        <div class="form-group"><label class="form-label">岗位</label><input class="form-input" value="业绩考核管理员"></div>
+        <div class="form-group col-2"><label class="form-label">角色（可多选）</label>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px;background:var(--bg);border-radius:6px">
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>系统管理员</div>
+            <div class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span>业绩考核管理员</div>
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>部门绩效管理员</div>
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>考核员</div>
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>分管领导</div>
+            <div class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span>只读查询员</div>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">状态</label><select class="form-select"><option>启用</option><option>停用</option><option>锁定</option></select></div>
+        <div class="form-group"><label class="form-label">数据权限范围</label><select class="form-select"><option>本部门</option><option>全公司</option><option>自定义</option></select></div>
+      </div>`
+    },
+    'user-reset-pw': {
+      title: '重置密码',
+      sub: name => '将重置 ' + (name||'') + ' 的密码',
+      width: 'sm',
+      body: () => `<div class="form-group"><label class="form-label">新密码</label><input class="form-input" value="自动生成 (12 位)" readonly style="background:var(--bg)"><div class="form-hint">系统将生成强随机密码，并通过邮件/短信发送至用户</div></div>
+        <div class="form-group"><label class="form-label" style="margin-top:8px"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span> &nbsp; 要求用户下次登录时修改密码</label></div>
+        <div class="form-group"><label class="form-label"><span class="checkbox" onclick="this.classList.toggle('checked')"></span> &nbsp; 同时强制该用户所有会话下线</label></div>`
+    },
+    'role-new': {
+      title: '新建角色',
+      sub: '创建新的角色，后续可分配菜单与按钮权限',
+      body: () => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">角色名称<span class="req">*</span></label><input class="form-input" placeholder="如：部门绩效管理员"></div>
+        <div class="form-group"><label class="form-label">角色编码<span class="req">*</span></label><input class="form-input" placeholder="DEPT_ADMIN" style="font-family:var(--font-mono)"></div>
+        <div class="form-group col-2"><label class="form-label">数据范围</label><select class="form-select"><option>本部门</option><option>全公司</option><option>自定义部门</option><option>仅本人</option></select></div>
+        <div class="form-group col-2"><label class="form-label">说明</label><textarea class="form-textarea" placeholder="该角色的职责与适用范围…"></textarea></div>
+        <div class="form-group col-2"><label class="form-label">状态</label><select class="form-select"><option>启用</option><option>停用</option></select></div>
+      </div>`
+    },
+    'role-edit': {
+      title: '编辑角色',
+      sub: name => '正在编辑：' + (name||''),
+      body: name => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">角色名称<span class="req">*</span></label><input class="form-input" value="${name||''}"></div>
+        <div class="form-group"><label class="form-label">角色编码</label><input class="form-input" value="SYSTEM_ADMIN" disabled style="background:var(--bg);font-family:var(--font-mono)"></div>
+        <div class="form-group col-2"><label class="form-label">数据范围</label><select class="form-select"><option>全公司</option><option>本部门</option><option>自定义部门</option><option>仅本人</option></select></div>
+        <div class="form-group col-2"><label class="form-label">说明</label><textarea class="form-textarea">系统超级管理员，拥有所有菜单和按钮权限</textarea></div>
+        <div class="form-group col-2"><label class="form-label">状态</label><select class="form-select"><option>启用</option><option>停用</option></select></div>
+      </div>`
+    },
+    'menu-new': {
+      title: '新建菜单',
+      sub: opts => opts && opts.parent ? '父节点：' + opts.parent : '新建顶级目录/菜单/按钮',
+      body: opts => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">上级菜单</label><select class="form-select"><option>${opts && opts.parent ? opts.parent : '根目录'}</option><option>系统管理</option><option>业务管理</option></select></div>
+        <div class="form-group"><label class="form-label">菜单类型<span class="req">*</span></label><select class="form-select"><option>目录</option><option>菜单</option><option>按钮</option></select></div>
+        <div class="form-group"><label class="form-label">菜单名称<span class="req">*</span></label><input class="form-input" placeholder="如：用户管理"></div>
+        <div class="form-group"><label class="form-label">显示顺序</label><input class="form-input" value="1"></div>
+        <div class="form-group"><label class="form-label">路由地址</label><input class="form-input" placeholder="/system/user" style="font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">权限码<span class="req">*</span></label><input class="form-input" placeholder="system:user:list" style="font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">组件路径</label><input class="form-input" placeholder="system/user/index" style="font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">图标</label><input class="form-input" placeholder="选择图标"></div>
+        <div class="form-group"><label class="form-label">显示状态</label><select class="form-select"><option>显示</option><option>隐藏</option></select></div>
+        <div class="form-group"><label class="form-label">菜单状态</label><select class="form-select"><option>启用</option><option>停用</option></select></div>
+      </div>`
+    },
+    'menu-edit': {
+      title: '编辑菜单',
+      sub: opts => '正在编辑：' + (opts && opts.name ? opts.name : ''),
+      body: opts => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">上级菜单</label><select class="form-select"><option>系统管理</option><option>业务管理</option></select></div>
+        <div class="form-group"><label class="form-label">菜单类型</label><select class="form-select"><option>菜单</option><option>目录</option><option>按钮</option></select></div>
+        <div class="form-group"><label class="form-label">菜单名称</label><input class="form-input" value="${opts && opts.name ? opts.name : ''}"></div>
+        <div class="form-group"><label class="form-label">显示顺序</label><input class="form-input" value="1"></div>
+        <div class="form-group"><label class="form-label">路由地址</label><input class="form-input" value="/system/user" style="font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">权限码</label><input class="form-input" value="system:user:list" style="font-family:var(--font-mono)"></div>
+        <div class="form-group col-2"><label class="form-label">组件路径</label><input class="form-input" value="system/user/index" style="font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">显示状态</label><select class="form-select"><option>显示</option><option>隐藏</option></select></div>
+        <div class="form-group"><label class="form-label">菜单状态</label><select class="form-select"><option>启用</option><option>停用</option></select></div>
+      </div>`
+    },
+    'org-new': {
+      title: '新建部门',
+      sub: opts => opts && opts.parent ? '父部门：' + opts.parent : '新建组织',
+      body: opts => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">上级部门<span class="req">*</span></label><select class="form-select"><option>${opts && opts.parent ? opts.parent : '中煤鄂尔多斯'}</option></select></div>
+        <div class="form-group"><label class="form-label">部门类型</label><select class="form-select"><option>职能部门</option><option>生产单位</option><option>分公司</option><option>项目部</option></select></div>
+        <div class="form-group"><label class="form-label">部门名称<span class="req">*</span></label><input class="form-input" placeholder="如：质量检测部"></div>
+        <div class="form-group"><label class="form-label">部门编码<span class="req">*</span></label><input class="form-input" placeholder="CMEC_QC" style="font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">负责人</label><select class="form-select"><option>请选择</option><option>李建国</option><option>张晓燕</option></select></div>
+        <div class="form-group"><label class="form-label">编制人数</label><input class="form-input" placeholder="0"></div>
+        <div class="form-group col-2"><label class="form-label">所在地</label><input class="form-input" placeholder="内蒙古鄂尔多斯市"></div>
+        <div class="form-group col-2"><label class="form-label">是否参与考核</label><div style="display:flex;gap:14px;padding:6px 0"><label class="checkbox-row"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span> 参与月度考核</label><label class="checkbox-row"><span class="checkbox" onclick="this.classList.toggle('checked')"></span> 仅作为承担方</label></div></div>
+      </div>`
+    },
+    'org-edit': {
+      title: '编辑部门',
+      sub: opts => '正在编辑：' + (opts && opts.name ? opts.name : ''),
+      body: opts => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">上级部门</label><select class="form-select"><option>中煤鄂尔多斯</option></select></div>
+        <div class="form-group"><label class="form-label">部门类型</label><select class="form-select"><option>职能部门</option><option>生产单位</option></select></div>
+        <div class="form-group"><label class="form-label">部门名称</label><input class="form-input" value="${opts && opts.name ? opts.name : ''}"></div>
+        <div class="form-group"><label class="form-label">部门编码</label><input class="form-input" value="CMEC_DEPT" style="font-family:var(--font-mono)"></div>
+        <div class="form-group"><label class="form-label">负责人</label><select class="form-select"><option>李建国</option></select></div>
+        <div class="form-group"><label class="form-label">编制人数</label><input class="form-input" value="52"></div>
+      </div>`
+    },
+    'org-sync': {
+      title: '同步 HR 系统',
+      sub: '从企业 HR 主数据系统拉取最新组织架构',
+      width: 'sm',
+      body: () => `<div style="padding:8px 0">
+        <div class="form-group"><label class="form-label">数据源</label><div style="padding:8px 12px;background:var(--bg);border-radius:6px">企业 HR 主数据系统 (HR-MDM)</div></div>
+        <div class="form-group"><label class="form-label">同步范围</label><select class="form-select"><option>全量同步</option><option>仅增量</option></select></div>
+        <div class="form-group"><label class="form-label">冲突策略</label><select class="form-select"><option>以 HR 系统为准</option><option>以本系统为准</option><option>仅同步新增</option></select></div>
+        <div class="form-group"><label class="form-label"><span class="checkbox checked" onclick="this.classList.toggle('checked')"></span> &nbsp; 同步前先备份当前组织数据</label></div>
+        <div style="background:var(--warning-bg);color:var(--warning);padding:10px 14px;border-radius:6px;font-size:12.5px;margin-top:14px">⚠ 上次同步：2026-04-22 13:08（失败，已重试 2/3 次）</div>
+      </div>`
+    },
+    'dict-new': {
+      title: '新建字典',
+      sub: '创建新的枚举字典类型',
+      body: () => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">字典名称<span class="req">*</span></label><input class="form-input" placeholder="如：考核周期"></div>
+        <div class="form-group"><label class="form-label">字典编码<span class="req">*</span></label><input class="form-input" placeholder="assessment_period" style="font-family:var(--font-mono)"></div>
+        <div class="form-group col-2"><label class="form-label">说明</label><textarea class="form-textarea" placeholder="该字典的用途与适用模块…"></textarea></div>
+        <div class="form-group col-2"><label class="form-label">状态</label><select class="form-select"><option>启用</option><option>停用</option></select></div>
+      </div>`
+    },
+    'dict-edit': {
+      title: '编辑字典',
+      sub: opts => '正在编辑：' + (opts && opts.name ? opts.name : ''),
+      body: opts => `<div class="form-grid">
+        <div class="form-group"><label class="form-label">字典名称</label><input class="form-input" value="${opts && opts.name ? opts.name : ''}"></div>
+        <div class="form-group"><label class="form-label">字典编码</label><input class="form-input" value="indicator_category" disabled style="background:var(--bg);font-family:var(--font-mono)"></div>
+        <div class="form-group col-2"><label class="form-label">说明</label><textarea class="form-textarea">指标分类枚举：经营管理 / 安全环保 / 运营效率 / 创新发展 / 团队建设</textarea></div>
+        <div class="form-group col-2"><label class="form-label">状态</label><select class="form-select"><option>启用</option></select></div>
+      </div>`
+    },
+    'dict-items': {
+      title: '字典条目',
+      sub: opts => (opts && opts.name ? opts.name : '') + ' · 维护具体枚举值',
+      width: 'lg',
+      body: opts => `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:13px;color:var(--muted)">共 5 个条目</div><button class="btn btn-primary"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增条目</button></div>
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <table>
+            <thead><tr><th>顺序</th><th>显示标签</th><th>值</th><th>颜色</th><th>状态</th><th style="text-align:right">操作</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:var(--font-mono)">1</td><td>经营管理类</td><td style="font-family:var(--font-mono)">BIZ</td><td><span class="pill blue">蓝</span></td><td><span class="pill green">启用</span></td><td style="text-align:right"><span class="row-action">编辑</span><span class="row-action danger">删除</span></td></tr>
+              <tr><td style="font-family:var(--font-mono)">2</td><td>安全环保类</td><td style="font-family:var(--font-mono)">SAFETY</td><td><span class="pill red">红</span></td><td><span class="pill green">启用</span></td><td style="text-align:right"><span class="row-action">编辑</span><span class="row-action danger">删除</span></td></tr>
+              <tr><td style="font-family:var(--font-mono)">3</td><td>运营效率类</td><td style="font-family:var(--font-mono)">OPERATION</td><td><span class="pill amber">琥珀</span></td><td><span class="pill green">启用</span></td><td style="text-align:right"><span class="row-action">编辑</span><span class="row-action danger">删除</span></td></tr>
+              <tr><td style="font-family:var(--font-mono)">4</td><td>创新发展类</td><td style="font-family:var(--font-mono)">INNOVATION</td><td><span class="pill green">绿</span></td><td><span class="pill green">启用</span></td><td style="text-align:right"><span class="row-action">编辑</span><span class="row-action danger">删除</span></td></tr>
+              <tr><td style="font-family:var(--font-mono)">5</td><td>团队建设类</td><td style="font-family:var(--font-mono)">TEAM</td><td><span class="pill gray">灰</span></td><td><span class="pill green">启用</span></td><td style="text-align:right"><span class="row-action">编辑</span><span class="row-action danger">删除</span></td></tr>
+            </tbody>
+          </table>
+        </div>`
+    }
+  };
+
+  function openModal(key, opts) {
+    const tpl = MODAL_TPL[key];
+    if (!tpl) { console.warn('No modal template for', key); return; }
+    const modal = document.getElementById('modal');
+    const mask = document.getElementById('modalMask');
+    modal.classList.remove('lg', 'sm');
+    if (tpl.width) modal.classList.add(tpl.width);
+    document.getElementById('modalTitle').textContent = typeof tpl.title === 'function' ? tpl.title(opts) : tpl.title;
+    const subEl = document.getElementById('modalSub');
+    if (tpl.sub) {
+      subEl.textContent = typeof tpl.sub === 'function' ? tpl.sub(opts && opts.name ? opts.name : opts) : tpl.sub;
+      subEl.style.display = 'block';
+    } else {
+      subEl.style.display = 'none';
+    }
+    document.getElementById('modalBody').innerHTML = typeof tpl.body === 'function' ? tpl.body(opts) : tpl.body;
+    mask.classList.add('show');
+  }
+  function closeModal() {
+    document.getElementById('modalMask').classList.remove('show');
+  }
+  function submitModal() {
+    closeModal();
+  }
+  document.getElementById('modalMask').addEventListener('click', e => {
+    if (e.target.id === 'modalMask') closeModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@ import com.ccerphr.assessment.entity.BizIndicatorOrg;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -24,8 +25,8 @@ public interface BizIndicatorOrgMapper extends BaseMapper<BizIndicatorOrg> {
     List<Long> selectIndicatorIdsByOrgId(@Param("orgId") Long orgId);
 
     /**
-     * 根据指标ID删除关联数据
+     * 根据指标ID软删除关联数据
      */
-    @Select("UPDATE biz_indicator_org SET deleted = 1 WHERE indicator_id = #{indicatorId}")
+    @Update("UPDATE biz_indicator_org SET deleted = 1 WHERE indicator_id = #{indicatorId}")
     void deleteByIndicatorId(@Param("indicatorId") Long indicatorId);
 }

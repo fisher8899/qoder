@@ -49,7 +49,7 @@ public class SysIndicatorCategoryServiceImpl extends ServiceImpl<SysIndicatorCat
     }
 
     @Override
-    public List<SysIndicatorCategory> getAll(String applicableScope) {
+    public List<SysIndicatorCategory> getAll(String applicableScope, Long unitId) {
         LambdaQueryWrapper<SysIndicatorCategory> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysIndicatorCategory::getIsEnabled, 1);
         if (StringUtils.hasText(applicableScope)) {
@@ -60,6 +60,11 @@ public class SysIndicatorCategoryServiceImpl extends ServiceImpl<SysIndicatorCat
                     .eq(SysIndicatorCategory::getApplicableScope, "通用"));
         }
         // 指标大类为全局配置数据，不按 unit_id 过滤，所有组织均可见
+        if (unitId != null) {
+            wrapper.eq(SysIndicatorCategory::getUnitId, unitId);
+        } else {
+            DataScopeFilter.applyUnitFilter(wrapper, SysIndicatorCategory::getUnitId);
+        }
         wrapper.orderByAsc(SysIndicatorCategory::getSortCode);
         return this.list(wrapper);
     }

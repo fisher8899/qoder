@@ -7,4 +7,5 @@ public class UnfilledItemVO {
     private String indicatorName;
     private String stage;
     private String orgName;
+    private String evaluateTargetName;
 }

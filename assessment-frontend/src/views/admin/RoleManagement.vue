@@ -180,8 +180,8 @@ function loadData() {
     })
 }
 
-function loadMenuTree() {
-  menuApi.tree().then((res: any) => {
+function loadMenuTree(roleType?: string) {
+  return menuApi.tree(roleType).then((res: any) => {
     menuTree.value = res.data || []
   })
 }
@@ -267,6 +267,7 @@ function handleDelete(row: any) {
 const menuDialogVisible = ref(false)
 const menuTreeRef = ref<any>(null)
 const currentRoleId = ref<number>(0)
+const currentAssignRoleType = ref<string>('')
 const menuSortCodes = ref<Record<number, number>>({})
 
 // 对菜单树按排序编码重新排序的函数
@@ -289,10 +290,12 @@ function sortMenuTree(tree: any[], sortCodeMap: Record<number, number>): any[] {
   }))
 }
 
-function handleAssignMenu(row: any) {
+async function handleAssignMenu(row: any) {
   currentRoleId.value = row.id
+  currentAssignRoleType.value = row.roleType || 'DEPT'
   menuDialogVisible.value = true
   menuSortCodes.value = {}
+  await loadMenuTree(currentAssignRoleType.value)
 
   roleApi.getMenus(row.id).then((res: any) => {
     const menuItems = res.data || res || []

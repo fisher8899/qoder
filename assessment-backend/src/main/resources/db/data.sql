@@ -1,6 +1,6 @@
 -- 单位初始化
 INSERT IGNORE INTO sys_unit (unit_name, unit_code, unit_type, is_enabled, created_by) VALUES
-('中煤鄂能化能源化工有限公司', 'EM-001', '公司', 1, '管理员'),
+('鄂能化', 'EM-001', '公司', 1, '管理员'),
 ('图克分公司', 'TK-002', '分公司', 1, '管理员'),
 ('乌审召分公司', 'WSZ-003', '分公司', 1, '管理员'),
 ('水务分公司', 'SW-004', '分公司', 1, '管理员');
@@ -38,58 +38,61 @@ INSERT IGNORE INTO sys_indicator_category (category_name, category_code, sort_co
 ('否决项目', 'VETO', 7, '通用');
 
 -- 角色初始化
-INSERT IGNORE INTO sys_role (role_name, role_code, description) VALUES
-('系统管理员', 'ADMIN', '系统全局管理'),
-('计划财务处业绩考核管理员', 'EXAM_ADMIN', '考核全流程管理'),
-('部门绩效管理员', 'DEPT_ADMIN', '部门指标和自评管理'),
-('部门负责人', 'DEPT_LEADER', '指标审批'),
-('分管领导/考核员', 'SUPERVISOR', '他评打分和申诉处理');
+INSERT IGNORE INTO sys_role (role_name, role_code, description, role_type) VALUES
+('系统管理员', 'ADMIN', '系统全局管理', 'SYSTEM'),
+('计划财务处业绩考核管理员', 'FIN_ADMIN', '考核全流程管理', 'UNIT'),
+('部门绩效管理员', 'DEPT_ADMIN', '部门指标和自评管理', 'DEPT'),
+('部门负责人', 'DEPT_LEADER', '指标审批', 'DEPT'),
+('分管领导/考核员', 'SUPERVISOR', '他评打分和申诉处理', 'DEPT');
 
 -- 菜单初始化
-INSERT IGNORE INTO sys_menu (menu_name, menu_code, parent_id, menu_path, sort_code) VALUES
+INSERT IGNORE INTO sys_menu (menu_name, menu_code, menu_category, parent_id, menu_path, sort_code) VALUES
 -- 系统管理员菜单
-('系统设置', 'SYS_SETTING', 0, '', 1),
-('单位管理', 'UNIT_MGMT', 1, '/admin/unit', 1),
-('分管领导维护', 'LEADER_MGMT', 1, '/admin/leader', 2),
-('权限分配管理', 'PERM_MGMT', 1, '/admin/permission', 3),
-('考核配置', 'EXAM_CONFIG', 0, '', 2),
-('考核组织管理', 'ORG_MGMT', 5, '/admin/organization', 1),
-('指标大类管理', 'CATEGORY_MGMT', 5, '/admin/indicator-category', 2),
-('系统运维', 'SYS_OPS', 0, '', 3),
-('功能/菜单定义', 'MENU_MGMT', 8, '/admin/menu', 1),
-('职责定义', 'ROLE_MGMT', 8, '/admin/role', 2),
-('数据同步', 'DATA_SYNC', 8, '/admin/data-sync', 3),
+('系统设置', 'SYS_SETTING', 'SYSTEM,UNIT', 0, '', 1),
+('单位管理', 'UNIT_MGMT', 'SYSTEM', 1, '/admin/unit', 1),
+('系统用户管理', 'USER_MGMT', 'UNIT', 1, '/admin/user', 2),
+('分管领导维护', 'LEADER_MGMT', 'UNIT', 1, '/admin/leader', 3),
+('权限分配管理', 'PERM_MGMT', 'UNIT', 1, '/admin/permission', 4),
+('考核配置', 'EXAM_CONFIG', 'UNIT', 0, '', 2),
+('考核组织管理', 'ORG_MGMT', 'UNIT', 6, '/admin/organization', 1),
+('人员管理', 'EMPLOYEE_MGMT', 'UNIT', 6, '/admin/employee', 2),
+('指标大类管理', 'CATEGORY_MGMT', 'UNIT', 6, '/admin/indicator-category', 3),
+('系统运维', 'SYS_OPS', 'SYSTEM', 0, '', 3),
+('功能/菜单定义', 'MENU_MGMT', 'SYSTEM', 10, '/admin/menu', 1),
+('职责定义', 'ROLE_MGMT', 'SYSTEM', 10, '/admin/role', 2),
+('数据同步', 'DATA_SYNC', 'SYSTEM', 10, '/admin/data-sync', 3),
 -- 考核管理员菜单
-('考核管理', 'EXAM_MGMT', 0, '', 10),
-('考核组管理', 'GROUP_MGMT', 12, '/exam/group', 1),
-('业绩指标审批', 'INDICATOR_APPROVAL', 12, '/exam/indicator-approval', 2),
-('月度考核管理', 'MONTHLY_EXAM', 12, '/exam/monthly', 3),
-('复核评估', 'REVIEW', 12, '/exam/review', 4),
-('结果管理', 'RESULT_MGMT', 0, '', 11),
-('申诉管理', 'APPEAL_MGMT', 17, '/exam/appeal', 1),
-('考核进度查询', 'PROGRESS_QUERY', 17, '/exam/progress', 2),
-('考核结果查询', 'RESULT_QUERY', 17, '/exam/result', 3),
+('考核管理', 'EXAM_MGMT', 'UNIT', 0, '', 10),
+('考核组管理', 'GROUP_MGMT', 'UNIT', 14, '/exam/group', 1),
+('业绩指标审批', 'INDICATOR_APPROVAL', 'UNIT', 14, '/exam/indicator-approval', 2),
+('月度考核管理', 'MONTHLY_EXAM', 'UNIT', 14, '/exam/monthly', 3),
+('复核评估', 'REVIEW', 'UNIT', 14, '/exam/review', 4),
+('结果管理', 'RESULT_MGMT', 'UNIT', 0, '', 11),
+('申诉管理', 'APPEAL_MGMT', 'UNIT', 19, '/exam/appeal', 1),
+('指标设定进度查询', 'INDICATOR_PROGRESS', 'UNIT', 19, '/exam/indicator-progress', 2),
+('考核进度查询', 'PROGRESS_QUERY', 'UNIT', 19, '/exam/progress', 3),
+('考核结果查询', 'RESULT_QUERY', 'UNIT', 19, '/exam/result', 4),
 -- 部门绩效管理员菜单
-('考核管理', 'DEPT_EXAM', 0, '', 20),
-('业绩指标设定', 'INDICATOR_SET', 21, '/dept/indicator-set', 1),
-('月度考核自评', 'SELF_EVAL', 21, '/dept/self-eval', 2),
-('部门他评打分', 'PEER_EVAL', 21, '/dept/peer-eval', 3),
-('反馈查询', 'DEPT_FEEDBACK', 0, '', 21),
-('申诉反馈', 'APPEAL_FEEDBACK', 25, '/dept/appeal-feedback', 1),
-('考核结果查询', 'DEPT_RESULT', 25, '/dept/result', 2),
+('考核管理', 'DEPT_EXAM', 'DEPT', 0, '', 20),
+('业绩指标设定', 'INDICATOR_SET', 'DEPT', 24, '/dept/indicator-set', 1),
+('月度考核自评', 'SELF_EVAL', 'DEPT', 24, '/dept/self-eval', 2),
+('部门他评打分', 'PEER_EVAL', 'DEPT', 24, '/dept/peer-eval', 3),
+('反馈查询', 'DEPT_FEEDBACK', 'DEPT', 0, '', 21),
+('申诉反馈', 'APPEAL_FEEDBACK', 'DEPT', 28, '/dept/appeal-feedback', 1),
+('考核结果查询', 'DEPT_RESULT', 'DEPT', 28, '/dept/result', 2),
 -- 部门负责人菜单
-('审批管理', 'APPROVAL_MGMT', 0, '', 30),
-('指标审批', 'INDICATOR_APPROVE', 28, '/leader/indicator-approve', 1),
-('考核结果', 'LEADER_RESULT', 0, '', 31),
-('考核结果查看', 'LEADER_RESULT_VIEW', 30, '/leader/result', 1),
+('审批管理', 'APPROVAL_MGMT', 'DEPT', 0, '', 30),
+('指标审批', 'INDICATOR_APPROVE', 'DEPT', 31, '/leader/indicator-approve', 1),
+('考核结果', 'LEADER_RESULT', 'DEPT', 0, '', 31),
+('考核结果查看', 'LEADER_RESULT_VIEW', 'DEPT', 33, '/leader/result', 1),
 -- 分管领导菜单
-('考核评估', 'SUPERVISOR_EVAL', 0, '', 40),
-('评估打分', 'EVAL_SCORE', 32, '/supervisor/eval-score', 1),
-('考核进度查询', 'SUPERVISOR_PROGRESS', 32, '/supervisor/progress', 2),
-('申诉处理', 'SUPERVISOR_APPEAL', 0, '', 41),
-('申诉重新评估', 'APPEAL_REEVAL', 35, '/supervisor/appeal-reeval', 1),
-('查询统计', 'SUPERVISOR_STAT', 0, '', 42),
-('历史考核查询', 'HISTORY_QUERY', 37, '/supervisor/history', 1);
+('考核评估', 'SUPERVISOR_EVAL', 'DEPT', 0, '', 40),
+('评估打分', 'EVAL_SCORE', 'DEPT', 35, '/supervisor/eval-score', 1),
+('考核进度查询', 'SUPERVISOR_PROGRESS', 'DEPT', 35, '/supervisor/progress', 2),
+('申诉处理', 'SUPERVISOR_APPEAL', 'DEPT', 0, '', 41),
+('申诉重新评估', 'APPEAL_REEVAL', 'DEPT', 38, '/supervisor/appeal-reeval', 1),
+('查询统计', 'SUPERVISOR_STAT', 'DEPT', 0, '', 42),
+('历史考核查询', 'HISTORY_QUERY', 'DEPT', 40, '/supervisor/history', 1);
 
 -- 字典数据
 INSERT IGNORE INTO sys_dict (dict_type, dict_code, dict_label, sort_code) VALUES
@@ -119,7 +122,7 @@ INSERT IGNORE INTO sys_dict (dict_type, dict_code, dict_label, sort_code) VALUES
 -- 测试用户（密码均为123456）
 INSERT IGNORE INTO sys_user (username, password, real_name, role_code, role_name, org_id, org_name, unit_id) VALUES
 ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '系统管理员', 'ADMIN', '系统管理员', NULL, NULL, 1),
-('wangfang', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '王芳', 'EXAM_ADMIN', '计划财务处业绩考核管理员', 9, '计划财务部', 1),
+('wangfang', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '王芳', 'FIN_ADMIN', '计划财务处业绩考核管理员', 9, '计划财务部', 1),
 ('zhaogang', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '赵刚', 'DEPT_ADMIN', '部门绩效管理员', 12, '生产技术部', 1),
 ('zhangjg', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '张建国', 'DEPT_LEADER', '部门负责人', 12, '生产技术部', 1),
 ('wangjg', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '王建国', 'SUPERVISOR', '分管领导/考核员', 14, '综合办公室', 1);
@@ -190,7 +193,7 @@ INSERT IGNORE INTO biz_indicator_definition (exam_group_id, org_id, org_name, ca
 -- 用户角色关联初始化
 INSERT IGNORE INTO sys_user_role (user_id, role_code, role_name) VALUES
 (1, 'ADMIN', '系统管理员'),
-(2, 'EXAM_ADMIN', '计划财务处业绩考核管理员'),
+(2, 'FIN_ADMIN', '计划财务处业绩考核管理员'),
 (3, 'DEPT_ADMIN', '部门绩效管理员'),
 (3, 'DEPT_LEADER', '部门负责人'),
 (4, 'DEPT_LEADER', '部门负责人'),

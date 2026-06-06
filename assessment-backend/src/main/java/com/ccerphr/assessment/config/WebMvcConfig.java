@@ -28,10 +28,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/api/auth/**");
     }
 
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String absolutePath = Paths.get(uploadPath).toAbsolutePath().toUri().toString();
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(absolutePath.endsWith("/") ? absolutePath : absolutePath + "/");
-    }
+//    @Override
+//    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+//        String absolutePath = Paths.get(uploadPath).toAbsolutePath().toUri().toString();
+//        registry.addResourceHandler("/uploads/**")
+//                .addResourceLocations(absolutePath.endsWith("/") ? absolutePath : absolutePath + "/");
+//    }
+
 }

@@ -22,6 +22,7 @@ public class BizPeerEvaluation {
     private String targetOrgName;
     private Long indicatorId;
     private BigDecimal peerScore;
+    private BigDecimal peerResult;
     private String scoreComment;
     private String status;
     private String submittedBy;

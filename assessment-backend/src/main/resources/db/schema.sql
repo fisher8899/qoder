@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS sys_user_permission (
     exam_type VARCHAR(100) COMMENT '考核类型',
     role_code VARCHAR(50) COMMENT '分配角色编码',
     data_scope VARCHAR(500) COMMENT '数据范围: ALL=全部, 或逗号分隔的组织名称',
+    scope_id BIGINT COMMENT '范围ID（单位ID或组织ID，ALL时为0）',
+    scope_name VARCHAR(100) COMMENT '范围名称',
     start_date DATE DEFAULT (CURDATE()) COMMENT '生效日期',
     end_date DATE DEFAULT NULL COMMENT '失效日期',
     created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -73,6 +75,7 @@ CREATE TABLE IF NOT EXISTS sys_indicator_category (
     applicable_scope VARCHAR(50) COMMENT '适用范围：职能部门/分公司/通用',
     weight DECIMAL(5,2) COMMENT '权重(%)',
     evaluation_standard TEXT COMMENT '评价标准',
+    unit_id BIGINT COMMENT '所属单位ID',
     is_enabled TINYINT DEFAULT 1,
     created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -84,6 +87,7 @@ CREATE TABLE IF NOT EXISTS sys_menu (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     menu_name VARCHAR(50) NOT NULL COMMENT '菜单名称',
     menu_code VARCHAR(50) COMMENT '菜单编码',
+    menu_category VARCHAR(50) DEFAULT 'SYSTEM' COMMENT '菜单类别：SYSTEM=全部/系统, UNIT=单位类, DEPT=部门类，可逗号分隔多选',
     parent_id BIGINT DEFAULT 0 COMMENT '父菜单ID',
     menu_path VARCHAR(200) COMMENT '路由路径',
     menu_icon VARCHAR(50) COMMENT '图标',
@@ -99,6 +103,7 @@ CREATE TABLE IF NOT EXISTS sys_role (
     role_name VARCHAR(50) NOT NULL COMMENT '职责名称',
     role_code VARCHAR(50) NOT NULL UNIQUE COMMENT '职责编码',
     description VARCHAR(200) COMMENT '描述',
+    role_type VARCHAR(20) COMMENT '职责类型：SYSTEM-系统, UNIT-单位, DEPT-部门',
     created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted TINYINT DEFAULT 0
 ) COMMENT '职责表';
@@ -107,7 +112,8 @@ CREATE TABLE IF NOT EXISTS sys_role (
 CREATE TABLE IF NOT EXISTS sys_role_menu (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     role_id BIGINT NOT NULL,
-    menu_id BIGINT NOT NULL
+    menu_id BIGINT NOT NULL,
+    sort_code INT DEFAULT 0 COMMENT '排序编码'
 ) COMMENT '职责菜单关联表';
 
 -- 9. 数据同步日志表
@@ -127,6 +133,7 @@ CREATE TABLE IF NOT EXISTS sys_data_sync_log (
 -- 10. 考核组表
 CREATE TABLE IF NOT EXISTS biz_exam_group (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT COMMENT '所属单位ID',
     group_name VARCHAR(100) NOT NULL COMMENT '考核组名称',
     exam_category VARCHAR(20) COMMENT '考核类别：业绩指标设定/绩效考核',
     exam_type VARCHAR(20) COMMENT '考核类型：月度考核/年度考核',
@@ -144,6 +151,7 @@ CREATE TABLE IF NOT EXISTS biz_exam_group (
 -- 11. 考核组成员表
 CREATE TABLE IF NOT EXISTS biz_exam_group_member (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT COMMENT '所属单位ID',
     exam_group_id BIGINT NOT NULL COMMENT '考核组ID',
     org_id BIGINT NOT NULL COMMENT '考核组织ID',
     org_name VARCHAR(100) COMMENT '组织名称',
@@ -155,11 +163,13 @@ CREATE TABLE IF NOT EXISTS biz_exam_group_member (
 -- 12. 指标设定表（三级树结构）
 CREATE TABLE IF NOT EXISTS biz_indicator_definition (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT COMMENT '所属单位ID',
     exam_group_id BIGINT NOT NULL COMMENT '考核组ID',
     org_id BIGINT NOT NULL COMMENT '所属组织/部门ID',
     org_name VARCHAR(100) COMMENT '部门名称',
     category_id BIGINT COMMENT '指标大类ID',
     category_name VARCHAR(100) COMMENT '指标大类名称',
+    sub_category_id BIGINT COMMENT '指标小类ID',
     sub_category VARCHAR(100) COMMENT '指标小类',
     content VARCHAR(500) COMMENT '考核内容',
     target_desc VARCHAR(500) COMMENT '指标/目标描述',
@@ -181,9 +191,29 @@ CREATE TABLE IF NOT EXISTS biz_indicator_definition (
     deleted TINYINT DEFAULT 0
 ) COMMENT '业绩指标设定表';
 
+-- 12.1 指标小类表
+CREATE TABLE IF NOT EXISTS biz_indicator_sub_category (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT NOT NULL COMMENT '所属单位ID',
+    exam_group_id BIGINT NOT NULL COMMENT '考核组ID',
+    org_id BIGINT NOT NULL COMMENT '归属部门ID',
+    org_name VARCHAR(100) COMMENT '部门名称',
+    category_id BIGINT COMMENT '指标大类ID',
+    category_name VARCHAR(100) NOT NULL COMMENT '指标大类名称',
+    sub_category_name VARCHAR(100) NOT NULL COMMENT '指标小类名称',
+    evaluation_standard TEXT COMMENT '考核标准',
+    sort_code INT DEFAULT 0 COMMENT '排序码',
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT DEFAULT 0,
+    INDEX idx_indicator_sub_owner (exam_group_id, org_id, category_id, deleted),
+    INDEX idx_indicator_sub_name (exam_group_id, org_id, category_name, sub_category_name, deleted)
+) COMMENT '指标小类表';
+
 -- 13. 自评表
 CREATE TABLE IF NOT EXISTS biz_self_evaluation (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT COMMENT '所属单位ID',
     exam_group_id BIGINT NOT NULL COMMENT '考核组ID',
     org_id BIGINT NOT NULL COMMENT '部门ID',
     indicator_id BIGINT NOT NULL COMMENT '指标项ID',
@@ -203,6 +233,7 @@ CREATE TABLE IF NOT EXISTS biz_self_evaluation (
 -- 14. 他评表
 CREATE TABLE IF NOT EXISTS biz_peer_evaluation (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT COMMENT '所属单位ID',
     exam_group_id BIGINT NOT NULL COMMENT '考核组ID',
     evaluator_org_id BIGINT NOT NULL COMMENT '评估部门ID',
     evaluator_org_name VARCHAR(100) COMMENT '评估部门名称',
@@ -222,6 +253,7 @@ CREATE TABLE IF NOT EXISTS biz_peer_evaluation (
 -- 15. 复核打分表
 CREATE TABLE IF NOT EXISTS biz_review_score (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT COMMENT '所属单位ID',
     exam_group_id BIGINT NOT NULL COMMENT '考核组ID',
     org_id BIGINT NOT NULL COMMENT '部门ID',
     org_name VARCHAR(100) COMMENT '部门名称',
@@ -240,6 +272,7 @@ CREATE TABLE IF NOT EXISTS biz_review_score (
 -- 16. 月度得分汇总表
 CREATE TABLE IF NOT EXISTS biz_monthly_score (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT COMMENT '所属单位ID',
     exam_group_id BIGINT NOT NULL COMMENT '考核组ID',
     org_id BIGINT NOT NULL COMMENT '部门ID',
     org_name VARCHAR(100) COMMENT '部门名称',
@@ -258,6 +291,7 @@ CREATE TABLE IF NOT EXISTS biz_monthly_score (
 -- 17. 申诉表
 CREATE TABLE IF NOT EXISTS biz_appeal (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT COMMENT '所属单位ID',
     exam_group_id BIGINT NOT NULL COMMENT '考核组ID',
     appeal_org_id BIGINT NOT NULL COMMENT '申诉部门ID',
     appeal_org_name VARCHAR(100) COMMENT '申诉部门名称',
@@ -373,7 +407,27 @@ CREATE TABLE IF NOT EXISTS biz_indicator_org (
     INDEX idx_org_id (org_id)
 ) COMMENT '指标-考核部门关联表';
 
--- 25. 指标-分管领导关联表（支持多选）
+-- 25. 系统通知表
+CREATE TABLE IF NOT EXISTS sys_notification (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    recipient_user_id BIGINT NOT NULL COMMENT '接收人用户ID',
+    title VARCHAR(500) COMMENT '通知标题',
+    content VARCHAR(2000) COMMENT '通知内容',
+    link_url VARCHAR(500) COMMENT '跳转链接',
+    link_text VARCHAR(50) COMMENT '链接文字',
+    notif_type VARCHAR(50) COMMENT '通知类型',
+    related_id BIGINT COMMENT '关联业务ID',
+    is_read TINYINT DEFAULT 0 COMMENT '是否已读：0未读 1已读',
+    unit_id BIGINT COMMENT '所属单位ID',
+    role_code VARCHAR(50) COMMENT '目标职责编码(如DEPT_LEADER)',
+    org_id BIGINT COMMENT '目标部门ID(职责对应的部门)',
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted TINYINT DEFAULT 0,
+    INDEX idx_recipient_user (recipient_user_id),
+    INDEX idx_role_org (role_code, org_id)
+) COMMENT '系统通知表';
+
+-- 26. 指标-分管领导关联表（支持多选）
 CREATE TABLE IF NOT EXISTS biz_indicator_leader (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     indicator_id BIGINT NOT NULL COMMENT '指标ID',
@@ -384,3 +438,13 @@ CREATE TABLE IF NOT EXISTS biz_indicator_leader (
     INDEX idx_indicator_id (indicator_id),
     INDEX idx_leader_id (leader_id)
 ) COMMENT '指标-分管领导关联表';
+
+-- 27. 职责子角色关联表（用于控制角色可分配范围）
+CREATE TABLE IF NOT EXISTS sys_role_child (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    parent_role_id BIGINT NOT NULL COMMENT '父角色ID',
+    child_role_id BIGINT NOT NULL COMMENT '子角色ID',
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_parent_role (parent_role_id),
+    INDEX idx_child_role (child_role_id)
+) COMMENT '职责子角色关联表';

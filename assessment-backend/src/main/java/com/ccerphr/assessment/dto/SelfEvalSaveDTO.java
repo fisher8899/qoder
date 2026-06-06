@@ -24,10 +24,12 @@ public class SelfEvalSaveDTO {
     @Size(max = 2000, message = "完成情况说明不能超过2000字符")
     private String actualCompletion;
 
-    @NotNull(message = "自评分数不能为空")
     @DecimalMin(value = "0", message = "分数不能小于0")
     @DecimalMax(value = "999.99", message = "分数不能超过999.99")
     private BigDecimal selfScore;
+
+    @DecimalMax(value = "999.9999", message = "自评结果不能超过999.9999")
+    private BigDecimal selfResult;
 
     @Size(max = 500, message = "附件URL不能超过500字符")
     private String attachmentUrl;

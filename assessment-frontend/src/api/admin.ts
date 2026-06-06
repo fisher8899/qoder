@@ -41,7 +41,7 @@ export const permissionApi = {
 // 考核组织
 export const organizationApi = {
   list: (params: any) => http.get<PageResult>('/organization/list', params),
-  all: () => http.get('/organization/all'),
+  all: (unitId?: number) => http.get('/organization/all', unitId != null ? { unitId } : undefined),
   getById: (id: number) => http.get('/organization/' + id),
   create: (data: any) => http.post('/organization', data),
   update: (data: any) => http.put('/organization', data),
@@ -52,7 +52,12 @@ export const organizationApi = {
 // 指标大类
 export const indicatorCategoryApi = {
   list: (params: any) => http.get<PageResult>('/indicator-category/list', params),
-  all: (applicableScope?: string) => http.get('/indicator-category/all', applicableScope ? { applicableScope } : undefined),
+  all: (applicableScope?: string, unitId?: number) => {
+    const params: Record<string, any> = {}
+    if (applicableScope) params.applicableScope = applicableScope
+    if (unitId != null) params.unitId = unitId
+    return http.get('/indicator-category/all', Object.keys(params).length > 0 ? params : undefined)
+  },
   getById: (id: number) => http.get('/indicator-category/' + id),
   create: (data: any) => http.post('/indicator-category', data),
   update: (data: any) => http.put('/indicator-category', data),
@@ -61,7 +66,8 @@ export const indicatorCategoryApi = {
 
 // 菜单
 export const menuApi = {
-  tree: () => http.get('/menu/tree'),
+  current: () => http.get('/menu/current'),
+  tree: (roleType?: string) => http.get('/menu/tree', roleType ? { roleType } : undefined),
   getByRole: (roleCode: string) => http.get(`/menu/by-role/${roleCode}`),
   getById: (id: number) => http.get('/menu/' + id),
   create: (data: any) => http.post('/menu', data),
@@ -91,6 +97,13 @@ export const dataSyncApi = {
   history: (params: any) => http.get<PageResult>('/data-sync/history', params),
   manual: () => http.post('/data-sync/manual'),
   getById: (id: number) => http.get('/data-sync/' + id),
+}
+
+export const dbAdminApi = {
+  tables: () => http.get<any[]>('/db-admin/tables'),
+  rows: (params: any) => http.get('/db-admin/rows', params),
+  updateRow: (data: any) => http.put('/db-admin/row', data),
+  deleteRow: (tableName: string, id: number) => http.delete('/db-admin/row', { tableName, id }),
 }
 
 // 数据字典

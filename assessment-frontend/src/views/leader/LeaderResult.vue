@@ -107,7 +107,7 @@ function scoreClass(score: number) {
 
 async function loadExamGroups() {
   try {
-    const res = await getExamGroupList({ current: 1, size: 999 })
+    const res = await getExamGroupList({ current: 1, size: 999, examCategory: 'PERFORMANCE' })
     examGroupOptions.value = (res.data?.records || []) as ExamGroup[]
   } catch (e) {}
 }

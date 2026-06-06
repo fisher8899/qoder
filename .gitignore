@@ -10,14 +10,21 @@
 assessment-backend/target/
 assessment-frontend/node_modules/
 assessment-frontend/dist/
+*.class
 
 # Logs
 *.log
 build_log.txt
 build_output*.txt
+mvn_output*.txt
+mvn_build*.txt
 
 # Config with secrets
 db-config.txt
+db_check*.txt
+db_pwd*.txt
+db_reset.txt
+db_users.txt
 
 # OS
 .DS_Store
@@ -26,3 +33,10 @@ Thumbs.db
 # Temp files
 *.tmp
 *.swp
+extract_*.txt
+github_repo_query.html
+
+# Local helper scripts/classes
+BcryptGen.java
+FlywayCheck*.java
+FlywayRepairLocal*.java

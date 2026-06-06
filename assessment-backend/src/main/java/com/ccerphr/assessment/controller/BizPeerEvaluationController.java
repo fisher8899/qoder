@@ -3,9 +3,9 @@ package com.ccerphr.assessment.controller;
 import com.ccerphr.assessment.common.Result;
 import com.ccerphr.assessment.dto.PeerEvalQueryDTO;
 import com.ccerphr.assessment.dto.PeerEvalSaveDTO;
+import com.ccerphr.assessment.security.SecurityUtil;
 import com.ccerphr.assessment.service.BizPeerEvaluationService;
 import com.ccerphr.assessment.util.DataScopeFilter;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,11 +52,11 @@ public class BizPeerEvaluationController {
     }
 
     @PostMapping("/submit")
-    public Result<Void> submit(@RequestParam Long examGroupId, @RequestParam Long evaluatorOrgId, @RequestParam Long targetOrgId, HttpServletRequest request) {
+    public Result<Void> submit(@RequestParam Long examGroupId, @RequestParam Long evaluatorOrgId, @RequestParam Long targetOrgId) {
         if (DataScopeFilter.isReadOnly()) {
             return Result.error("当前数据范围下不可修改业务数据");
         }
-        String submittedBy = getCurrentUser(request);
+        String submittedBy = SecurityUtil.getCurrentUserName();
         peerEvaluationService.submitPeerEval(examGroupId, evaluatorOrgId, targetOrgId, submittedBy);
         return Result.success();
     }
@@ -64,13 +64,5 @@ public class BizPeerEvaluationController {
     @GetMapping("/statistics")
     public Result<List<Map<String, Object>>> statistics(@RequestParam Long examGroupId) {
         return Result.success(peerEvaluationService.getStatistics(examGroupId));
-    }
-
-    private String getCurrentUser(HttpServletRequest request) {
-        String user = request.getHeader("X-Current-User");
-        if (user == null || user.isEmpty()) {
-            user = "system";
-        }
-        return user;
     }
 }

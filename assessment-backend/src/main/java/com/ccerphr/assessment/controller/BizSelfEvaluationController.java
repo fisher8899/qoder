@@ -3,19 +3,26 @@ package com.ccerphr.assessment.controller;
 import com.ccerphr.assessment.common.Result;
 import com.ccerphr.assessment.dto.SelfEvalQueryDTO;
 import com.ccerphr.assessment.dto.SelfEvalSaveDTO;
+import com.ccerphr.assessment.security.SecurityUtil;
 import com.ccerphr.assessment.service.BizSelfEvaluationService;
 import com.ccerphr.assessment.util.DataScopeFilter;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -24,9 +31,6 @@ import java.util.Map;
 public class BizSelfEvaluationController {
 
     private final BizSelfEvaluationService selfEvaluationService;
-
-    @Value("${app.upload.path:./uploads}")
-    private String uploadPath;
 
     public BizSelfEvaluationController(BizSelfEvaluationService selfEvaluationService) {
         this.selfEvaluationService = selfEvaluationService;
@@ -43,49 +47,59 @@ public class BizSelfEvaluationController {
     }
 
     @PostMapping("/save")
-    public Result<Void> save(@Valid @RequestBody SelfEvalSaveDTO dto) {
+    public Result<Long> save(@Valid @RequestBody SelfEvalSaveDTO dto) {
         if (DataScopeFilter.isReadOnly()) {
             return Result.error("当前数据范围下不可修改业务数据");
         }
-        selfEvaluationService.saveSelfEval(dto);
-        return Result.success();
+        Long savedId = selfEvaluationService.saveSelfEval(dto);
+        return Result.success(savedId);
     }
 
     @PostMapping("/submit")
-    public Result<Void> submit(@RequestParam Long examGroupId, @RequestParam Long orgId, HttpServletRequest request) {
+    public Result<Void> submit(@RequestParam Long examGroupId, @RequestParam Long orgId) {
         if (DataScopeFilter.isReadOnly()) {
             return Result.error("当前数据范围下不可修改业务数据");
         }
-        String submittedBy = getCurrentUser(request);
+        String submittedBy = SecurityUtil.getCurrentUserName();
         selfEvaluationService.submitSelfEval(examGroupId, orgId, submittedBy);
+        return Result.success();
+    }
+
+    @PostMapping("/withdraw")
+    public Result<Void> withdraw(@RequestParam Long examGroupId, @RequestParam Long orgId) {
+        if (DataScopeFilter.isReadOnly()) {
+            return Result.error("当前数据范围下不可修改业务数据");
+        }
+        selfEvaluationService.withdrawSelfEval(examGroupId, orgId);
         return Result.success();
     }
 
     @PostMapping("/upload")
     public Result<Map<String, String>> upload(@RequestParam("file") MultipartFile file) throws IOException {
-        String url = selfEvaluationService.uploadAttachment(file.getBytes(), file.getOriginalFilename());
-        String name = file.getOriginalFilename();
-        return Result.success(Map.of("url", url, "name", name));
+        String storageKey = selfEvaluationService.uploadAttachment(file.getBytes(), file.getOriginalFilename());
+        String originalName = file.getOriginalFilename() == null ? storageKey : file.getOriginalFilename();
+        return Result.success(Map.of(
+                "url", storageKey,
+                "name", originalName
+        ));
     }
 
-    @GetMapping("/download/{fileName}")
-    public void download(@PathVariable String fileName, HttpServletResponse response) throws IOException {
-        Path filePath = Paths.get(uploadPath, "self-eval", fileName);
-        if (!Files.exists(filePath)) {
-            response.setStatus(404);
-            return;
-        }
-        response.setContentType("application/octet-stream");
-        response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+    @GetMapping("/download/{id}")
+    public void download(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        Path filePath = selfEvaluationService.resolveAttachmentForDownloadById(id);
+        String contentType = Files.probeContentType(filePath);
+        response.setContentType(contentType != null ? contentType : "application/octet-stream");
+        response.setHeader(
+                "Content-Disposition",
+                "attachment; filename*=UTF-8''" + URLEncoder.encode(filePath.getFileName().toString(), StandardCharsets.UTF_8)
+        );
         Files.copy(filePath, response.getOutputStream());
         response.getOutputStream().flush();
     }
 
-    private String getCurrentUser(HttpServletRequest request) {
-        String user = request.getHeader("X-Current-User");
-        if (user == null || user.isEmpty()) {
-            user = "system";
-        }
-        return user;
+    @DeleteMapping("/{id}/attachment")
+    public Result<Void> deleteAttachment(@PathVariable Long id) {
+        selfEvaluationService.deleteAttachment(id);
+        return Result.success();
     }
 }

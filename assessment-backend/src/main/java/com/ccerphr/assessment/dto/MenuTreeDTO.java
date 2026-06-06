@@ -9,6 +9,7 @@ public class MenuTreeDTO {
     private Long id;
     private String menuName;
     private String menuCode;
+    private String menuCategory;
     private Long parentId;
     private String menuPath;
     private String menuIcon;

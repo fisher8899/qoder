@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>月度业绩考核 — 业务时序图</title>
+<style>
+  :root {
+    --bg: oklch(97% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --fg: oklch(20% 0.015 250);
+    --muted: oklch(52% 0.015 250);
+    --border: oklch(90% 0.008 250);
+    --accent: oklch(52% 0.18 250);
+    --accent-light: oklch(94% 0.04 250);
+    --success: oklch(55% 0.16 155);
+    --success-bg: oklch(94% 0.04 155);
+    --warning: oklch(62% 0.18 75);
+    --warning-bg: oklch(94% 0.04 75);
+    --danger: oklch(55% 0.2 25);
+    --danger-bg: oklch(94% 0.04 25);
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--fg); }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .header .nav { display: flex; gap: 4px; }
+  .header .nav a { padding: 6px 12px; font-size: 13px; color: var(--muted); text-decoration: none; border-radius: 6px; }
+  .header .nav a:hover { background: var(--accent-light); color: var(--accent); }
+  .header .nav a.active { background: var(--accent); color: white; }
+
+  .container { max-width: 1280px; margin: 32px auto; padding: 0 32px 80px; }
+
+  .intro { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; margin-bottom: 24px; }
+  .intro h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .intro p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .ctrl-btn { padding: 6px 12px; font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; color: var(--muted); transition: all 0.15s; }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Sequence diagram */
+  .seq-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; overflow-x: auto; }
+
+  .seq-grid { display: grid; grid-template-columns: 160px repeat(4, 1fr); gap: 0; min-width: 1100px; position: relative; }
+
+  /* Actor headers */
+  .actor-header { background: var(--surface); padding: 12px 16px; text-align: center; font-family: var(--font-display); font-weight: 600; font-size: 14px; border-radius: 8px; position: sticky; top: 0; z-index: 5; }
+  .actor-header.first { background: transparent; }
+  .actor-header.r-sys { background: oklch(94% 0.005 250); color: oklch(30% 0.015 250); border: 1px solid var(--border); }
+  .actor-header.r-mgr { background: var(--accent); color: white; }
+  .actor-header.r-dept { background: var(--success); color: white; }
+  .actor-header.r-eval { background: var(--warning); color: oklch(25% 0.015 75); }
+  .actor-sub { font-size: 11px; font-weight: 400; font-family: var(--font-mono); opacity: 0.85; margin-top: 2px; letter-spacing: 0.03em; }
+
+  /* Lifeline */
+  .lifeline-row { display: contents; }
+  .lifeline-cell { position: relative; min-height: 60px; }
+  .lifeline-cell.label-cell { background: var(--bg); padding: 16px 12px; display: flex; align-items: center; font-size: 12px; color: var(--muted); border-right: 2px solid var(--border); font-family: var(--font-mono); letter-spacing: 0.02em; }
+  .lifeline-cell.actor-cell::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: var(--border);
+    transform: translateX(-1px);
+  }
+
+  /* Stages */
+  .stage-row { display: contents; }
+  .stage-row .stage-label { grid-column: 1 / 2; background: var(--accent-light); color: var(--accent); padding: 8px 12px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; border-right: 2px solid var(--accent); display: flex; align-items: center; }
+  .stage-row .stage-bar { grid-column: 2 / -1; background: var(--accent-light); border-top: 1px solid var(--accent); border-bottom: 1px solid var(--accent); padding: 8px 16px; font-size: 12px; color: var(--accent); font-weight: 500; display: flex; align-items: center; justify-content: space-between; }
+  .stage-row .stage-time { font-family: var(--font-mono); font-size: 11px; opacity: 0.8; }
+
+  /* Message arrows */
+  .msg-row { display: contents; }
+  .msg-row .msg-label { grid-column: 1 / 2; background: var(--bg); padding: 14px 12px; font-size: 11px; color: var(--muted); border-right: 2px solid var(--border); font-family: var(--font-mono); display: flex; align-items: center; line-height: 1.4; }
+
+  /* Each "actor-cell" must keep the vertical lifeline */
+  .actor-cell {
+    position: relative;
+    min-height: 50px;
+  }
+  .actor-cell::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: oklch(90% 0.008 250);
+    transform: translateX(-1px);
+    z-index: 0;
+  }
+
+  /* Message line spanning N cells - using a wrapping div */
+  .msg-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 28px;
+    display: flex;
+    align-items: center;
+    z-index: 2;
+    cursor: pointer;
+  }
+  .msg-arrow .arrow-line {
+    height: 2px;
+    background: var(--accent);
+    flex: 1;
+    position: relative;
+  }
+  .msg-arrow .arrow-line.dashed {
+    background: transparent;
+    border-top: 2px dashed var(--accent);
+  }
+  .msg-arrow .arrow-line.success { background: var(--success); }
+  .msg-arrow .arrow-line.warning { background: var(--warning); }
+  .msg-arrow .arrow-line.danger { background: var(--danger); }
+  .msg-arrow .arrow-line.dashed.success { border-top-color: var(--success); }
+  .msg-arrow .arrow-line.dashed.warning { border-top-color: var(--warning); }
+
+  .msg-arrow .arrow-head {
+    width: 0; height: 0;
+    border-left: 8px solid var(--accent);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+  .msg-arrow .arrow-head.left { transform: rotate(180deg); }
+  .msg-arrow .arrow-head.success { border-left-color: var(--success); }
+  .msg-arrow .arrow-head.warning { border-left-color: var(--warning); }
+  .msg-arrow .arrow-head.danger { border-left-color: var(--danger); }
+
+  .msg-arrow .msg-text {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    color: var(--fg);
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    transition: all 0.15s;
+  }
+  .msg-arrow:hover .msg-text {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+  .msg-arrow .msg-payload {
+    position: absolute;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: oklch(98% 0.005 250);
+    border: 1px dashed var(--border);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    z-index: 3;
+    display: none;
+  }
+  .msg-arrow:hover .msg-payload {
+    display: block;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Self message (loop) */
+  .self-msg {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 60%;
+    height: 24px;
+    border: 2px solid var(--warning);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    left: 50%;
+    margin-left: -30%;
+    z-index: 2;
+  }
+  .self-msg::before {
+    content: '⟲';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--warning);
+    font-size: 14px;
+    background: var(--surface);
+    padding: 0 2px;
+  }
+  .self-msg .self-text {
+    position: absolute;
+    top: -22px;
+    left: -8px;
+    background: var(--warning-bg);
+    color: oklch(38% 0.16 75);
+    border: 1px solid var(--warning);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+
+  /* Note box */
+  .note-row { display: contents; }
+  .note-row .note-label { grid-column: 1 / 2; background: var(--bg); padding: 14px 12px; font-size: 11px; color: var(--muted); border-right: 2px solid var(--border); font-family: var(--font-mono); display: flex; align-items: center; }
+  .note-row .note-box { grid-column: 2 / -1; margin: 10px 16px; padding: 10px 16px; background: oklch(98% 0.018 95); border: 1px solid oklch(85% 0.04 95); border-radius: 8px; font-size: 12px; color: oklch(35% 0.05 95); display: flex; align-items: flex-start; gap: 8px; }
+  .note-row .note-icon { color: oklch(55% 0.12 75); font-weight: 700; }
+
+  /* Legend */
+  .legend { display: flex; gap: 20px; padding: 16px 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .legend-line { width: 20px; height: 2px; background: var(--accent); }
+  .legend-line.dashed { background: transparent; border-top: 2px dashed var(--accent); height: 0; }
+  .legend-line.success { background: var(--success); }
+  .legend-line.warning { background: var(--warning); }
+
+  .key-info { background: var(--accent-light); border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: var(--accent); display: flex; align-items: center; gap: 12px; }
+  .key-info .icon { font-size: 16px; }
+
+  /* Data flow summary */
+  .summary { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; margin-top: 24px; }
+  .summary h3 { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 12px; }
+  .summary-card { padding: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+  .summary-card-label { font-size: 11px; font-family: var(--font-mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .summary-card-value { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+  .summary-card-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1>业务时序图 — 月度业绩考核数据流</h1>
+  <nav class="nav">
+    <a href="index.html">概览</a>
+    <a href="index-flow-v1.html">业务流程</a>
+    <a href="index-roles-v1.html">角色功能</a>
+    <a href="index-sequence-v1.html" class="active">时序图</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  <div class="intro">
+    <h2>角色协作时序与数据流</h2>
+    <p>本图展示月度业绩考核业务中 <strong>4 个角色 + 系统</strong> 之间的消息传递顺序、数据流向和关键交付物。每个箭头代表一次操作或消息传递，悬停可查看具体数据载荷。完整周期约 30 天，覆盖从年度目标设定到月度成绩正式发布的全部环节。</p>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-line"></div><span>同步操作</span></div>
+    <div class="legend-item"><div class="legend-line dashed"></div><span>异步响应/返回</span></div>
+    <div class="legend-item"><div class="legend-line success"></div><span>成功/通过</span></div>
+    <div class="legend-item"><div class="legend-line warning"></div><span>等待/循环</span></div>
+    <div class="legend-item"><span style="color: var(--muted); font-size: 12px;">悬停消息查看数据载荷</span></div>
+  </div>
+
+  <div class="key-info">
+    <span class="icon">⏱</span>
+    <span>典型考核周期：<strong>T-15 至 T+15 日</strong> · 自评 D1-D5 · 互评 D6-D8 · 复核 D9-D10 · 预发布 D11 · 申诉 D12-D14 · 正式发布 D15</span>
+  </div>
+
+  <div class="seq-wrap">
+    <div class="seq-grid">
+
+      <!-- Actor Headers -->
+      <div class="actor-header first"></div>
+      <div class="actor-header r-sys">系统管理员<div class="actor-sub">SYSADMIN</div></div>
+      <div class="actor-header r-mgr">业绩考核管理员<div class="actor-sub">条件财务处</div></div>
+      <div class="actor-header r-dept">部门绩效管理员<div class="actor-sub">各业务部门</div></div>
+      <div class="actor-header r-eval">考核员/分管领导<div class="actor-sub">EVALUATOR</div></div>
+
+      <!-- ============ STAGE 0: PREP ============ -->
+      <div class="stage-row">
+        <div class="stage-label">Phase 0</div>
+        <div class="stage-bar"><span>系统初始化与基础数据准备</span><span class="stage-time">考核周期前</span></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">T-30：建立人员/部门</div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: 50%; width: 100%;">
+            <div class="arrow-line"></div>
+            <div class="arrow-head"></div>
+            <div class="msg-text">同步组织数据</div>
+            <div class="msg-payload">POST /sys/org/sync · {depts:42, users:380}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">T-25：配置角色权限</div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: 50%; width: 300%;">
+            <div class="arrow-line success"></div>
+            <div class="arrow-head success"></div>
+            <div class="msg-text">分配角色与权限</div>
+            <div class="msg-payload">POST /sys/role/assign · {role, userIds[]}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <!-- ============ STAGE 1: TARGET ============ -->
+      <div class="stage-row">
+        <div class="stage-label">Phase 1</div>
+        <div class="stage-bar"><span>年度目标与月度指标制定</span><span class="stage-time">T-15 ~ T-1 日</span></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">T-15：录入年度 KPI</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="self-msg">
+            <div class="self-text">年度目标设定</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">T-5：本月指标分解</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="self-msg">
+            <div class="self-text">分解为月度指标</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">T-1：指标下发</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: 50%; width: 100%;">
+            <div class="arrow-line"></div>
+            <div class="arrow-head"></div>
+            <div class="msg-text">发布月度指标</div>
+            <div class="msg-payload">POST /assessment/period/publish · {periodId, indicators[]}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="note-row">
+        <div class="note-label">备注</div>
+        <div class="note-box">
+          <span class="note-icon">!</span>
+          <span>系统自动向所有部门绩效管理员发送站内消息 + 邮件通知，提醒进入自评阶段。考核期状态变更为「自评中」。</span>
+        </div>
+      </div>
+
+      <!-- ============ STAGE 2: SELF-EVAL ============ -->
+      <div class="stage-row">
+        <div class="stage-label">Phase 2</div>
+        <div class="stage-bar"><span>部门自评填报</span><span class="stage-time">D1 ~ D5</span></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D1：查看指标</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: 0%; width: 100%; transform: translateY(-50%) scaleX(-1);">
+            <div class="arrow-line dashed"></div>
+            <div class="arrow-head"></div>
+            <div class="msg-text" style="transform: translateX(-50%) scaleX(-1);">拉取本部门指标</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D2-D4：录入数据</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="self-msg">
+            <div class="self-text">指标自评 + 佐证上传</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D5：提交自评</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: -100%; width: 200%; transform: translateY(-50%) scaleX(-1);">
+            <div class="arrow-line success"></div>
+            <div class="arrow-head success"></div>
+            <div class="msg-text" style="transform: translateX(-50%) scaleX(-1);">提交自评结果</div>
+            <div class="msg-payload" style="transform: translateX(-50%) scaleX(-1);">POST /self-eval/submit · {indicators[]: {score, evidence}}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <!-- ============ STAGE 3: PEER ============ -->
+      <div class="stage-row">
+        <div class="stage-label">Phase 3</div>
+        <div class="stage-bar"><span>部门互评 + 领导评分</span><span class="stage-time">D6 ~ D8</span></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D6：开启互评</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: 50%; width: 200%;">
+            <div class="arrow-line"></div>
+            <div class="arrow-head"></div>
+            <div class="msg-text">推送他评任务</div>
+            <div class="msg-payload">notify · {taskIds[]: {targetDept, indicators}}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D7：领导评分</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="self-msg">
+            <div class="self-text">分管领导打分</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D7：部门互评</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="self-msg">
+            <div class="self-text">部门间互评打分</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D8：提交评分</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: -100%; width: 200%; transform: translateY(-50%) scaleX(-1);">
+            <div class="arrow-line success"></div>
+            <div class="arrow-head success"></div>
+            <div class="msg-text" style="transform: translateX(-50%) scaleX(-1);">汇总他评结果</div>
+            <div class="msg-payload" style="transform: translateX(-50%) scaleX(-1);">POST /peer-eval/submit · {scores[]: {evalDept, target, score}}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: -200%; width: 300%; transform: translateY(-50%) scaleX(-1);">
+            <div class="arrow-line success"></div>
+            <div class="arrow-head success"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ STAGE 4: REVIEW ============ -->
+      <div class="stage-row">
+        <div class="stage-label">Phase 4</div>
+        <div class="stage-bar"><span>管理员复核与汇总</span><span class="stage-time">D9 ~ D10</span></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D9：汇总评分</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="self-msg">
+            <div class="self-text">加权汇总（自评 + 互评 + 领导评）</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D10：异常复核</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="self-msg">
+            <div class="self-text">复核 + 调整异常分</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <!-- ============ STAGE 5: PRE-RELEASE ============ -->
+      <div class="stage-row">
+        <div class="stage-label">Phase 5</div>
+        <div class="stage-bar"><span>预发布 + 申诉受理</span><span class="stage-time">D11 ~ D14</span></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D11：预发布</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: 50%; width: 100%;">
+            <div class="arrow-line warning"></div>
+            <div class="arrow-head warning"></div>
+            <div class="msg-text">公示初步结果</div>
+            <div class="msg-payload">POST /result/pre-release · {periodId, results[]}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D12：提交申诉</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: -100%; width: 200%; transform: translateY(-50%) scaleX(-1);">
+            <div class="arrow-line danger"></div>
+            <div class="arrow-head danger"></div>
+            <div class="msg-text" style="transform: translateX(-50%) scaleX(-1);">申诉申请（可选）</div>
+            <div class="msg-payload" style="transform: translateX(-50%) scaleX(-1);">POST /appeal · {indicatorId, reason, evidence}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D13：申诉处理</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="self-msg">
+            <div class="self-text">受理 / 驳回 / 调整</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D14：反馈结果</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: 50%; width: 100%;">
+            <div class="arrow-line dashed"></div>
+            <div class="arrow-head"></div>
+            <div class="msg-text">申诉结果反馈</div>
+            <div class="msg-payload">PATCH /appeal/{id} · {status, finalScore}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <!-- ============ STAGE 6: RELEASE ============ -->
+      <div class="stage-row">
+        <div class="stage-label">Phase 6</div>
+        <div class="stage-bar"><span>正式发布 + 归档</span><span class="stage-time">D15</span></div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-label">D15：正式发布</div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell">
+          <div class="msg-arrow" style="left: 50%; width: 300%;">
+            <div class="arrow-line success"></div>
+            <div class="arrow-head success"></div>
+            <div class="msg-text">正式发布最终成绩</div>
+            <div class="msg-payload">POST /result/release · {periodId, final[]}</div>
+          </div>
+        </div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+        <div class="actor-cell"></div>
+      </div>
+
+      <div class="note-row">
+        <div class="note-label">流程结束</div>
+        <div class="note-box">
+          <span class="note-icon">✓</span>
+          <span>成绩归档至年度数据库，进入下个考核周期。可通过部门成绩查询、个人评分统计、月度报表等查阅历史数据。</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="summary">
+    <h3>关键数据流摘要</h3>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-card-label">关键数据对象</div>
+        <div class="summary-card-value">7 类</div>
+        <div class="summary-card-desc">指标定义、年度目标、月度指标、自评、他评、申诉、最终成绩</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">消息传递</div>
+        <div class="summary-card-value">≈ 14 次</div>
+        <div class="summary-card-desc">同步操作 8 次 · 异步通知 6 次（站内信 + 邮件）</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">完整周期</div>
+        <div class="summary-card-value">30 天</div>
+        <div class="summary-card-desc">含准备期 15 天 + 执行期 15 天</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">关键决策点</div>
+        <div class="summary-card-value">3 处</div>
+        <div class="summary-card-desc">复核 → 预发布 → 申诉处理 → 正式发布</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">异常分支</div>
+        <div class="summary-card-value">2 条</div>
+        <div class="summary-card-desc">申诉驳回 · 申诉成立调分</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">数据持久化</div>
+        <div class="summary-card-value">5 张表</div>
+        <div class="summary-card-desc">period · indicator · self_eval · peer_eval · final_score</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

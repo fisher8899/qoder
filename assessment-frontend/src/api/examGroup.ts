@@ -24,6 +24,10 @@ export function getExamGroupList(params: ExamGroupQuery) {
   return http.get<PageResult<ExamGroup>>('/exam-group/list', params)
 }
 
+export function getVisibleExamGroups(params: ExamGroupQuery) {
+  return http.get<ExamGroup[]>('/exam-group/visible', params)
+}
+
 export function getExamGroupDetail(id: number) {
   return http.get<ExamGroup>(`/exam-group/${id}`)
 }
@@ -98,6 +102,7 @@ export interface ExamGroupTaskVO {
   status: string
   orgId: number
   orgName: string
+  unitId?: number
   approvalStatus: string
 }
 

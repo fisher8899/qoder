@@ -7,21 +7,26 @@ import com.ccerphr.assessment.dto.ReviewScoreBatchDTO;
 import com.ccerphr.assessment.dto.ReviewScoreSaveDTO;
 import com.ccerphr.assessment.entity.BizExamGroupMember;
 import com.ccerphr.assessment.entity.BizIndicatorDefinition;
+import com.ccerphr.assessment.entity.BizMonthlyScore;
 import com.ccerphr.assessment.entity.BizPeerEvaluation;
 import com.ccerphr.assessment.entity.BizReviewScore;
 import com.ccerphr.assessment.mapper.BizExamGroupMemberMapper;
 import com.ccerphr.assessment.mapper.BizIndicatorDefinitionMapper;
+import com.ccerphr.assessment.mapper.BizMonthlyScoreMapper;
 import com.ccerphr.assessment.mapper.BizPeerEvaluationMapper;
 import com.ccerphr.assessment.mapper.BizReviewScoreMapper;
 import com.ccerphr.assessment.service.BizReviewScoreService;
 import com.ccerphr.assessment.util.DataScopeFilter;
+import com.ccerphr.assessment.util.ScoreCalculator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,13 +38,16 @@ public class BizReviewScoreServiceImpl extends ServiceImpl<BizReviewScoreMapper,
     private final BizIndicatorDefinitionMapper indicatorDefinitionMapper;
     private final BizPeerEvaluationMapper peerEvaluationMapper;
     private final BizExamGroupMemberMapper memberMapper;
+    private final BizMonthlyScoreMapper monthlyScoreMapper;
 
     public BizReviewScoreServiceImpl(BizIndicatorDefinitionMapper indicatorDefinitionMapper,
                                       BizPeerEvaluationMapper peerEvaluationMapper,
-                                      BizExamGroupMemberMapper memberMapper) {
+                                      BizExamGroupMemberMapper memberMapper,
+                                      BizMonthlyScoreMapper monthlyScoreMapper) {
         this.indicatorDefinitionMapper = indicatorDefinitionMapper;
         this.peerEvaluationMapper = peerEvaluationMapper;
         this.memberMapper = memberMapper;
+        this.monthlyScoreMapper = monthlyScoreMapper;
     }
 
     @Override
@@ -286,14 +294,16 @@ public class BizReviewScoreServiceImpl extends ServiceImpl<BizReviewScoreMapper,
             peerScoreMap.computeIfAbsent(key, k -> new ArrayList<>()).add(eval.getPeerScore());
         }
 
-        // 获取指标权重
+        // 获取指标权重和类别
         List<BizIndicatorDefinition> indicators = indicatorDefinitionMapper.selectList(
             new LambdaQueryWrapper<BizIndicatorDefinition>()
                 .eq(BizIndicatorDefinition::getExamGroupId, examGroupId)
         );
         Map<Long, BigDecimal> weightMap = new HashMap<>();
+        Map<Long, String> categoryMap = new HashMap<>();
         for (BizIndicatorDefinition ind : indicators) {
             weightMap.put(ind.getId(), ind.getWeightMonthly());
+            categoryMap.put(ind.getId(), ind.getCategoryName());
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -321,18 +331,115 @@ public class BizReviewScoreServiceImpl extends ServiceImpl<BizReviewScoreMapper,
             rs.setUpdatedTime(now);
             updateById(rs);
         }
+
+        // 生成月度成绩汇总
+        generateMonthlyScores(examGroupId);
+    }
+
+    /**
+     * 生成月度成绩汇总
+     */
+    private void generateMonthlyScores(Long examGroupId) {
+        // 获取考核组成员
+        LambdaQueryWrapper<BizExamGroupMember> memberWrapper = new LambdaQueryWrapper<>();
+        memberWrapper.eq(BizExamGroupMember::getExamGroupId, examGroupId);
+        List<BizExamGroupMember> members = memberMapper.selectList(memberWrapper);
+
+        // 获取已审批指标
+        LambdaQueryWrapper<BizIndicatorDefinition> indWrapper = new LambdaQueryWrapper<>();
+        indWrapper.eq(BizIndicatorDefinition::getExamGroupId, examGroupId);
+        indWrapper.eq(BizIndicatorDefinition::getApprovalStatus, "APPROVED");
+        List<BizIndicatorDefinition> indicators = indicatorDefinitionMapper.selectList(indWrapper);
+
+        // 获取复核得分
+        LambdaQueryWrapper<BizReviewScore> scoreWrapper = new LambdaQueryWrapper<>();
+        scoreWrapper.eq(BizReviewScore::getExamGroupId, examGroupId);
+        List<BizReviewScore> reviewScores = list(scoreWrapper);
+
+        // 按orgId构建评分映射
+        Map<Long, List<BizReviewScore>> orgScoreMap = new HashMap<>();
+        for (BizReviewScore rs : reviewScores) {
+            orgScoreMap.computeIfAbsent(rs.getOrgId(), k -> new ArrayList<>()).add(rs);
+        }
+
+        String scoreMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        LocalDateTime now = LocalDateTime.now();
+
+        // 删除旧记录
+        LambdaQueryWrapper<BizMonthlyScore> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.eq(BizMonthlyScore::getExamGroupId, examGroupId);
+        deleteWrapper.eq(BizMonthlyScore::getScoreMonth, scoreMonth);
+        monthlyScoreMapper.delete(deleteWrapper);
+
+        // 生成每个部门每个指标的月度得分
+        for (BizExamGroupMember member : members) {
+            Long orgId = member.getOrgId();
+            String orgName = member.getOrgName();
+            List<BizReviewScore> scores = orgScoreMap.get(orgId);
+
+            BigDecimal orgTotalScore = BigDecimal.ZERO;
+
+            if (scores != null) {
+                // 收集所有得分项，用于计算总得分（含否决逻辑）
+                List<ScoreCalculator.ScoreItem> allScoreItems = new ArrayList<>();
+
+                for (BizReviewScore rs : scores) {
+                    BizIndicatorDefinition ind = indicators.stream()
+                            .filter(i -> i.getId().equals(rs.getIndicatorId()))
+                            .findFirst().orElse(null);
+
+                    if (ind != null && rs.getFinalScore() != null) {
+                        // 调用通用得分计算规则
+                        BigDecimal weightedScore = ScoreCalculator.calculateResult(rs.getFinalScore(), ind);
+                        if (weightedScore == null) weightedScore = BigDecimal.ZERO;
+
+                        BigDecimal weight = ind.getWeightMonthly() != null ? ind.getWeightMonthly() : BigDecimal.ZERO;
+
+                        BizMonthlyScore monthlyScore = new BizMonthlyScore();
+                        monthlyScore.setExamGroupId(examGroupId);
+                        monthlyScore.setOrgId(orgId);
+                        monthlyScore.setOrgName(orgName);
+                        monthlyScore.setIndicatorId(ind.getId());
+                        monthlyScore.setCategoryName(ind.getCategoryName());
+                        monthlyScore.setScoreValue(rs.getFinalScore());
+                        monthlyScore.setWeightMonthly(weight);
+                        monthlyScore.setWeightedScore(weightedScore);
+                        monthlyScore.setScoreMonth(scoreMonth);
+                        monthlyScore.setCreatedTime(now);
+                        monthlyScore.setUpdatedTime(now);
+
+                        monthlyScoreMapper.insert(monthlyScore);
+
+                        allScoreItems.add(ScoreCalculator.toScoreItem(rs.getFinalScore(), ind));
+                    }
+                }
+
+                // 调用通用总得分计算规则（含否决检查）
+                orgTotalScore = ScoreCalculator.calculateTotalScore(allScoreItems);
+            }
+
+            // 更新部门总得分（如果有记录）
+            if (orgTotalScore.compareTo(BigDecimal.ZERO) != 0 || (scores != null && !scores.isEmpty())) {
+                // 创建或更新部门汇总记录（不关联具体指标）
+                BizMonthlyScore totalScore = new BizMonthlyScore();
+                totalScore.setExamGroupId(examGroupId);
+                totalScore.setOrgId(orgId);
+                totalScore.setOrgName(orgName);
+                totalScore.setIndicatorId(null);  // 汇总记录无具体指标
+                totalScore.setTotalScore(orgTotalScore);
+                totalScore.setScoreMonth(scoreMonth);
+                totalScore.setCreatedTime(now);
+                totalScore.setUpdatedTime(now);
+                monthlyScoreMapper.insert(totalScore);
+            }
+        }
     }
 
     private BigDecimal calcFinalScore(BigDecimal adminScore, BigDecimal deptScore) {
-        if (adminScore == null && deptScore == null) {
-            return null;
+        // 业务规则：优先取 adminScore（管理员打分），如果为空则取 deptScore（他评平均分）
+        if (adminScore != null) {
+            return adminScore;
         }
-        BigDecimal baseScore = adminScore;
-        if (baseScore == null) {
-            baseScore = deptScore;
-        } else if (deptScore != null && deptScore.compareTo(baseScore) > 0) {
-            baseScore = deptScore;
-        }
-        return baseScore;
+        return deptScore;
     }
 }

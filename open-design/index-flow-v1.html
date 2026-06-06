@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>月度业绩考核 — 业务流程图</title>
+<style>
+  :root {
+    --bg: oklch(97% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --fg: oklch(20% 0.015 250);
+    --muted: oklch(52% 0.015 250);
+    --border: oklch(90% 0.008 250);
+    --accent: oklch(52% 0.18 250);
+    --accent-light: oklch(92% 0.04 250);
+    --success: oklch(55% 0.16 155);
+    --success-bg: oklch(94% 0.04 155);
+    --warning: oklch(62% 0.18 75);
+    --warning-bg: oklch(94% 0.04 75);
+    --danger: oklch(55% 0.2 25);
+    --danger-bg: oklch(94% 0.04 25);
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--fg); min-height: 100vh; }
+
+  /* Header */
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .header .meta { font-size: 13px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* Legend */
+  .legend { display: flex; gap: 20px; padding: 16px 40px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-dot.admin { background: var(--accent); }
+  .legend-dot.dept { background: var(--success); }
+  .legend-dot.eval { background: var(--warning); }
+  .legend-dot.system { background: var(--muted); }
+
+  /* Flow container */
+  .flow-container { max-width: 1100px; margin: 40px auto; padding: 0 40px; }
+
+  /* Phase */
+  .phase { margin-bottom: 8px; }
+  .phase-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; cursor: pointer; user-select: none; }
+  .phase-number { width: 32px; height: 32px; background: var(--accent); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; font-weight: 600; flex-shrink: 0; }
+  .phase-title { font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .phase-role { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+  .phase-role.admin { background: var(--accent-light); color: var(--accent); }
+  .phase-role.dept { background: var(--success-bg); color: var(--success); }
+  .phase-role.eval-role { background: var(--warning-bg); color: var(--warning); }
+  .phase-toggle { margin-left: auto; font-size: 18px; color: var(--muted); transition: transform 0.2s; }
+  .phase.collapsed .phase-toggle { transform: rotate(-90deg); }
+  .phase.collapsed .phase-body { display: none; }
+
+  /* Steps */
+  .phase-body { padding-left: 44px; }
+  .step { display: flex; gap: 16px; margin-bottom: 4px; position: relative; }
+  .step::before { content: ''; position: absolute; left: -28px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .step:last-child::before { height: 24px; }
+  .step-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); flex-shrink: 0; margin-top: 14px; position: relative; z-index: 1; }
+  .step-dot.active { border-color: var(--accent); background: var(--accent); }
+  .step-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; flex: 1; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+  .step-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px oklch(20% 0.02 250 / 0.06); }
+  .step-card.expanded { border-color: var(--accent); }
+  .step-head { display: flex; align-items: center; justify-content: space-between; }
+  .step-title { font-size: 15px; font-weight: 600; }
+  .step-badge { font-size: 11px; font-family: var(--font-mono); padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+  .step-badge.auto { background: var(--accent-light); color: var(--accent); }
+  .step-badge.manual { background: var(--success-bg); color: var(--success); }
+  .step-badge.review { background: var(--warning-bg); color: var(--warning); }
+  .step-desc { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+  .step-detail { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .step-card.expanded .step-detail { display: block; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .detail-box { background: var(--bg); border-radius: 8px; padding: 12px 16px; }
+  .detail-label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .detail-value { font-size: 13px; line-height: 1.6; }
+  .detail-full { grid-column: 1 / -1; }
+
+  /* Connector arrow */
+  .connector { display: flex; justify-content: center; padding: 4px 0; position: relative; }
+  .connector::before { content: ''; position: absolute; left: 15px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .connector svg { position: relative; z-index: 1; }
+
+  /* Annotation */
+  .annotation { background: var(--accent-light); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 8px 0 8px 44px; font-size: 13px; color: var(--fg); line-height: 1.6; }
+
+  /* Stats bar */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-width: 1100px; margin: 0 auto 32px; padding: 0 40px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center; }
+  .stat-number { font-family: var(--font-display); font-size: 32px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .detail-grid { grid-template-columns: 1fr; }
+    .header { padding: 16px 20px; }
+    .flow-container, .stats, .legend { padding-left: 20px; padding-right: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>月度业绩考核 — 业务流程图</h1>
+  <span class="meta">中煤鄂尔多斯能源化工有限公司 · V1.0</span>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot admin"></div>条件财务处管理员</div>
+  <div class="legend-item"><div class="legend-dot dept"></div>部门绩效管理员</div>
+  <div class="legend-item"><div class="legend-dot eval-role"></div>考核员/分管领导</div>
+  <div class="legend-item"><div class="legend-dot system"></div>系统自动</div>
+</div>
+
+<div class="stats">
+  <div class="stat-card"><div class="stat-number">8</div><div class="stat-label">主要阶段</div></div>
+  <div class="stat-card"><div class="stat-number">4</div><div class="stat-label">参与角色</div></div>
+  <div class="stat-card"><div class="stat-number">12</div><div class="stat-label">关键节点</div></div>
+  <div class="stat-card"><div class="stat-number">3</div><div class="stat-label">审批环节</div></div>
+</div>
+
+<div class="flow-container">
+
+  <!-- Phase 1: 年度指标设定 -->
+  <div class="phase" id="phase-1">
+    <div class="phase-header" onclick="togglePhase('phase-1')">
+      <div class="phase-number">1</div>
+      <div class="phase-title">年度指标设定</div>
+      <span class="phase-role admin">条件财务处管理员</span>
+      <span class="phase-role dept">部门绩效管理员</span>
+      <span class="phase-toggle">▼</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">创建年度业绩指标设定考核组</span>
+            <span class="step-badge admin">管理员</span>
+          </div>
+          <div class="step-desc">条件财务处绩效考核管理员创建年度指标设定组，添加成员名单、业绩指标模版，设定开始/结束日期</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box">
+                <div class="detail-label">操作内容</div>
+                <div class="detail-value">创建考核组 → 维护成员名单 → 绑定指标模版 → 设定时间窗口</div>
+              </div>
+              <div class="detail-box">
+                <div class="detail-label">系统字段</div>
+                <div class="detail-value">考核组名称、考核类型（业绩指标设定）、开始日期、结束日期、状态</div>
+              </div>
+              <div class="detail-box detail-full">
+                <div class="detail-label">关键规则</div>
+                <div class="detail-value">考核组名称默认格式：XXXX年XX月业绩指标设定组；需先配置考核对象（组织/人员）后才可启动</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">部门录入年度考核目标</span>
+            <span class="step-badge manual">部门操作</span>
+          </div>
+          <div class="step-desc">部门绩效管理员与部门负责人、分管领导线下沟通后，在系统中逐项录入年度考核指标（大类→小类→考核内容三级结构）</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box">
+                <div class="detail-label">录入结构</div>
+                <div class="detail-value">大类（重点工作/基础工作/控制指标等）→ 小类 → 考核内容（含指标目标、权重、考核标准、考核部门）</div>
+              </div>
+              <div class="detail-box">
+                <div class="detail-label">支持方式</div>
+                <div class="detail-value">逐条录入 / 批量导入（按模版Excel）</div>
+              </div>
+              <div class="detail-box detail-full">
+                <div class="detail-label">指标分类</div>
+                <div class="detail-value">职能部门：重点工作(30) + 基础工作(40) + 控制指标(70)；分公司：经营指标(10) + 重点任务(20) + 控制指标(70)；公共：动态督办(50)、党建(60)、特殊贡献(80)、否决项(90)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">三级审批流程</span>
+            <span class="step-badge review">逐级审批</span>
+          </div>
+          <div class="step-desc">部门绩效管理员提交 → 部门负责人审批 → 分管领导审批 → 条件财务处管理员审批</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box detail-full">
+                <div class="detail-label">审批流程</div>
+                <div class="detail-value">
+                  <strong>草稿</strong> → 提交 → <strong>待部门负责人审批</strong> → 通过/退回 → <strong>待分管领导审批</strong> → 通过/退回 → <strong>待财务处审批</strong> → 通过/退回 → <strong>审批通过</strong><br>
+                  任何环节退回均退回到部门绩效管理员，修改后重新提交全流程
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="annotation">
+        <strong>目标更新规则：</strong>年度指标原则上中途不调整。如确需变更，部门绩效管理员需线下联系条件财务处管理员执行退回，修改后重新走审批流程。
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2: 月度指标发布 -->
+  <div class="phase" id="phase-2">
+    <div class="phase-header" onclick="togglePhase('phase-2')">
+      <div class="phase-number">2</div>
+      <div class="phase-title">月度指标发布</div>
+      <span class="phase-role admin">条件财务处管理员</span>
+      <span class="phase-toggle">▼</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">创建月度考核组</span>
+            <span class="step-badge admin">管理员</span>
+          </div>
+          <div class="step-desc">创建当月考核组，选择考核类型（月度考核），绑定考核模版，设定开始/结束日期</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box">
+                <div class="detail-label">考核组配置</div>
+                <div class="detail-value">名称默认：2026年X月月度考核组；类型：月度考核；绑定考核对象</div>
+              </div>
+              <div class="detail-box">
+                <div class="detail-label">操作按钮</div>
+                <div class="detail-value">发布考核指标 → 启动考核 → 查看进度 → 启动他评 → 预发布 → 正式发布</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">发布月度考核指标</span>
+            <span class="step-badge admin">管理员</span>
+          </div>
+          <div class="step-desc">将年度指标按月拆分后发布，各部门可查看当月业绩考核指标</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box detail-full">
+                <div class="detail-label">发布后效果</div>
+                <div class="detail-value">各部门绩效管理员可查看本部门当月考核指标明细，包括大类、小类、考核内容、指标目标、权重、考核标准、考核部门</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">启动月度考核</span>
+            <span class="step-badge admin">管理员</span>
+          </div>
+          <div class="step-desc">启动当月考核流程，各部门绩效管理员进入自评阶段</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3: 部门自评 -->
+  <div class="phase" id="phase-3">
+    <div class="phase-header" onclick="togglePhase('phase-3')">
+      <div class="phase-number">3</div>
+      <div class="phase-title">部门自评</div>
+      <span class="phase-role dept">部门绩效管理员</span>
+      <span class="phase-toggle">▼</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">逐项填报自评</span>
+            <span class="step-badge manual">部门操作</span>
+          </div>
+          <div class="step-desc">部门绩效管理员收集当月指标完成情况，与部门负责人沟通确认后，在系统逐项录入自评反馈和自评得分</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box">
+                <div class="detail-label">填报字段</div>
+                <div class="detail-value">实际完成情况（500字）、自评得分（0-120分）、证明附件（PDF/图片/压缩包，≤20M）</div>
+              </div>
+              <div class="detail-box">
+                <div class="detail-label">进度控制</div>
+                <div class="detail-value">完成进度 = 已打分指标数 / 总指标数；进度100%方可提交</div>
+              </div>
+              <div class="detail-box detail-full">
+                <div class="detail-label">自动计算</div>
+                <div class="detail-value">自评结果 = 自评得分 × 月度权重（保留2位小数）</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">提交自评</span>
+            <span class="step-badge manual">部门操作</span>
+          </div>
+          <div class="step-desc">确认无误后提交，状态更新为"已提交"。可随时保存草稿。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 4: 互评打分 -->
+  <div class="phase" id="phase-4">
+    <div class="phase-header" onclick="togglePhase('phase-4')">
+      <div class="phase-number">4</div>
+      <div class="phase-title">互评打分</div>
+      <span class="phase-role admin">条件财务处管理员</span>
+      <span class="phase-role eval-role">考核员/分管领导</span>
+      <span class="phase-toggle">▼</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">启动他评打分</span>
+            <span class="step-badge admin">管理员</span>
+          </div>
+          <div class="step-desc">全部部门自评完成后，条件财务处管理员在考核组点击"启动他评"，开放部门互评通道</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">部门考核员对其他部门打分</span>
+            <span class="step-badge manual">考核员操作</span>
+          </div>
+          <div class="step-desc">各部门绩效考核员/分管领导对负责的被考核部门指标逐行打分，系统自动计算得分×权重</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box">
+                <div class="detail-label">打分方式</div>
+                <div class="detail-value">按部门展示：逐部门完成打分；按指标展示：比较不同部门在同一指标的得分</div>
+              </div>
+              <div class="detail-box">
+                <div class="detail-label">打分规则</div>
+                <div class="detail-value">得分范围：0-120分；考核结果 = 得分 × 月度权重（保留2位小数）</div>
+              </div>
+              <div class="detail-box detail-full">
+                <div class="detail-label">提交条件</div>
+                <div class="detail-value">全部指标打分完成后方可提交；支持中途保存；页面显示总打分部门数、待打分指标数、已完成指标数、完成百分比</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 5: 管理员复核 -->
+  <div class="phase" id="phase-5">
+    <div class="phase-header" onclick="togglePhase('phase-5')">
+      <div class="phase-number">5</div>
+      <div class="phase-title">管理员复核与修正</div>
+      <span class="phase-role admin">条件财务处管理员</span>
+      <span class="phase-toggle">▼</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">复核审阅全部考核数据</span>
+            <span class="step-badge review">复核</span>
+          </div>
+          <div class="step-desc">全部部门互评提交完成后，条件财务处管理员逐部门逐指标复核，可对不完整数据进行补充或纠正</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box detail-full">
+                <div class="detail-label">得分计算规则（核心）</div>
+                <div class="detail-value">
+                  <strong>优先级：</strong>先取条件财务处管理员打分 → 若为空则取考核部门打分 → 按大类汇总 → 按被考核部门汇总<br>
+                  系统记录管理员对每个部门每个指标的打分和修正说明
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 6: 预发布 -->
+  <div class="phase" id="phase-6">
+    <div class="phase-header" onclick="togglePhase('phase-6')">
+      <div class="phase-number">6</div>
+      <div class="phase-title">绩效预发布</div>
+      <span class="phase-role admin">条件财务处管理员</span>
+      <span class="phase-toggle">▼</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">预发布考核结果</span>
+            <span class="step-badge admin">管理员</span>
+          </div>
+          <div class="step-desc">将月度考核结果预发布给部门绩效管理员和部门负责人查看，接受申诉。可"取消预发布"（可逆操作）</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box detail-full">
+                <div class="detail-label">预发布后效果</div>
+                <div class="detail-value">部门绩效管理员和部门负责人可查看完整的评价打分信息（自评分、他评打分、管理员打分、最终得分）。如有异议，进入线下申诉流程。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 7: 申诉处理 -->
+  <div class="phase" id="phase-7">
+    <div class="phase-header" onclick="togglePhase('phase-7')">
+      <div class="phase-number">7</div>
+      <div class="phase-title">申诉处理</div>
+      <span class="phase-role admin">条件财务处管理员</span>
+      <span class="phase-role dept">部门绩效管理员</span>
+      <span class="phase-toggle">▼</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">线下申诉 → 系统创建申诉单</span>
+            <span class="step-badge admin">管理员</span>
+          </div>
+          <div class="step-desc">部门线下申诉成功后，条件财务处管理员在系统创建申诉单：选择申诉部门、打分部门、填写申诉说明、上传申诉材料</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box">
+                <div class="detail-label">申诉单字段</div>
+                <div class="detail-value">申诉部门、打分部门（可多部门）、申诉说明、附件材料、状态（草稿/待重新评估/已重新打分）</div>
+              </div>
+              <div class="detail-box">
+                <div class="detail-label">退回操作</div>
+                <div class="detail-value">选择需重新打分的部门（可多选），将该部门的月度考核数据退回</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">打分部门重新评估</span>
+            <span class="step-badge manual">部门操作</span>
+          </div>
+          <div class="step-desc">被退回的打分部门在"评估反馈"列表看到状态为"待重新评估"，针对申诉指标重新打分并提交，数据直接覆盖原记录</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">管理员重新计算得分</span>
+            <span class="step-badge admin">管理员</span>
+          </div>
+          <div class="step-desc">条件财务处管理员重新复核业绩考核数据，重新计算最终月度业绩考核得分</div>
+        </div>
+      </div>
+      <div class="annotation">
+        <strong>申诉截止：</strong>在申诉截止日期后，不再接受新的申诉。管理员选择合适时间进行正式发布。
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 8: 正式发布 -->
+  <div class="phase" id="phase-8">
+    <div class="phase-header" onclick="togglePhase('phase-8')">
+      <div class="phase-number">8</div>
+      <div class="phase-title">正式发布</div>
+      <span class="phase-role admin">条件财务处管理员</span>
+      <span class="phase-toggle">▼</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-dot active"></div>
+        <div class="step-card" onclick="toggleCard(this)">
+          <div class="step-head">
+            <span class="step-title">发布月度考核结果</span>
+            <span class="step-badge admin">管理员</span>
+          </div>
+          <div class="step-desc">条件财务处管理员正式发布当月业绩考核，全部数据冻结。可"取消发布"（可逆操作）</div>
+          <div class="step-detail">
+            <div class="detail-grid">
+              <div class="detail-box detail-full">
+                <div class="detail-label">发布后权限</div>
+                <div class="detail-value">
+                  部门绩效管理员、部门负责人：可查询本次考核结果数据<br>
+                  条件财务处管理员：可导出明细数据表和汇总数据表<br>
+                  月度考核系数将与薪酬绩效奖金挂钩
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="annotation">
+        <strong>本次月度考核完成。</strong>考核结果数据可用于薪酬绩效计算。下月重复步骤 2-8。
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function togglePhase(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+  function toggleCard(el) {
+    el.classList.toggle('expanded');
+  }
+</script>
+</body>
+</html>

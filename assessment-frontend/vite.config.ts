@@ -15,6 +15,12 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true
+      },
+      // 工作流平台 API 代理
+      '/wf-api': {
+        target: 'http://localhost:5555',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/wf-api/, '')
       }
     }
   },

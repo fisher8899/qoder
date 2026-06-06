@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>系统管理员工作台 — 月度业绩考核</title>
+<style>
+  :root {
+    --bg: oklch(97% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --fg: oklch(20% 0.015 250);
+    --muted: oklch(52% 0.015 250);
+    --border: oklch(90% 0.008 250);
+    --accent: oklch(52% 0.18 250);
+    --accent-light: oklch(94% 0.04 250);
+    --accent-dark: oklch(42% 0.18 250);
+    --success: oklch(55% 0.16 155);
+    --success-bg: oklch(94% 0.04 155);
+    --warning: oklch(62% 0.18 75);
+    --warning-bg: oklch(94% 0.04 75);
+    --danger: oklch(55% 0.2 25);
+    --danger-bg: oklch(94% 0.04 25);
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--fg); font-size: 14px; }
+
+  /* Top bar */
+  .topbar { height: 56px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 24px; position: sticky; top: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+  .logo-icon { width: 30px; height: 30px; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: white; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; }
+  .logo-sub { font-family: var(--font-mono); font-size: 11px; color: var(--muted); padding: 2px 6px; background: var(--bg); border-radius: 3px; margin-left: 4px; }
+
+  .top-nav { display: flex; gap: 2px; flex: 1; }
+  .top-nav a { padding: 8px 14px; font-size: 13px; color: var(--muted); text-decoration: none; border-radius: 6px; }
+  .top-nav a:hover { background: var(--bg); color: var(--fg); }
+  .top-nav a.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+
+  .top-right { display: flex; align-items: center; gap: 12px; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); position: relative; }
+  .icon-btn:hover { background: var(--bg); color: var(--fg); }
+  .badge-dot { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; background: var(--danger); border-radius: 50%; border: 1.5px solid var(--surface); }
+  .user-chip { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 20px; cursor: pointer; }
+  .user-chip:hover { background: var(--bg); }
+  .user-avatar { width: 28px; height: 28px; background: oklch(52% 0.015 250); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+  .user-name { font-size: 13px; }
+  .user-role { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 56px); }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 16px 12px; overflow-y: auto; }
+  .menu-group { margin-bottom: 16px; }
+  .menu-group-title { font-size: 11px; font-family: var(--font-mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 12px 4px; }
+  .menu-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; color: var(--fg); margin-bottom: 1px; }
+  .menu-item:hover { background: var(--bg); }
+  .menu-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .menu-icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--muted); }
+  .menu-item.active .menu-icon { color: var(--accent); }
+  .menu-badge { margin-left: auto; font-size: 10px; padding: 1px 6px; background: var(--accent); color: white; border-radius: 8px; font-family: var(--font-mono); }
+
+  .main { padding: 24px 32px; overflow-y: auto; }
+
+  /* Page header */
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; }
+  .page-head h1 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .breadcrumb { font-size: 12px; color: var(--muted); font-family: var(--font-mono); margin-bottom: 4px; }
+  .breadcrumb a { color: var(--muted); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--accent); }
+  .page-head .actions { display: flex; gap: 8px; }
+  .btn { padding: 8px 14px; font-size: 13px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); cursor: pointer; font-family: var(--font-body); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn.primary:hover { background: var(--accent-dark); color: white; }
+  .btn.danger { color: var(--danger); border-color: var(--danger-bg); }
+  .btn.danger:hover { background: var(--danger-bg); }
+
+  /* Stat cards */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .stat-value { font-family: var(--font-display); font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .stat-meta { font-size: 12px; color: var(--muted); margin-top: 4px; font-family: var(--font-mono); }
+  .stat-trend { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: var(--font-mono); margin-left: 6px; }
+  .stat-trend.up { background: var(--success-bg); color: var(--success); }
+  .stat-trend.down { background: var(--danger-bg); color: var(--danger); }
+  .stat-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+  /* Search bar */
+  .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .search { flex: 1; display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--bg); border-radius: 6px; border: 1px solid transparent; }
+  .search:focus-within { border-color: var(--accent); background: var(--surface); }
+  .search input { flex: 1; border: none; background: transparent; font-size: 13px; outline: none; color: var(--fg); font-family: var(--font-body); }
+  .filter-group { display: flex; gap: 6px; }
+  .select { padding: 6px 12px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; font-family: var(--font-body); color: var(--fg); }
+
+  /* Data table */
+  .data-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th { background: var(--bg); padding: 11px 16px; text-align: left; font-weight: 600; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.04em; }
+  .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg); }
+  .data-table .row-avatar { display: flex; align-items: center; gap: 10px; }
+  .table-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .table-avatar.green { background: var(--success-bg); color: var(--success); }
+  .table-avatar.orange { background: var(--warning-bg); color: oklch(45% 0.16 75); }
+  .table-avatar.gray { background: var(--bg); color: var(--muted); }
+  .row-name { font-weight: 500; }
+  .row-sub { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .pill { display: inline-block; padding: 2px 8px; font-size: 11px; border-radius: 10px; font-family: var(--font-mono); font-weight: 500; }
+  .pill.active { background: var(--success-bg); color: var(--success); }
+  .pill.inactive { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .pill.warn { background: var(--warning-bg); color: oklch(45% 0.16 75); }
+  .pill.role { background: var(--accent-light); color: var(--accent); margin-right: 4px; }
+  .table-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .action-link { font-size: 12px; color: var(--accent); cursor: pointer; padding: 4px 6px; border-radius: 4px; }
+  .action-link:hover { background: var(--accent-light); }
+  .action-link.danger { color: var(--danger); }
+  .action-link.danger:hover { background: var(--danger-bg); }
+
+  /* Pagination */
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface); }
+  .pagination-info { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .pagination-controls { display: flex; gap: 4px; }
+  .page-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 5px; cursor: pointer; font-size: 12px; background: var(--surface); font-family: var(--font-mono); }
+  .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .page-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 10px 16px; font-size: 13px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: var(--fg); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+
+  /* Tab panel */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Mini timeline */
+  .activity-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-top: 16px; }
+  .activity-card h3 { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .activity-card h3 a { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 400; }
+  .activity-list { list-style: none; }
+  .activity-list li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+  .activity-list li:last-child { border-bottom: none; }
+  .activity-time { font-size: 11px; color: var(--muted); font-family: var(--font-mono); white-space: nowrap; min-width: 70px; }
+  .activity-text { font-size: 13px; flex: 1; }
+  .activity-text strong { font-weight: 600; }
+  .activity-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .activity-icon.create { background: var(--success-bg); color: var(--success); }
+  .activity-icon.update { background: var(--accent-light); color: var(--accent); }
+  .activity-icon.delete { background: var(--danger-bg); color: var(--danger); }
+
+  /* Two-column for dashboard */
+  .dash-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+  /* Footer */
+  .back-link { position: fixed; bottom: 16px; left: 16px; background: var(--surface); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; font-size: 12px; color: var(--muted); text-decoration: none; z-index: 50; }
+  .back-link:hover { color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-icon">P</div>
+    月度业绩考核系统
+    <span class="logo-sub">v 2.4.1</span>
+  </div>
+  <nav class="top-nav">
+    <a class="active">系统管理</a>
+    <a>报表中心</a>
+    <a>操作日志</a>
+    <a>帮助文档</a>
+  </nav>
+  <div class="top-right">
+    <div class="icon-btn" title="搜索">⌕<span style="font-family: var(--font-mono); font-size: 10px; margin-left: 4px; color: var(--muted);"></span></div>
+    <div class="icon-btn" title="通知">🔔<span class="badge-dot"></span></div>
+    <div class="icon-btn" title="设置">⚙</div>
+    <div class="user-chip">
+      <div class="user-avatar">张</div>
+      <div>
+        <div class="user-name">张工</div>
+        <div class="user-role">SYSADMIN</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="menu-group">
+      <div class="menu-group-title">权限管理</div>
+      <div class="menu-item active" onclick="switchTab('users')"><div class="menu-icon">👤</div>用户管理<span class="menu-badge">380</span></div>
+      <div class="menu-item" onclick="switchTab('roles')"><div class="menu-icon">🎭</div>角色管理</div>
+      <div class="menu-item" onclick="switchTab('menu')"><div class="menu-icon">▤</div>菜单管理</div>
+      <div class="menu-item" onclick="switchTab('perms')"><div class="menu-icon">🔑</div>权限分配</div>
+    </div>
+    <div class="menu-group">
+      <div class="menu-group-title">基础数据</div>
+      <div class="menu-item" onclick="switchTab('org')"><div class="menu-icon">▦</div>组织架构</div>
+      <div class="menu-item" onclick="switchTab('unit')"><div class="menu-icon">▥</div>考核单位</div>
+      <div class="menu-item" onclick="switchTab('depts')"><div class="menu-icon">⊞</div>部门维护</div>
+      <div class="menu-item" onclick="switchTab('sync')"><div class="menu-icon">⟲</div>人员同步</div>
+    </div>
+    <div class="menu-group">
+      <div class="menu-group-title">系统配置</div>
+      <div class="menu-item" onclick="switchTab('encode')"><div class="menu-icon">#</div>单据编码规则</div>
+      <div class="menu-item" onclick="switchTab('params')"><div class="menu-icon">⚙</div>系统参数</div>
+      <div class="menu-item" onclick="switchTab('dict')"><div class="menu-icon">≣</div>数据字典</div>
+      <div class="menu-item" onclick="switchTab('log')"><div class="menu-icon">⊟</div>操作日志</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <div id="page-users" class="tab-panel active">
+      <div class="page-head">
+        <div>
+          <div class="breadcrumb"><a>系统管理</a> / <a>权限管理</a> / 用户管理</div>
+          <h1>用户管理</h1>
+        </div>
+        <div class="actions">
+          <button class="btn">导出</button>
+          <button class="btn">批量导入</button>
+          <button class="btn primary">+ 新建用户</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon" style="background: var(--accent-light); color: var(--accent);">👤</span>系统总用户</div>
+          <div class="stat-value">380<span class="stat-trend up">↑ 12</span></div>
+          <div class="stat-meta">本月新增 12 人</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon" style="background: var(--success-bg); color: var(--success);">✓</span>活跃用户</div>
+          <div class="stat-value">364</div>
+          <div class="stat-meta">活跃率 95.8%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon" style="background: var(--warning-bg); color: var(--warning);">⏸</span>停用用户</div>
+          <div class="stat-value">16</div>
+          <div class="stat-meta">含离职 11 · 暂停 5</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon" style="background: oklch(94% 0.005 250); color: var(--muted);">▦</span>所属部门</div>
+          <div class="stat-value">42</div>
+          <div class="stat-meta">业务部门 28 · 职能 14</div>
+        </div>
+      </div>
+
+      <!-- Search/Filter -->
+      <div class="toolbar">
+        <div class="search">
+          <span style="color: var(--muted);">⌕</span>
+          <input placeholder="搜索姓名 / 工号 / 邮箱 / 部门..." />
+        </div>
+        <div class="filter-group">
+          <select class="select">
+            <option>全部部门</option>
+            <option>条件财务处</option>
+            <option>生产运行处</option>
+            <option>技术管理处</option>
+          </select>
+          <select class="select">
+            <option>全部角色</option>
+            <option>系统管理员</option>
+            <option>业绩考核管理员</option>
+            <option>部门绩效管理员</option>
+            <option>考核员/分管领导</option>
+          </select>
+          <select class="select">
+            <option>全部状态</option>
+            <option>已启用</option>
+            <option>已停用</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="data-card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 36px;"><input type="checkbox"/></th>
+              <th>用户</th>
+              <th>工号</th>
+              <th>所属部门</th>
+              <th>角色</th>
+              <th>状态</th>
+              <th>最后登录</th>
+              <th style="text-align: right;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="checkbox"/></td>
+              <td><div class="row-avatar"><div class="table-avatar">王</div><div><div class="row-name">王立军</div><div class="row-sub">wanglj@ccerphr.com</div></div></div></td>
+              <td><span class="row-sub">EMP-00128</span></td>
+              <td>条件财务处</td>
+              <td><span class="pill role">业绩考核管理员</span></td>
+              <td><span class="pill active">已启用</span></td>
+              <td><span class="row-sub">2025-05-22 08:42</span></td>
+              <td><div class="table-actions"><span class="action-link">编辑</span><span class="action-link">重置密码</span><span class="action-link danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"/></td>
+              <td><div class="row-avatar"><div class="table-avatar green">李</div><div><div class="row-name">李明华</div><div class="row-sub">limh@ccerphr.com</div></div></div></td>
+              <td><span class="row-sub">EMP-00203</span></td>
+              <td>生产运行处</td>
+              <td><span class="pill role">部门绩效管理员</span></td>
+              <td><span class="pill active">已启用</span></td>
+              <td><span class="row-sub">2025-05-22 09:15</span></td>
+              <td><div class="table-actions"><span class="action-link">编辑</span><span class="action-link">重置密码</span><span class="action-link danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"/></td>
+              <td><div class="row-avatar"><div class="table-avatar orange">赵</div><div><div class="row-name">赵建国</div><div class="row-sub">zhaojg@ccerphr.com</div></div></div></td>
+              <td><span class="row-sub">EMP-00009</span></td>
+              <td>公司领导</td>
+              <td><span class="pill role">分管领导</span><span class="pill role">考核员</span></td>
+              <td><span class="pill active">已启用</span></td>
+              <td><span class="row-sub">2025-05-21 17:28</span></td>
+              <td><div class="table-actions"><span class="action-link">编辑</span><span class="action-link">重置密码</span><span class="action-link danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"/></td>
+              <td><div class="row-avatar"><div class="table-avatar">陈</div><div><div class="row-name">陈晓燕</div><div class="row-sub">chenxy@ccerphr.com</div></div></div></td>
+              <td><span class="row-sub">EMP-00342</span></td>
+              <td>人力资源处</td>
+              <td><span class="pill role">部门绩效管理员</span></td>
+              <td><span class="pill active">已启用</span></td>
+              <td><span class="row-sub">2025-05-22 09:01</span></td>
+              <td><div class="table-actions"><span class="action-link">编辑</span><span class="action-link">重置密码</span><span class="action-link danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"/></td>
+              <td><div class="row-avatar"><div class="table-avatar gray">刘</div><div><div class="row-name">刘海涛</div><div class="row-sub">liuht@ccerphr.com</div></div></div></td>
+              <td><span class="row-sub">EMP-00567</span></td>
+              <td>技术管理处</td>
+              <td><span class="pill role">部门绩效管理员</span></td>
+              <td><span class="pill inactive">已停用</span></td>
+              <td><span class="row-sub">2025-04-18 14:33</span></td>
+              <td><div class="table-actions"><span class="action-link">编辑</span><span class="action-link">启用</span><span class="action-link danger">删除</span></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"/></td>
+              <td><div class="row-avatar"><div class="table-avatar green">孙</div><div><div class="row-name">孙红梅</div><div class="row-sub">sunhm@ccerphr.com</div></div></div></td>
+              <td><span class="row-sub">EMP-00128</span></td>
+              <td>安全环保处</td>
+              <td><span class="pill role">部门绩效管理员</span></td>
+              <td><span class="pill active">已启用</span></td>
+              <td><span class="row-sub">2025-05-22 10:08</span></td>
+              <td><div class="table-actions"><span class="action-link">编辑</span><span class="action-link">重置密码</span><span class="action-link danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"/></td>
+              <td><div class="row-avatar"><div class="table-avatar orange">周</div><div><div class="row-name">周文斌</div><div class="row-sub">zhouwb@ccerphr.com</div></div></div></td>
+              <td><span class="row-sub">EMP-00014</span></td>
+              <td>公司领导</td>
+              <td><span class="pill role">分管领导</span></td>
+              <td><span class="pill active">已启用</span></td>
+              <td><span class="row-sub">2025-05-22 07:51</span></td>
+              <td><div class="table-actions"><span class="action-link">编辑</span><span class="action-link">重置密码</span><span class="action-link danger">停用</span></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"/></td>
+              <td><div class="row-avatar"><div class="table-avatar">郑</div><div><div class="row-name">郑国强</div><div class="row-sub">zhenggq@ccerphr.com</div></div></div></td>
+              <td><span class="row-sub">EMP-00088</span></td>
+              <td>条件财务处</td>
+              <td><span class="pill role">系统管理员</span></td>
+              <td><span class="pill active">已启用</span></td>
+              <td><span class="row-sub">2025-05-22 09:54</span></td>
+              <td><div class="table-actions"><span class="action-link">编辑</span><span class="action-link">重置密码</span><span class="action-link danger">停用</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="pagination-info">共 380 条 · 每页 8 条</div>
+          <div class="pagination-controls">
+            <div class="page-btn">‹</div>
+            <div class="page-btn active">1</div>
+            <div class="page-btn">2</div>
+            <div class="page-btn">3</div>
+            <div class="page-btn">…</div>
+            <div class="page-btn">48</div>
+            <div class="page-btn">›</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent activity -->
+      <div class="activity-card">
+        <h3>最近操作日志 <a>查看全部 →</a></h3>
+        <ul class="activity-list">
+          <li>
+            <div class="activity-icon create">+</div>
+            <div class="activity-text"><strong>张工</strong> 创建了用户 <strong>陈晓燕</strong>（人力资源处 · 部门绩效管理员）</div>
+            <div class="activity-time">10 分钟前</div>
+          </li>
+          <li>
+            <div class="activity-icon update">⟲</div>
+            <div class="activity-text"><strong>张工</strong> 调整了角色 <strong>部门绩效管理员</strong> 的菜单权限，新增「申诉申请」</div>
+            <div class="activity-time">1 小时前</div>
+          </li>
+          <li>
+            <div class="activity-icon update">⟲</div>
+            <div class="activity-text"><strong>系统</strong> 自动同步 HR 人员变动 12 条（新增 8 · 调岗 3 · 离职 1）</div>
+            <div class="activity-time">今日 06:00</div>
+          </li>
+          <li>
+            <div class="activity-icon delete">✕</div>
+            <div class="activity-text"><strong>张工</strong> 停用了用户 <strong>刘海涛</strong>（技术管理处 · 已离职）</div>
+            <div class="activity-time">昨日 14:32</div>
+          </li>
+          <li>
+            <div class="activity-icon create">+</div>
+            <div class="activity-text"><strong>张工</strong> 新增考核单位 <strong>新能源事业部</strong>（编码：BU-2025-008）</div>
+            <div class="activity-time">2 天前</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Roles tab -->
+    <div id="page-roles" class="tab-panel">
+      <div class="page-head">
+        <div>
+          <div class="breadcrumb"><a>系统管理</a> / <a>权限管理</a> / 角色管理</div>
+          <h1>角色管理</h1>
+        </div>
+        <div class="actions">
+          <button class="btn primary">+ 新建角色</button>
+        </div>
+      </div>
+
+      <div class="data-card">
+        <table class="data-table">
+          <thead>
+            <tr><th>角色名称</th><th>编码</th><th>描述</th><th>用户数</th><th>菜单权限</th><th>状态</th><th style="text-align: right;">操作</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>系统管理员</strong></td><td><span class="row-sub">ROLE_SYSADMIN</span></td><td>负责系统基础配置和权限维护</td><td>2</td><td><span class="row-sub">14 / 14</span></td><td><span class="pill active">启用</span></td><td><div class="table-actions"><span class="action-link">权限</span><span class="action-link">编辑</span></div></td></tr>
+            <tr><td><strong>业绩考核管理员</strong></td><td><span class="row-sub">ROLE_ASSESS_MGR</span></td><td>条件财务处 · 全流程考核管理</td><td>3</td><td><span class="row-sub">16 / 16</span></td><td><span class="pill active">启用</span></td><td><div class="table-actions"><span class="action-link">权限</span><span class="action-link">编辑</span></div></td></tr>
+            <tr><td><strong>部门绩效管理员</strong></td><td><span class="row-sub">ROLE_DEPT_PERF</span></td><td>各部门自评、互评、申诉</td><td>42</td><td><span class="row-sub">11 / 11</span></td><td><span class="pill active">启用</span></td><td><div class="table-actions"><span class="action-link">权限</span><span class="action-link">编辑</span></div></td></tr>
+            <tr><td><strong>分管领导/考核员</strong></td><td><span class="row-sub">ROLE_EVALUATOR</span></td><td>对其他部门进行打分评估</td><td>18</td><td><span class="row-sub">10 / 10</span></td><td><span class="pill active">启用</span></td><td><div class="table-actions"><span class="action-link">权限</span><span class="action-link">编辑</span></div></td></tr>
+            <tr><td><strong>访客/只读</strong></td><td><span class="row-sub">ROLE_VIEWER</span></td><td>仅查看公开报表，不可操作</td><td>315</td><td><span class="row-sub">3 / 11</span></td><td><span class="pill active">启用</span></td><td><div class="table-actions"><span class="action-link">权限</span><span class="action-link">编辑</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="page-org" class="tab-panel">
+      <div class="page-head">
+        <div>
+          <div class="breadcrumb"><a>系统管理</a> / <a>基础数据</a> / 组织架构</div>
+          <h1>组织架构</h1>
+        </div>
+        <div class="actions">
+          <button class="btn">导出树</button>
+          <button class="btn primary">+ 新增节点</button>
+        </div>
+      </div>
+      <div class="data-card" style="padding: 24px;">
+        <div style="font-family: var(--font-mono); font-size: 13px; line-height: 1.9;">
+          <div>▸ 中煤鄂尔多斯能源化工有限公司 <span class="pill role">公司</span></div>
+          <div style="padding-left: 24px;">▸ 公司领导班子 <span class="row-sub">5 人</span></div>
+          <div style="padding-left: 24px;">▾ 职能部门 <span class="row-sub">14 个</span></div>
+          <div style="padding-left: 48px;">• 条件财务处 <span class="pill role">主导</span> <span class="row-sub">28 人</span></div>
+          <div style="padding-left: 48px;">• 人力资源处 <span class="row-sub">22 人</span></div>
+          <div style="padding-left: 48px;">• 技术管理处 <span class="row-sub">35 人</span></div>
+          <div style="padding-left: 48px;">• 安全环保处 <span class="row-sub">18 人</span></div>
+          <div style="padding-left: 48px;">• 物资采购处 <span class="row-sub">24 人</span></div>
+          <div style="padding-left: 48px;">• 党群工作处 <span class="row-sub">12 人</span></div>
+          <div style="padding-left: 24px;">▾ 业务部门 <span class="row-sub">28 个</span></div>
+          <div style="padding-left: 48px;">• 生产运行处 <span class="row-sub">85 人</span></div>
+          <div style="padding-left: 48px;">• 设备管理处 <span class="row-sub">42 人</span></div>
+          <div style="padding-left: 48px;">• 化工生产部 <span class="row-sub">68 人</span></div>
+          <div style="padding-left: 48px;">• 煤矿生产部 <span class="row-sub">96 人</span></div>
+          <div style="padding-left: 48px;">• 新能源事业部 <span class="pill warn">新</span> <span class="row-sub">15 人</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<a href="index.html" class="back-link">← 返回概览</a>
+
+<script>
+  function switchTab(id) {
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById('page-' + id);
+    if (target) target.classList.add('active');
+    else document.getElementById('page-users').classList.add('active');
+  }
+</script>
+
+</body>
+</html>

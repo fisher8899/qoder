@@ -5,6 +5,7 @@ import com.ccerphr.assessment.dto.AppealCreateDTO;
 import com.ccerphr.assessment.dto.AppealHandleDTO;
 import com.ccerphr.assessment.dto.AppealQueryDTO;
 import com.ccerphr.assessment.entity.BizAppeal;
+import com.ccerphr.assessment.entity.BizAppealAttachment;
 
 import java.util.List;
 import java.util.Map;
@@ -28,4 +29,8 @@ public interface BizAppealService extends IService<BizAppeal> {
     List<BizAppeal> getPendingReevalList(Long scorerOrgId);
 
     void reScoreAppeal(Long id, AppealHandleDTO dto, String handledBy);
+
+    BizAppeal getAccessibleAppeal(Long id);
+
+    BizAppealAttachment getAccessibleAttachment(Long attachmentId);
 }

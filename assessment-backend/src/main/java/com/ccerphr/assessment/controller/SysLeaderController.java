@@ -7,6 +7,8 @@ import com.ccerphr.assessment.dto.LeaderQueryDTO;
 import com.ccerphr.assessment.entity.SysEmployee;
 import com.ccerphr.assessment.entity.SysLeader;
 import com.ccerphr.assessment.mapper.SysEmployeeMapper;
+import com.ccerphr.assessment.security.RequireRole;
+import com.ccerphr.assessment.security.UnitScopeAccess;
 import com.ccerphr.assessment.service.SysLeaderService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -71,19 +73,25 @@ public class SysLeaderController {
     }
 
     @PostMapping
+    @RequireRole({"ADMIN", "FIN_ADMIN"})
     public Result<Void> add(@RequestBody @Validated SysLeader leader) {
+        UnitScopeAccess.requireAdminOrUnitScope();
         sysLeaderService.addLeader(leader);
         return Result.success();
     }
 
     @PutMapping
+    @RequireRole({"ADMIN", "FIN_ADMIN"})
     public Result<Void> update(@RequestBody @Validated SysLeader leader) {
+        UnitScopeAccess.requireAdminOrUnitScope();
         sysLeaderService.updateLeader(leader);
         return Result.success();
     }
 
     @DeleteMapping("/{id}")
+    @RequireRole({"ADMIN", "FIN_ADMIN"})
     public Result<Void> delete(@PathVariable Long id) {
+        UnitScopeAccess.requireAdminOrUnitScope();
         sysLeaderService.deleteLeader(id);
         return Result.success();
     }

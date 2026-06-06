@@ -13,7 +13,7 @@ public interface SysOrganizationService extends IService<SysOrganization> {
 
     SysOrganization getDetail(Long id);
 
-    List<SysOrganization> getAll();
+    List<SysOrganization> getAll(Long unitId);
 
     void addOrganization(SysOrganization organization);
 

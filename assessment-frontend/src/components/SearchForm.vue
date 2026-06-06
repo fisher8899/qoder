@@ -89,6 +89,12 @@ watch(() => props.fields, (fields) => {
   })
 }, { immediate: true })
 
+watch(() => props.modelValue, (value) => {
+  props.fields.forEach(f => {
+    formData[f.prop] = value[f.prop] || ''
+  })
+}, { deep: true })
+
 function handleSearch() {
   emit('search', { ...formData })
   emit('update:modelValue', { ...formData })
